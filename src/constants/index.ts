@@ -11,7 +11,7 @@ import { IoSettingsOutline } from 'react-icons/io5';
 import { PiStudent } from 'react-icons/pi';
 
 import { BiServer } from 'react-icons/bi';
-import { TbVectorBezier } from 'react-icons/tb';
+import { RiBriefcase4Line } from "react-icons/ri";
 
 // --- Sub-Menu & Nested Icons ---
 import {
@@ -46,10 +46,12 @@ import {
     RiGraduationCapLine,
     RiCrosshairLine,
     RiInformationLine,
+    RiInformationLine,
 } from 'react-icons/ri';
 import { LucideShieldX } from 'lucide-react';
 
 
+export const menuItems = [
 export const menuItems = [
     {
         id: 'dashboards',
@@ -102,10 +104,32 @@ export const menuItems = [
         icon: GoProjectRoadmap,
         type: 'dropdown',
         subItems: [
-            { id: 'conceptions', title: 'Conceptions', link: '/projets/conceptions', icon: RiBarChartBoxLine, type: 'link' },
-            { id: 'evaluations', title: 'Evaluations', link: '/projets/evaluations', icon: RiBarChartBoxLine, type: 'link' },
-            { id: 'publications', title: 'Publications', link: '/projets/publications', icon: RiBookOpenLine, type: 'link' },
-            { id: 'sondages', title: 'Sondages', link: '/projets/sondages', icon: RiBarChartBoxLine, type: 'link' },
+            // This is the direct 'Projets' link under the main 'Projets' dropdown
+          
+              {
+                id: 'finance_dropdown',
+                title: 'Projets',
+                type: 'dropdown',
+                icon: null, // No icon visible next to 'Finance' in image_22c73e.png
+                link: '/projets/liste', // This acts as a non-navigating parent for its own nested items
+                nestedDropdownItems: [
+                    { id: 'projets', title: 'Projets', link: '/projets/projets/projets', icon: RiBriefcase4Line, type: 'link' },
+                    
+                ],
+            },
+            // This is the 'Finance' dropdown which is a direct child of the main 'Projets' dropdown
+            {
+                id: 'projets_finance_dropdown',
+                title: 'Finance',
+                type: 'dropdown',
+                icon: null, // No icon visible next to 'Finance' in image_22c73e.png
+                link: '#', // This acts as a non-navigating parent for its own nested items
+                nestedDropdownItems: [
+                    { id: 'ressources-financieres', title: 'Ressources financières', link: '/projets/finance/ressources', icon: RiMoneyDollarCircleLine, type: 'link' },
+                    { id: 'depenses', title: 'Dépenses', link: '/projets/finance/depenses', icon: RiExchangeFundsLine, type: 'link' },
+                    { id: 'caisses', title: 'Caisses', link: '/projets/finance/caisses', icon: RiWalletLine, type: 'link' },
+                ],
+            },
         ],
     },
     {
@@ -224,6 +248,7 @@ export const menuItems = [
                 nestedDropdownItems: [
                     { id: 'bons-de-reception-app', title: 'Bons de réception', link: '/approvisionnement/bons-de-reception', icon: RiListUnordered, type: 'link' },
                     { id: 'bons-de-sortie', title: 'Bons de sortie', link: '/approvisionnement/bons-de-sortie', icon: RiListUnordered, type: 'link' },
+                    { id: 'fiches-mise-a-disp', title: 'Fiches de mise à disposition', link: '/approvisionnement/fiches-mise-a-disp', icon: RiListUnordered, type: 'link' },
                     { id: 'fiches-mise-a-disp', title: 'Fiches de mise à disposition', link: '/approvisionnement/fiches-mise-a-disp', icon: RiListUnordered, type: 'link' },
                     { id: 'bons-de-retour', title: 'Bons de retour', link: '/approvisionnement/bons-de-retour', icon: RiListUnordered, type: 'link' }, // Added link
                 ],
