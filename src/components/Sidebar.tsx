@@ -31,7 +31,7 @@ const Sidebar = ({isSidebarToggled}) => {
     },[isSidebarToggled])
   return (
    <div className='flex h-full '>
-     <ul className='custom-sidebar-scroll  w-28 overflow-y-auto bg-white font-nunito shadow-lg  border pt-6 border-gray-200 flex flex-col  h-full '>  
+     <ul className='custom-sidebar-scroll text-center  w-28 overflow-y-auto bg-white font-nunito shadow-lg  border pt-6 border-gray-200 flex flex-col  h-full '>  
            {menuItems.map((item,index)=>(
             <li key={item.label} className={linkStyle} onClick={()=>handleActiveMainMenuItemId(item.id)}>
                 <item.icon className='text-gray-500' size={28} />
