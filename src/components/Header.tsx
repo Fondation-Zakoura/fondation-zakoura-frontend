@@ -93,12 +93,12 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     </Link>
                 </div>
                 <button
-                    aria-label="Toggle dark mode"
-                    className="focus:outline-none lg:block hidden align-middle"
+                    aria-label="Toggle dark mode  "
+                    className="focus:outline-none"
                 >
                     <PiToggleLeftFill className="text-gray-300  cursor-pointer" size={44} aria-hidden="true" />
                 </button>
-                <div className="relative lg:block hidden " ref={appLauncherRef}>
+                <div className="relative  hidden lg:block" ref={appLauncherRef}>
                     <button
                         aria-label="Open grid menu"
                         className="relative align-middle "
@@ -136,16 +136,12 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     tabIndex={0}
                 >
                     <BsArrowsFullscreen
-                        className="text-gray-400 hover:text-gray-600 cursor-pointer lg:block hidden"
+                        className="text-gray-400 hover:text-gray-600 cursor-pointer hidden lg:block"
                         size={17}
                         aria-hidden="true"
                     />
                 </button>
-                <div
-                    className="relative cursor-pointer"
-                    onClick={handledropdownToggle}
                     ref={dropdownRef}
-                >
                     <img
                         src={userImage}
                         className="min-w-10 h-10 rounded-full "
