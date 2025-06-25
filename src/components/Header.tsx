@@ -93,12 +93,12 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     </Link>
                 </div>
                 <button
-                    aria-label="Toggle dark mode"
+                    aria-label="Toggle dark mode  "
                     className="focus:outline-none"
                 >
                     <PiToggleLeftFill className="text-gray-300  cursor-pointer" size={44} aria-hidden="true" />
                 </button>
-                <div className="relative" ref={appLauncherRef}>
+                <div className="relative  hidden lg:block" ref={appLauncherRef}>
                     <button
                         aria-label="Open grid menu"
                         className="relative"
@@ -112,7 +112,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     </button>
                     <AppLauncherDropdown isAppLauncherToggled={isAppLauncherToggled} />
                 </div>
-                <div className="relative">
+                <div className="relative  hidden lg:block">
                     <button
                         aria-label={`You have ${notificationCount} notifications`}
                         className="focus:outline-none"
@@ -136,7 +136,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     tabIndex={0}
                 >
                     <BsArrowsFullscreen
-                        className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                        className="text-gray-400 hover:text-gray-600 cursor-pointer hidden lg:block"
                         size={17}
                         aria-hidden="true"
                     />

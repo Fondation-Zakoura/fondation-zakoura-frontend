@@ -10,7 +10,7 @@ const LinkItem = ({ item, depth }) => {
 
     return (
         <li className="sub-menu-item py-2 hover:bg-gray-100 flex items-center" style={{ paddingLeft: paddingLeft }}>
-            <Link to={item.link} className="block w-full text-gray-700 hover:text-blue-600 flex items-center">
+            <Link to={item.link} className="block w-full text-gray-700 hover:text-blue-600 flex items-center truncate w-48">
                 {/* Conditionally render icon if it exists for this item */}
                 {item.icon && <span className="mr-2"><item.icon /></span>}
                 {item.title}
@@ -25,7 +25,7 @@ const HeaderItem = ({ item, depth }) => {
     const paddingLeft = `${(depth * 16) + 20}px`; // Adjust 20px base padding as needed
 
     return (
-        <li className="flex items-center py-3 text-sm font-semibold text-gray-500 uppercase -b mt-2 mb-1" style={{ paddingLeft: paddingLeft }}>
+        <li className="flex items-center py-3  text-sm font-semibold text-gray-500 uppercase -b mt-2 mb-1" style={{ paddingLeft: paddingLeft }}>
            <IoIosArrowDown /> {item.title}
         </li>
     );
@@ -52,7 +52,7 @@ const DropdownItem = ({ item, depth }) => {
                  {isOpen ? <IoIosArrowDown size={14} /> : <IoIosArrowForward size={14} />}
                 <div className="flex items-center">
                     {item.icon && <span className="mr-2">{item.icon}</span>}
-                    <span className="text-gray-700">{item.title}</span>
+                    <span className="text-gray-700 truncate">{item.title}</span>
                 </div>
                 
                
