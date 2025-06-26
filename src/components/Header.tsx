@@ -78,7 +78,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
             <div className="px-3">
                 <button
                     aria-label="Open menu"
-                    className="focus:outline-none"
+                    className="focus:outline-none "
                     tabIndex={0}
                     onClick={handleSidebarToggle} 
                      ref={menuButtonRef}
@@ -86,22 +86,22 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     <CiMenuBurger size={22} aria-hidden="true" className="cursor-pointer text-gray-500 hover:text-gray-800" />
                 </button>
             </div>
-            <div className="flex items-center gap-5 px-10">
-                <div className="px-20">
+            <div className="flex items-center  gap-5 px-10">
+                <div className="">
                     <Link to="/" aria-label="Go to homepage">
-                        <img src={logo} className="w-48 h-9 cursor-pointer" alt="Zakoura logo" />
+                        <img src={logo} className="lg:min-w-48 h-9 min-w-34 cursor-pointer" alt="Zakoura logo" />
                     </Link>
                 </div>
                 <button
-                    aria-label="Toggle dark mode  "
-                    className="focus:outline-none"
+                    aria-label="Toggle dark mode"
+                    className="focus:outline-none lg:block hidden align-middle"
                 >
                     <PiToggleLeftFill className="text-gray-300  cursor-pointer" size={44} aria-hidden="true" />
                 </button>
-                <div className="relative  hidden lg:block" ref={appLauncherRef}>
+                <div className="relative lg:block hidden " ref={appLauncherRef}>
                     <button
                         aria-label="Open grid menu"
-                        className="relative"
+                        className="relative align-middle "
                         onClick={handleAppLauncherToggle}
                     >
                         <IoGridOutline
@@ -112,18 +112,18 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     </button>
                     <AppLauncherDropdown isAppLauncherToggled={isAppLauncherToggled} />
                 </div>
-                <div className="relative  hidden lg:block">
+                <div className="relative">
                     <button
                         aria-label={`You have ${notificationCount} notifications`}
-                        className="focus:outline-none"
+                        className="focus:outline-none align-middle"
                     >
                         <IoNotificationsOutline
-                            className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                            className="text-gray-400 hover:text-gray-600 cursor-pointer "
                             size={20}
                             aria-hidden="true"
                         />
                         <span
-                            className="border rounded-full text-[10px] absolute -top-4 -right-1.5 h-[18px] min-w-[18px] flex items-center justify-center bg-white"
+                            className="border rounded-full text-[10px] absolute -top-3 -right-1.5 h-[18px] min-w-[18px] flex items-center justify-center bg-white"
                             role="status"
                             aria-live="polite"
                         >
@@ -136,7 +136,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     tabIndex={0}
                 >
                     <BsArrowsFullscreen
-                        className="text-gray-400 hover:text-gray-600 cursor-pointer hidden lg:block"
+                        className="text-gray-400 hover:text-gray-600 cursor-pointer lg:block hidden"
                         size={17}
                         aria-hidden="true"
                     />
@@ -148,7 +148,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                 >
                     <img
                         src={userImage}
-                        className="w-10 h-10 rounded-full "
+                        className="min-w-10 h-10 rounded-full "
                         alt="User profile"
                     />
                     <UserDropdown isDropdownToggled={isDropdownToggled} />

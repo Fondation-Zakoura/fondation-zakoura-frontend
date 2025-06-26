@@ -2,6 +2,7 @@
 
 @theme{
    --font-nunito:"Nunito" ,sans-serif;
+   
 }
 
 #root,body, html {
@@ -35,3 +36,6 @@
  
 }
 
+.button-primary{
+  
+}
