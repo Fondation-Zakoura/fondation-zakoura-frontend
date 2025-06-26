@@ -78,13 +78,13 @@ const MainLayout: React.FC = () => {
       {/* Sidebar with transition and toggle functionality */}
       <aside
         ref={sidebarRef}
-        className={`h-full fixed pt-17 ${isSidebarToggled ? "translate-x-0" : "-translate-x-84 "} transition-all ease-in-out duration-400`}
+        className={`h-full fixed pt-17 z-20 ${isSidebarToggled ? "translate-x-0" : "-translate-x-84 "} transition-all ease-in-out duration-400`}
       >
         {/* Pass typed props to Sidebar component */}
         <Sidebar isSidebarToggled={isSidebarToggled} />
       </aside>
       {/* Main content area where routed components are rendered */}
-      <main className=''>
+      <main className='relative top-37 lg:mx-3'>
         <Outlet />
       </main>
     </div>
