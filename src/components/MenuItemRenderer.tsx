@@ -22,7 +22,7 @@ const LinkItem = ({ item, depth }) => {
 // --- 2. Helper Component: Renders a non-clickable header/separator item ---
 const HeaderItem = ({ item, depth }) => {
     // Calculate padding based on depth for visual indentation
-    const paddingLeft = `${(depth * 16) + 20}px`; // Adjust 20px base padding as needed
+    const paddingLeft = `${(depth * 16) + 20}px`; 
 
     return (
         <li className="flex items-center py-3  text-sm font-semibold text-gray-500 uppercase -b mt-2 mb-1" style={{ paddingLeft: paddingLeft }}>
