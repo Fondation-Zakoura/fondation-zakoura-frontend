@@ -72,13 +72,13 @@ const MainLayout: React.FC = () => { // Added React.FC for better type checking 
       {/* Sidebar with transition and toggle functionality */}
       <aside
         ref={sidebarRef}
-        className={`h-full fixed pt-17 ${isSidebarToggled ? "translate-x-0" : "-translate-x-84 "} transition-all ease-in-out duration-400`}
+        className={`h-full fixed pt-17 z-20 ${isSidebarToggled ? "translate-x-0" : "-translate-x-84 "} transition-all ease-in-out duration-400`}
       >
         {/* Pass typed props to Sidebar component */}
         <Sidebar isSidebarToggled={isSidebarToggled} />
       </aside>
       {/* Main content area where routed components are rendered */}
-      <main className=''>
+      <main className='relative top-37 lg:mx-3'>
         <Outlet />
       </main>
     </div>
@@ -86,3 +86,31 @@ const MainLayout: React.FC = () => { // Added React.FC for better type checking 
 };
 
 export default MainLayout;
+
+// PageHeaderLayout: A reusable header for pages with breadcrumbs
+export interface Breadcrumb {
+  label: string;
+  active?: boolean;
+}
+
+interface PageHeaderLayoutProps {
+  title: string;
+  breadcrumbs: Breadcrumb[];
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export const PageHeaderLayout: React.FC<PageHeaderLayoutProps> = ({ title, breadcrumbs, className = '', children }) => (
+  <div className={`mb-8 ${className}`}>
+    <h2 className="text-2xl font-bold text-[#0B2447] mb-1">{title}</h2>
+    <div className="text-sm text-gray-400 flex flex-wrap items-center gap-1">
+      {breadcrumbs.map((bc, idx) => (
+        <React.Fragment key={idx}>
+          {idx > 0 && <span className="mx-1">|</span>}
+          <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+        </React.Fragment>
+      ))}
+    </div>
+    {children}
+  </div>
+);
