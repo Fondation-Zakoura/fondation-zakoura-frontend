@@ -1,7 +1,7 @@
 // MainLayout.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import Header from '../components/Header'; // Assuming Header.tsx
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar'; // Assuming Sidebar.tsx
 
 /**
@@ -64,7 +64,7 @@ const MainLayout: React.FC = () => { // Added React.FC for better type checking 
 
   return (
     <div className='h-full'>
-
+      
       <header className='fixed w-full z-50 '>
         {/* Pass typed props to Header component */}
         <Header handleSidebarToggle={handleSidebarToggle} menuButtonRef={menuButtonRef} />
@@ -78,7 +78,7 @@ const MainLayout: React.FC = () => { // Added React.FC for better type checking 
         <Sidebar isSidebarToggled={isSidebarToggled} />
       </aside>
       {/* Main content area where routed components are rendered */}
-      <main className='relative top-37 lg:mx-3'>
+      <main className='relative top-24 lg:mx-3'>
         <Outlet />
       </main>
     </div>
@@ -91,6 +91,7 @@ export default MainLayout;
 export interface Breadcrumb {
   label: string;
   active?: boolean;
+  url?:string;
 }
 
 interface PageHeaderLayoutProps {
@@ -107,7 +108,13 @@ export const PageHeaderLayout: React.FC<PageHeaderLayoutProps> = ({ title, bread
       {breadcrumbs.map((bc, idx) => (
         <React.Fragment key={idx}>
           {idx > 0 && <span className="mx-1">|</span>}
-          <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+          {bc.url ? (
+            <Link to={bc.url}>
+              <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+            </Link>
+          ) : (
+            <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+          )}
         </React.Fragment>
       ))}
     </div>

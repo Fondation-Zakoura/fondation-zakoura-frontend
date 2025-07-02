@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGetProjectBankAccountsQuery, useCreateProjectBankAccountMutation, useUpdateProjectBankAccountMutation, useDeleteProjectBankAccountMutation } from '@/features/api/projectsApi';
 import type {  ProjectBankAccount } from '@/features/types/project';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Pen, Eye, Trash } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
+import type { Column, ColumnFilter } from "@/components/ui/data-table";
+import { DataTable } from '@/components/ui/data-table';
 
 const emptyAccount: ProjectBankAccount = { id: 0, rib: '', agency: '', bank: '' };
 
@@ -20,6 +22,8 @@ const ProjectBankAccountsPage: React.FC = () => {
   const [selected, setSelected] = useState<ProjectBankAccount | null>(null);
   const [form, setForm] = useState(emptyAccount);
   const [error, setError] = useState('');
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<ProjectBankAccount | null>(null);
 
   const openAdd = () => { setForm(emptyAccount); setModal('add'); };
   const openEdit = (account: ProjectBankAccount) => { setForm(account); setSelected(account); setModal('edit'); };
@@ -65,51 +69,87 @@ const ProjectBankAccountsPage: React.FC = () => {
     }
   };
 
-  
+  const columnFilters = useMemo((): ColumnFilter<ProjectBankAccount>[] => {
+    const uniqueRibs = Array.from(new Set(accounts.map(a => a.rib)));
+    const uniqueAgencies = Array.from(new Set(accounts.map(a => a.agency)));
+    const uniqueBanks = Array.from(new Set(accounts.map(a => a.bank)));
+
+    return [
+      {
+        id: "rib",
+        label: "RIB",
+        options: uniqueRibs.map(rib => ({ value: rib, label: rib }))
+      },
+      {
+        id: "agency",
+        label: "Agence",
+        options: uniqueAgencies.map(agency => ({ value: agency, label: agency }))
+      },
+      {
+        id: "bank",
+        label: "Banque",
+        options: uniqueBanks.map(bank => ({ value: bank, label: bank }))
+      }
+    ];
+  }, [accounts]);
+
+  const columns: Column<ProjectBankAccount>[] = [
+    { key: "rib", header: "RIB",sortable:true },
+    { key: "agency", header: "Agence" ,sortable:true},
+    { key: "bank", header: "Banque" ,sortable:true},
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex gap-1 justify-end">
+          <button onClick={() => openShow(row)} className="p-2 rounded hover:bg-gray-200 text-gray-600" title="Voir"><Eye size={16} /></button>
+          <button onClick={() => openEdit(row)} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Éditer"><Pen size={16} /></button>
+          <button
+            onClick={() => {
+              setAccountToDelete(row);
+              setConfirmDeleteOpen(true);
+            }}
+            className="p-2 rounded hover:bg-red-100 text-red-600"
+            title="Supprimer"
+          >
+            <Trash size={16} />
+          </button>
+        </div>
+      ),
+      sortable: false,
+    }
+  ];
 
   return (
     <div className="p-8">
-      <PageHeaderLayout
-        title="Comptes bancaires de projet"
-        breadcrumbs={[
-          { label: 'Tableaux de bord' },
-          { label: 'Comptes bancaires de projet', active: true }
-        ]}
-      >
-        <Button onClick={openAdd} className="ml-auto flex items-center gap-2 bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow">
-          <Plus className="w-4 h-4" /> Ajouter
+      <div className="flex justify-between items-center mb-8">
+        <PageHeaderLayout
+            title="Comptes bancaires de projet"
+            breadcrumbs={[
+            { label: 'Tableaux de bord' },
+            { label: 'Comptes bancaires de projet', active: true }
+            ]}
+        >
+        </PageHeaderLayout>
+        <Button onClick={openAdd} className="ml-auto flex items-center gap-2 bg-[#19376D] hover:bg-[#19386df9] text-white font-bold px-6 py-2 cursor-pointer rounded-lg shadow">
+        <Plus className="w-4 h-4" /> Ajouter
         </Button>
-      </PageHeaderLayout>
+      </div>
       <div className="bg-white rounded-xl shadow p-6">
         {isLoading ? (
           <div>Chargement...</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Id</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">RIB</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Agence</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Banque</th>
-                <th className="px-4 py-2 text-center text-xs font-bold text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((account:ProjectBankAccount,index:number) => (
-                <tr key={index} className="border-b hover:bg-blue-50">
-                  <td className="px-4 py-2 font-medium text-left text-gray-800">{account.id}</td>
-                  <td className="px-4 py-2 font-medium text-left text-gray-800">{account.rib}</td>
-                  <td className="px-4 py-2 text-left text-gray-500">{account.agency}</td>
-                  <td className="px-4 py-2 text-left text-gray-500">{account.bank}</td>
-                  <td className="px-4 py-2 text-center flex gap-2 justify-center">
-                    <Button variant="ghost" size="icon" onClick={() => openShow(account)}><Eye className="w-5 h-5 text-blue-600" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(account)}><Pen className="w-5 h-5 text-green-600" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(account)}><Trash className="w-5 h-5 text-red-600" /></Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable 
+          columns={columns}
+          data={accounts}
+          hoverEffect
+          emptyText={isLoading ? 'Chargement des données...'  : 'Aucun partenaire trouvé'}
+          headerStyle={'primary'}
+          striped
+          initialPageSize={10}
+          columnFilters={columnFilters}
+          /> 
         )}
       </div>
       {/* Add Modal */}
@@ -172,6 +212,36 @@ const ProjectBankAccountsPage: React.FC = () => {
           )}
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Fermer</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce compte bancaire ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (accountToDelete) {
+                  await handleDelete(accountToDelete);
+                  setConfirmDeleteOpen(false);
+                  setAccountToDelete(null);
+                }
+              }}
+            >
+              Supprimer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

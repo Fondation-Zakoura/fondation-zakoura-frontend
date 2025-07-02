@@ -1,3 +1,5 @@
+import type { Partner } from "@/types/partners";
+
 export interface Project {
   id: number;
   project_code:string;
@@ -16,6 +18,7 @@ export interface Project {
   responsible_id:number;
   created_by?:User;
   created_by_id:number;
+  partners:Partner[];
   project_bank_account?:ProjectBankAccount;
   project_nature:string;
   updated_at: string;
@@ -41,7 +44,6 @@ export interface ProjectStatus {
   id: number;
   name: string;
   description?: string;
-  color?: string;
 }
 
 export interface ProjectsResponse {
@@ -55,12 +57,17 @@ export interface ProjectsResponse {
     to: number;
     total: number;
   };
-  links: {
-    first: string;
-    last: string;
-    prev: string | null;
-    next: string | null;
-  };
+  links: [];
+  last_page:number;
+  current_page:number;
+  first_page_url:string;
+  from:number;
+  last_page_url:string;
+  next_page_url:string;
+  per_page:number;
+  prev_page_url:string;
+  to:number;
+  total:number;
 }
 
 

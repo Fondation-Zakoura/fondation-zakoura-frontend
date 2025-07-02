@@ -1,43 +1,33 @@
 import  { useState, useMemo } from 'react';
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+
 import { Button } from '@/components/ui/button';
-import {  ChevronDown, Settings, Plus, Trash, Pen, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useGetProjectsQuery, useBulkDeleteProjectsMutation } from '@/features/api/projectsApi';
-import type { Project } from '@/features/types/project';
+import {   Settings, Plus, Trash, Pen, Eye } from 'lucide-react';
+import { DataTable, type Column, type ColumnFilter } from "@/components/ui/data-table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
+
+import { useGetProjectsQuery, useBulkDeleteProjectsMutation, useGetProjectStatusesQuery, useGetProjectTypesQuery, useGetProjectFormOptionsQuery } from '@/features/api/projectsApi';
+import type { Project, ProjectStatus, ProjectType } from '@/features/types/project';
 import { useNavigate } from 'react-router-dom';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 
-const columnHelper = createColumnHelper<Project>();
 
 function Projects() {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState<any>([]); 
-  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
   const [globalFilter, setGlobalFilter] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteMessage, setBulkDeleteMessage] = useState('');
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [pendingBulkDeleteIds, setPendingBulkDeleteIds] = useState<number[]>([]);
+  const [selectedPartner, setSelectedPartner] = useState<any>(null);
+  const [partnerModalOpen, setPartnerModalOpen] = useState(false);
 
   const { data, isLoading, isError, refetch } = useGetProjectsQuery({
     page: pagination.pageIndex + 1, 
@@ -48,255 +38,144 @@ function Projects() {
 
   const [bulkDeleteProjects] = useBulkDeleteProjectsMutation();
 
-  const projects = data?.data || [];
-  const pageCount = data?.meta?.last_page || 1;
+  const projects: (Project & { partners?: any[] })[] = data?.data || [];
 
-  
-  const filteredProjects = useMemo(() => {
-    if (!globalFilter) return projects;
-    const filterLower = globalFilter.toLowerCase();
-    return projects.filter((p: Project) =>
-      (p.project_name || '').toLowerCase().includes(filterLower) ||
-      (p.project_code || '').toLowerCase().includes(filterLower) ||
-      (p.project_type?.name || '').toLowerCase().includes(filterLower) ||
-      (p.project_status?.name || '').toLowerCase().includes(filterLower)
-    );
-  }, [projects, globalFilter]);
-
-
-  const handleBulkDelete = async () => {
-    const selectedIds = Object.keys(rowSelection)
-      .filter((key) => rowSelection[key])
-      .map((key) => filteredProjects[parseInt(key)]?.id) // Ensure we get ID from filteredProjects
-      .filter(Boolean);
-
-    if (selectedIds.length === 0) {
-      alert('Veuillez sélectionner au moins un projet à supprimer.');
-      return;
-    }
-
-    if (!window.confirm('Voulez-vous vraiment supprimer les projets sélectionnés ? Cette action est irréversible.')) {
-      return;
-    }
-
+  const handleShow = (id: number) => {
+    navigate(`/projects/${id}`);
+  }
+  const handleDelete = (id: number) => {
+    setProjectToDelete(projects.find(p => p.id === id) || null);
+    setConfirmDeleteOpen(true);
+  };
+  const confirmDelete = async () => {
+    if (!projectToDelete) return;
     setBulkDeleting(true);
     try {
-      await bulkDeleteProjects(selectedIds).unwrap();
-      setRowSelection({});
+      await bulkDeleteProjects([projectToDelete.id]).unwrap();
       refetch();
-      alert('Projets supprimés avec succès.');
+      setProjectToDelete(null);
+      setConfirmDeleteOpen(false);
+      setBulkDeleteMessage('Projet supprimé avec succès.');
+      setBulkDeleteModalOpen(true);
     } catch (error) {
-      console.error('Erreur lors de la suppression en masse:', error);
-      alert('Échec de la suppression des projets.');
+      setBulkDeleteMessage('Erreur lors de la suppression du projet.');
+      setBulkDeleteModalOpen(true);
     } finally {
       setBulkDeleting(false);
     }
   };
 
-  const handleShow = (id: number) => {
-    navigate(`/projects/${id}`);
-  }
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Voulez-vous vraiment supprimer ce projet ? Cette action est irréversible.')) {
-      return;
-    }
-    alert(`Simulating deletion of project ${id}.`);
-    refetch();
-  }
-  
-  const columns = useMemo(
-    () => [
-      columnHelper.display({
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            checked={table.getIsAllRowsSelected() || (table.getIsSomeRowsSelected() && 'indeterminate')}
-            onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
-            aria-label="Select all"
-            className="border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Select row"
-            className="border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
-            onClick={e => e.stopPropagation()}
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      }),
-      columnHelper.accessor('project_name', {
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={column.getToggleSortingHandler()} // Correct handler
-            className="flex items-center gap-1 cursor-pointer select-none px-0 hover:bg-transparent text-[#0B2447] font-bold"
-          >
-            Nom du Projet
-            {{
-              asc: <ArrowUp className="ml-2 h-4 w-4" />,
-              desc: <ArrowDown className="ml-2 h-4 w-4" />,
-            }[column.getIsSorted() as string] ?? <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />}
-          </Button>
-        ),
-        cell: info => <div className="font-medium text-gray-800 text-sm">{info.getValue()}</div>,
-        enableSorting: true,
-      }),
-      columnHelper.accessor('project_code', {
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={column.getToggleSortingHandler()}
-            className="flex items-center gap-1 cursor-pointer select-none px-0 hover:bg-transparent text-[#0B2447] font-bold"
-          >
-            Code du Projet
-            {{
-              asc: <ArrowUp className="ml-2 h-4 w-4" />,
-              desc: <ArrowDown className="ml-2 h-4 w-4" />,
-            }[column.getIsSorted() as string] ?? <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />}
-          </Button>
-        ),
-        cell: info => <div className="font-medium text-gray-800 text-sm">{info.getValue()}</div>,
-        enableSorting: true,
-      }),
-      columnHelper.accessor(row => row.project_type?.name || '', {
-        id: 'project_type_name',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={column.getToggleSortingHandler()}
-            className="flex items-center gap-1 cursor-pointer select-none px-0 hover:bg-transparent text-[#0B2447] font-bold"
-          >
-            Type du Projet
-            {{
-              asc: <ArrowUp className="ml-2 h-4 w-4" />,
-              desc: <ArrowDown className="ml-2 h-4 w-4" />,
-            }[column.getIsSorted() as string] ?? <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />}
-          </Button>
-        ),
-        cell: info => <div className="font-medium text-gray-800 text-sm">{info.getValue()}</div>,
-        enableSorting: true,
-      }),
-      columnHelper.accessor(row => row.project_status?.name || '', {
-        id: 'project_status_name', 
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={column.getToggleSortingHandler()}
-            className="flex items-center gap-1 cursor-pointer select-none px-0 hover:bg-transparent text-[#0B2447] font-bold"
-          >
-            Statut
-            {{
-              asc: <ArrowUp className="ml-2 h-4 w-4" />,
-              desc: <ArrowDown className="ml-2 h-4 w-4" />,
-            }[column.getIsSorted() as string] ?? <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />}
-          </Button>
-        ),
-        cell: info => (
-          <Badge className={`px-3 py-1 rounded-full text-xs font-medium`}>
-            {info.getValue()}
-          </Badge>
-        ),
-        enableSorting: true,
-      }),
-      columnHelper.accessor(row => row.start_date ? new Date(row.start_date).toLocaleDateString() : '', {
-        id: 'start_date', 
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={column.getToggleSortingHandler()}
-            className="flex items-center gap-1 cursor-pointer select-none px-0 hover:bg-transparent text-[#0B2447] font-bold"
-          >
-            Date de début
-            {{
-              asc: <ArrowUp className="ml-2 h-4 w-4" />,
-              desc: <ArrowDown className="ml-2 h-4 w-4" />,
-            }[column.getIsSorted() as string] ?? <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />}
-          </Button>
-        ),
-        cell: info => <div className="text-sm text-gray-500 text-right">{info.getValue()}</div>,
-        enableSorting: true,
-      }),
-      columnHelper.accessor(row => row.end_date ? new Date(row.end_date).toLocaleDateString() : '', {
-        id: 'end_date',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={column.getToggleSortingHandler()}
-            className="flex items-center gap-1 cursor-pointer select-none px-0 hover:bg-transparent text-[#0B2447] font-bold"
-          >
-            Date de fin
-            {{
-              asc: <ArrowUp className="ml-2 h-4 w-4" />,
-              desc: <ArrowDown className="ml-2 h-4 w-4" />,
-            }[column.getIsSorted() as string] ?? <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />}
-          </Button>
-        ),
-        cell: info => <div className="text-sm text-gray-500 text-right">{info.getValue()}</div>,
-        enableSorting: true,
-      }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-400 hover:text-blue-600 cursor-pointer"
-              onClick={e => { e.stopPropagation(); handleShow(row.original.id); }}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-400 hover:text-red-600 cursor-pointer"
-              onClick={e => { e.stopPropagation(); handleDelete(row.original.id); }}
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-400 hover:text-green-600 cursor-pointer"
-              onClick={e => { e.stopPropagation(); navigate(`/projects/${row.original.id}/edit`) }}
-            >
-              <Pen className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      }),
-    ],
-    []
-  );
-
-  const table = useReactTable({
-    data: filteredProjects,
-    columns,
-    state: {
-      sorting,
-      rowSelection,
-      pagination,
-      globalFilter,
+  const columns: Column<Project>[] = [
+    { key: "project_name", header: "Nom du Projet", sortable: true },
+    { key: "project_code", header: "Code du Projet", sortable: true },
+    {
+      key: "project_type",
+      header: "Type du Projet",
+      sortable: true,
+      render: (row) => row.project_type?.name || "-"
     },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    onGlobalFilterChange: setGlobalFilter,
-    manualPagination: true,
-    manualSorting: true, 
-    manualFiltering: false, 
-    pageCount: pageCount,
-  });
+    {
+      key: "project_status",
+      header: "Statut",
+      sortable: true,
+      render: (row) => row.project_status?.name || "-"
+    },
+    {
+      key: "project_nature",
+      header: "Nature",
+      sortable: true,
+      render: (row) => row.project_nature || "-"
+    },
+    {
+      key: "start_date",
+      header: "Date de début",
+      sortable: true,
+      render: (row) => row.start_date ? new Date(row.start_date).toLocaleDateString() : "-"
+    },
+    {
+      key: "end_date",
+      header: "Date de fin",
+      sortable: true,
+      render: (row) => row.end_date ? new Date(row.end_date).toLocaleDateString() : "-"
+    },
+    {
+      key: "partners",
+      header: "Partenaires",
+      render: (row: Project & { partners?: any[] }) => (
+        <div className="flex flex-wrap gap-2">
+          {row.partners?.map((partner: any, idx: number) => (
+            <Button
+              key={partner.id || idx}
+              variant="outline"
+              size="sm"
+              onClick={e => {
+                e.stopPropagation();
+                setSelectedPartner(partner);
+                setPartnerModalOpen(true);
+              }}
+              className="rounded-full border border-blue-200 bg-blue-50 text-blue-900 px-3 py-1 text-xs font-medium cursor-pointer hover:bg-blue-100 transition"
+            >
+              {partner.partner_name || partner.name}
+              {partner.pivot?.partner_role ? ` (${partner.pivot.partner_role})` : ""}
+            </Button>
+          ))}
+        </div>
+      ),
+      sortable: false,
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleShow(row.id); }}>
+            <Eye className="h-4 w-4 cursor-pointer" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDelete(row.id); }}>
+            <Trash className="h-4 w-4 cursor-pointer" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); navigate(`/projects/${row.id}/edit`) }}>
+            <Pen className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+      sortable: false,
+    }
+  ];
+  
+  const {data:options} = useGetProjectFormOptionsQuery();
+  const columnFilters = useMemo((): ColumnFilter<Project>[] => {
+    return [
+      {
+        id: 'project_type_id',
+        label: 'Type du Projet',
+        options: options?.project_statuses.map((type:ProjectType) => ({
+          value: type.id,
+          label: type.name
+        })) || [],
+      },
+      {
+        id: 'project_status_id',
+        label: 'Statut',
+        options: options?.project_types.map((status:ProjectStatus) => ({
+          value: status.id,
+          label: status.name
+        })) || [],
+      },
+      {
+        id: 'project_nature',
+        label: 'Nature de Projet',
+        options: Array.from(
+          new Set(options?.project_nature_options.filter(Boolean))
+        ).map((n) => ({
+          value: String(n),
+          label: String(n)
+        })),
+      },
+
+    ];
+  }, [ options, projects]);
 
   if (isLoading) return <div className="flex justify-center items-center h-screen text-xl text-gray-600">Chargement des projets...</div>;
   if (isError) return <div className="flex justify-center items-center h-screen text-xl text-red-600">Erreur lors du chargement des projets. Veuillez réessayer.</div>;
@@ -314,126 +193,155 @@ function Projects() {
           />
           <Button
             onClick={() => navigate('/projects/add')}
-            className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+            className="text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Ajouter un projet
           </Button>
         </div>
 
         <div className="flex items-center justify-between mb-4">
-          <Input
-            placeholder="Rechercher par nom, code, type ou statut..."
-            value={globalFilter}
-            onChange={e => setGlobalFilter(e.target.value)}
-            className="w-80 border-[#A5D7E8] focus:ring-[#576CBC] h-10 px-4 py-2 rounded-lg shadow-sm"
-          />
-          <Button
-            variant="destructive"
-            onClick={handleBulkDelete}
-            disabled={bulkDeleting || Object.keys(rowSelection).length === 0}
-            className="ml-auto bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2 border-none disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Trash className="w-4 h-4" /> {bulkDeleting ? 'Suppression...' : 'Supprimer la sélection'}
-          </Button>
+          
         </div>
 
-        <div className="overflow-x-auto rounded-xl shadow border border-[#A5D7E8] bg-white">
-          <Table className="min-w-full divide-y divide-[#A5D7E8]">
-            <TableHeader className="bg-[#A5D7E8]">
-              {table.getHeaderGroups().map(headerGroup => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map(header => (
-                    <TableHead
-                      key={header.id}
-                      className="px-4 py-3 text-[#0B2447] font-bold text-base bg-[#A5D7E8] border-b border-[#A5D7E8]"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row, index) => (
-                  <TableRow
-                    key={index}
-                    data-state={row.getIsSelected() && 'selected'}
-                    className="cursor-pointer hover:bg-[#E8F1FF] transition border-b border-[#A5D7E8] group"
-                    onClick={() => handleShow(row.original.id)}
-                  >
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} className="px-4 py-3 text-[#19376D] group-hover:text-[#0B2447]">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
-                    Aucun résultat trouvé.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="flex-1 text-sm text-gray-700">
-            {Object.keys(rowSelection).length} sur {table.getFilteredRowModel().rows.length} ligne(s) sélectionnée(s).
-          </div>
-          <div className="flex items-center space-x-6 lg:space-x-8">
-            <div className="flex items-center space-x-2">
-              <p className="text-sm font-medium">Lignes par page</p>
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value));
-                }}
-              >
-                <SelectTrigger className="h-8 w-[70px]">
-                  <SelectValue placeholder={table.getState().pagination.pageSize} />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  {[10, 20, 30, 40, 50].map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount()}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to previous page</span>
-                <ChevronDown className="h-4 w-4 rotate-90" />
-              </Button>
-              <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to next page</span>
-                <ChevronDown className="h-4 w-4 -rotate-90" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <DataTable
+          columns={columns}
+          data={projects}
+          columnFilters={columnFilters}
+          emptyText={isLoading ? 'Chargement des projets...' : 'Aucun projet trouvé'}
+          striped
+          hoverEffect
+          initialPageSize={10}
+          serverPagination
+          pageCount={data?.last_page}
+          pageIndex={data?.current_page ? data.current_page - 1 : 0}
+          onPaginationChange={({ pageIndex, pageSize }) => setPagination({ pageIndex, pageSize })}
+        />
       </div>
-     
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={bulkDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={bulkDeleteModalOpen} onOpenChange={setBulkDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suppression en masse</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center text-lg">{bulkDeleteMessage}</div>
+          <DialogFooter>
+            <Button onClick={() => setBulkDeleteModalOpen(false)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression en masse</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer les projets sélectionnés ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteConfirmOpen(false)}
+              disabled={bulkDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                setBulkDeleting(true);
+                try {
+                  await bulkDeleteProjects(pendingBulkDeleteIds).unwrap();
+                  refetch();
+                  setBulkDeleteMessage('Projets supprimés avec succès.');
+                  setBulkDeleteModalOpen(true);
+                } catch (error) {
+                  setBulkDeleteMessage('Erreur lors de la suppression des projets.');
+                  setBulkDeleteModalOpen(true);
+                } finally {
+                  setBulkDeleteConfirmOpen(false);
+                  setBulkDeleting(false);
+                  setPendingBulkDeleteIds([]);
+                }
+              }}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={partnerModalOpen} onOpenChange={setPartnerModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Détails du partenaire</DialogTitle>
+          </DialogHeader>
+          {selectedPartner ? (
+            <div className="border rounded-lg p-6 bg-white">
+              <div className="mb-4">
+                <div className="text-lg font-semibold text-gray-900">
+                  {selectedPartner.partner_name || selectedPartner.name}
+                </div>
+                {selectedPartner.partner_type && (
+                  <div className="text-sm text-gray-500">{selectedPartner.partner_type}</div>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Email:</span>
+                  <span className="ml-2 text-gray-900">{selectedPartner.email}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Téléphone:</span>
+                  <span className="ml-2 text-gray-900">{selectedPartner.phone}</span>
+                </div>
+                {selectedPartner.pivot?.partner_role && (
+                  <div>
+                    <span className="font-medium text-gray-700">Rôle dans le projet:</span>
+                    <span className="ml-2 text-gray-900 capitalize">{selectedPartner.pivot.partner_role}</span>
+                  </div>
+                )}
+                {selectedPartner.pivot?.partner_contribution && (
+                  <div>
+                    <span className="font-medium text-gray-700">Apport au projet:</span>
+                    <span className="ml-2 text-gray-900">{selectedPartner.pivot.partner_contribution} DH</span>
+                  </div>
+                )}
+              </div>
+             
+            </div>
+          ) : (
+            <div>Aucun partenaire sélectionné.</div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setPartnerModalOpen(false)} className="mt-4">Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

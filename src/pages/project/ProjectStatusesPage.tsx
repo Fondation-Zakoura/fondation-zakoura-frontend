@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Pen, Eye, Trash } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
+import { DataTable, type Column } from '@/components/ui/data-table';
 
 const emptyStatus: ProjectStatus = { id: 0, name: '', description: ''};
 
@@ -20,6 +21,8 @@ const ProjectStatusesPage: React.FC = () => {
   const [selected, setSelected] = useState<ProjectStatus | null>(null);
   const [form, setForm] = useState(emptyStatus);
   const [error, setError] = useState('');
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [statusToDelete, setStatusToDelete] = useState<ProjectStatus | null>(null);
 
   const openAdd = () => { setForm(emptyStatus); setModal('add'); };
   const openEdit = (status: ProjectStatus) => { setForm(status); setSelected(status); setModal('edit'); };
@@ -47,7 +50,7 @@ const ProjectStatusesPage: React.FC = () => {
     setError('');
     if (!selected) return;
     try {
-      await updateStatus({ id: selected.id, body: { name: form.name, description: form.description, color: form.color } }).unwrap();
+      await updateStatus({ id: selected.id, body: { name: form.name, description: form.description} }).unwrap();
       closeModal();
       refetch();
     } catch (err: any) {
@@ -55,16 +58,42 @@ const ProjectStatusesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (status: ProjectStatus) => {
-    if (!window.confirm('Supprimer ce statut de projet ?')) return;
+  const handleDelete = async () => {
+    if (!statusToDelete) return;
     try {
-      await deleteStatus(status.id).unwrap();
+      await deleteStatus(statusToDelete.id).unwrap();
+      setConfirmDeleteOpen(false);
+      setStatusToDelete(null);
       refetch();
     } catch (err: any) {
       alert(err.data?.message || 'Erreur lors de la suppression');
     }
   };
-
+  
+  const columns: Column<ProjectStatus>[] = [
+    { key: "id", header: "Id",sortable:true },
+    { key: "name", header: "Name" ,sortable:true},
+    { key: "created_at", header: "Date de creation" ,sortable:true},
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex gap-1 justify-end">
+          <button onClick={() => openShow(row)} className="p-2 rounded hover:bg-gray-200 text-gray-600" title="Voir"><Eye size={16} /></button>
+          <button onClick={() => openEdit(row)} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Éditer"><Pen size={16} /></button>
+          <button
+            className="p-2 rounded hover:bg-red-100 text-red-600"
+            title="Supprimer"
+            onClick={() => { setStatusToDelete(row); setConfirmDeleteOpen(true); }}
+          >
+            <Trash size={16} />
+          </button>
+        </div>
+      ),
+      sortable: false,
+    }
+  ];
   return (
     <div className="p-8 ">
       <div className="flex justify-between items-center mb-8">
@@ -84,30 +113,10 @@ const ProjectStatusesPage: React.FC = () => {
         {isLoading ? (
           <div>Chargement...</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Id</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Nom</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Description</th>
-                <th className="px-4 py-2 text-center text-xs font-bold text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {statuses.map((status) => (
-                <tr key={status.id} className="border-b hover:bg-blue-50">
-                  <td className="px-4 py-2 font-medium text-left text-gray-800">{status.id}</td>
-                  <td className="px-4 py-2 font-medium text-left text-gray-800">{status.name}</td>
-                  <td className="px-4 py-2 text-left text-gray-500">{status.description ?? 'Aucune description'}</td>
-                  <td className="px-4 py-2 text-center flex gap-2 justify-center">
-                    <Button variant="ghost" size="icon" onClick={() => openShow(status)}><Eye className="w-5 h-5 text-blue-600" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(status)}><Pen className="w-5 h-5 text-green-600" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(status)}><Trash className="w-5 h-5 text-red-600" /></Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+          columns={columns}
+          data={statuses} 
+          hoverEffect/>
         )}
       </div>
       {/* Add Modal */}
@@ -166,6 +175,24 @@ const ProjectStatusesPage: React.FC = () => {
           )}
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Fermer</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Confirm Delete Modal */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            Êtes-vous sûr de vouloir supprimer ce statut de projet&nbsp;?
+            <div className="mt-2 text-sm text-gray-500">Cette action est irréversible.</div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Annuler</Button>
+            </DialogClose>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete}>Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

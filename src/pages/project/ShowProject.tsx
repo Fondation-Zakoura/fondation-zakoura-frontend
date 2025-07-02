@@ -176,6 +176,8 @@ const ShowProject: React.FC = () => {
   if (isError || !project) {
     return <div className="flex items-center justify-center min-h-screen text-lg font-semibold text-red-600">Erreur lors du chargement du projet.</div>;
   }
+
+  console.log(`this is the prooooooject`,project)
   // Example stats (replace with real fields if available)
   const stats = [
     { label: 'Type', value: project.project_type?.name || '-' },

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Pen, Eye, Trash } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
+import { DataTable, type Column } from '@/components/ui/data-table';
 
 const emptyType: ProjectType = { id: 0, name: '', description: '' };
 
@@ -19,7 +20,8 @@ const ProjectTypesPage: React.FC = () => {
   const [selected, setSelected] = useState<ProjectType | null>(null);
   const [form, setForm] = useState(emptyType);
   const [error, setError] = useState('');
-
+  const [typeToDelete, setTypeToDelete] = useState<ProjectType | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const openAdd = () => { setForm(emptyType); setModal('add'); };
   const openEdit = (type: ProjectType) => { setForm(type); setSelected(type); setModal('edit'); };
   const openShow = (type: ProjectType) => { setSelected(type); setModal('show'); };
@@ -54,18 +56,44 @@ const ProjectTypesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (type: ProjectType) => {
-    if (!window.confirm('Supprimer ce type de projet ?')) return;
+  const handleDelete = async () => {
+    if (!typeToDelete) return;
+   
     try {
-      await deleteType(type.id).unwrap();
+      await deleteType(typeToDelete.id).unwrap();
       refetch();
     } catch (err: any) {
       alert(err.data?.message || 'Erreur lors de la suppression');
     }
   };
-
+  const columns: Column<ProjectType>[] = [
+    { key: "id", header: "Id",sortable:true },
+    { key: "name", header: "Name" ,sortable:true},
+    { key: "created_at", header: "Date de creation" ,sortable:true},
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex gap-1 justify-end">
+          <button onClick={() => openShow(row)} className="p-2 rounded hover:bg-gray-200 text-gray-600" title="Voir"><Eye size={16} /></button>
+          <button onClick={() => openEdit(row)} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Éditer"><Pen size={16} /></button>
+          <button
+            className="p-2 rounded hover:bg-red-100 text-red-600"
+            title="Supprimer"
+            onClick={() => { setTypeToDelete(row); setConfirmDeleteOpen(true); }}
+          >
+            <Trash size={16} />
+          </button>
+        </div>
+      ),
+      sortable: false,
+    }
+  ];
   return (
     <div className="p-8">
+      <div className="flex justify-between items-center mb-8">
+
       <PageHeaderLayout
         title="Types de projet"
         breadcrumbs={[
@@ -73,38 +101,19 @@ const ProjectTypesPage: React.FC = () => {
           { label: 'Types de projet', active: true }
         ]}
       >
-        <Button onClick={openAdd} className="ml-auto flex items-center gap-2 bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow">
+      </PageHeaderLayout>
+        <Button onClick={openAdd} className="ml-auto flex items-center gap-2 bg-[#19376D]  text-white font-bold px-6 py-2 cursor-pointer rounded-lg shadow">
           <Plus className="w-4 h-4" /> Ajouter
         </Button>
-      </PageHeaderLayout>
+      </div>
       <div className="bg-white rounded-xl shadow p-6">
         {isLoading ? (
           <div>Chargement...</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Id</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Nom</th>
-                <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Description</th>
-                <th className="px-4 py-2 text-center text-xs font-bold text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {types.map((type) => (
-                <tr key={type.id} className="border-b hover:bg-blue-50">
-                  <td className="px-4 py-2 font-medium text-left text-gray-800">{type.id}</td>
-                  <td className="px-4 py-2 font-medium text-left text-gray-800">{type.name}</td>
-                  <td className="px-4 py-2 text-left text-gray-500">{type.description ?? 'Aucune description'}</td>
-                  <td className="px-4 py-2 text-center flex gap-2 justify-center">
-                    <Button variant="ghost" size="icon" onClick={() => openShow(type)}><Eye className="w-5 h-5 text-blue-600" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(type)}><Pen className="w-5 h-5 text-green-600" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(type)}><Trash className="w-5 h-5 text-red-600" /></Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable 
+          columns={columns}
+          data={types} 
+          />
         )}
       </div>
       {/* Add Modal */}
@@ -161,6 +170,23 @@ const ProjectTypesPage: React.FC = () => {
           )}
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Fermer</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            Êtes-vous sûr de vouloir supprimer ce type de projet&nbsp;?
+            <div className="mt-2 text-sm text-gray-500">Cette action est irréversible.</div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Annuler</Button>
+            </DialogClose>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete}>Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
