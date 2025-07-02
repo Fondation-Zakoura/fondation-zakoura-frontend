@@ -524,7 +524,7 @@ export const menuItems = [
                         link: '#',
                         nestedDropdownItems: [
                             { id: 'types-ressources-financieres', title: 'Types de ressources financières', link: '/parametres/finance/types/ressources-financieres', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-partenaires', title: 'Types de partenaires', link: '/parametres/finance/types/partenaires', icon: RiSettings2Line, type: 'link' },
+                            { id: 'structures-partenaires', title: 'Structures de partenaires', link: '/parametres/finance/types/structures-partenaires', icon: RiSettings2Line, type: 'link' },
                             { id: 'natures-partenaires', title: 'Natures de partenaires', link: '/parametres/finance/types/natures-partenaires', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-projets', title: 'Types de projets', link: '/parametres/finance/types/projets', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-rubriques', title: 'Types de rubriques', link: '/parametres/finance/types/rubriques', icon: RiSettings2Line, type: 'link' },

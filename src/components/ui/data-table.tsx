@@ -57,6 +57,7 @@ interface DataTableProps<T extends { id: string | number }> {
   initialPageSize?: number;
   // Optional bulk delete handler prop
   onBulkDelete?: (selectedIds: T["id"][]) => void;
+    enableBulkDelete?: boolean;
 }
 
 // --- REUSABLE DATA TABLE COMPONENT ---
@@ -73,6 +74,7 @@ export function DataTable<T extends { id: string | number }>({
   className = "",
   initialPageSize = 10,
   onBulkDelete,
+  enableBulkDelete = true, // <-- default to true
 }: DataTableProps<T>) {
   // --- STATE MANAGEMENT ---
   const [sortConfig, setSortConfig] = React.useState<{
@@ -207,7 +209,11 @@ export function DataTable<T extends { id: string | number }>({
               htmlFor="global-search"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
+<<<<<<< HEAD
               Nom du Partenaire
+=======
+              {/* Nom du Partenaire */}
+>>>>>>> 093bc3a (updating the filter to use RTK query)
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -270,16 +276,18 @@ export function DataTable<T extends { id: string | number }>({
           <TableHeader>
             <TableRow className={`${getHeaderStyleClass()} border-b border-gray-200`}>
               {/* Checkbox for select all */}
-              <TableCell className="px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={
-                    selectedRows.length === processedData.length &&
-                    processedData.length > 0
-                  }
-                  onChange={(e) => onSelectAll(e.target.checked)}
-                />
-              </TableCell>
+              {enableBulkDelete && (
+                <TableCell className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedRows.length === processedData.length &&
+                      processedData.length > 0
+                    }
+                    onChange={(e) => onSelectAll(e.target.checked)}
+                  />
+                </TableCell>
+              )}
               {columns.map((col) => (
                 <TableHead
                   key={String(col.key)}
@@ -350,14 +358,17 @@ export function DataTable<T extends { id: string | number }>({
                   } border-b border-gray-100 last:border-b-0`}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
-                  <TableCell className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(row.id)}
-                      onChange={(e) => onSelectRow(row, e.target.checked)}
-                      onClick={(e) => e.stopPropagation()} // Prevent row click when clicking checkbox
-                    />
-                  </TableCell>
+                  {/* Row checkbox */}
+                  {enableBulkDelete && (
+                    <TableCell className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(row.id)}
+                        onChange={(e) => onSelectRow(row, e.target.checked)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </TableCell>
+                  )}
                   {columns.map((col) => (
                     <TableCell
                       key={String(col.key)}
@@ -380,7 +391,7 @@ export function DataTable<T extends { id: string | number }>({
       </div>
 
       {/* BULK DELETE BUTTON */}
-      {selectedRows.length > 0 && (
+      {enableBulkDelete && selectedRows.length > 0 && (
         <div className="flex justify-end my-2">
           <Button
             variant="destructive"

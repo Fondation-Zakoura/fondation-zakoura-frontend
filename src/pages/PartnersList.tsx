@@ -266,6 +266,7 @@ const PartnersListPage: React.FC = () => {
         partner={selectedPartnerForDetails}
       />
 
+<<<<<<< HEAD
       {confirmOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
           <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md">
@@ -298,6 +299,44 @@ const PartnersListPage: React.FC = () => {
           </div>
         </div>
       )}
+=======
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirmer la suppression</DialogTitle>
+      <DialogDescription>
+        Êtes-vous sûr de vouloir supprimer ce partenaire ? Cette action est réversible (soft delete).
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter>
+      <DialogClose asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isDeleting}
+          onClick={handleCancelDelete}
+        >
+          Annuler
+        </Button>
+      </DialogClose>
+      <Button
+        type="button"
+        variant="destructive"
+        disabled={isDeleting}
+        onClick={handleConfirmDelete}
+      >
+        {isDeleting && (
+          <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        )}
+        Confirmer
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+>>>>>>> 093bc3a (updating the filter to use RTK query)
 
       <Dialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
         <DialogContent>
