@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { Partner, PersonneContact, FilterOption } from '../../types/partners';
+import type{ Partner, PersonneContact, FilterOption } from '../../types/partners';
 import {
-  X, Building, Globe, MapPin, Flag, Text, HeartHandshake, User, Mail, Phone,
-  Loader2, Save, Network, ClipboardList, Briefcase, PencilLine
+  Loader2, Save
 } from 'lucide-react';
 
 // Shadcn UI Components

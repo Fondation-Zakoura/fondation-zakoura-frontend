@@ -10,6 +10,26 @@ export interface ContactPerson {
   phone: string;
   address?: string;
 }
+export interface PersonneContact {
+  id?: number;
+  partner_id?: number;
+  last_name: string;
+  first_name: string;
+  position: string;
+  email: string;
+  phone: string;
+  address?: string;
+}
+export interface contact_people {
+  id?: number;
+  partner_id?: number;
+  last_name: string;
+  first_name: string;
+  position: string;
+  email: string;
+  phone: string;
+  address?: string;
+}
 
 export interface Partner {
   id: number;
@@ -26,8 +46,9 @@ export interface Partner {
   country: string | null;
   note: string | null;
   partner_logo: string | null;
+  logo_url?: string;
+  contact_people: ContactPerson[];
   is_active?: boolean;
-  // ...other fields as needed
 }
 
 export interface FilterOption {

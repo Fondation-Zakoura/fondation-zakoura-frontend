@@ -17,7 +17,7 @@ apiClient.interceptors.request.use(config => {
 });
 
 export const api = {
-  getPartners: async (filters: Record<string, any>, page: number = 1): Promise<ApiResponse<Partner>> => {
+  getPartners: async (filters: Record<string, string | number | boolean | undefined>, page: number = 1): Promise<ApiResponse<Partner>> => {
     const response = await apiClient.get('/partners', { params: { ...filters, page } });
     return response.data;
   },

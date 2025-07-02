@@ -1,4 +1,3 @@
-// src/features/partners/partnersSlice.ts
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
@@ -8,7 +7,7 @@ import axios from 'axios';
 
 interface PartnersState {
   partners: Partner[];
-  meta: any;
+  meta: Record<string, unknown> | null;
   loading: 'idle' | 'pending' | 'succeeded' | 'failed';
   error: string | null;
   formErrors: Record<string, string[]>;
@@ -91,7 +90,7 @@ const partnersSlice = createSlice({
       .addCase(fetchPartners.fulfilled, (state, action) => {
         state.loading = 'succeeded';
         state.partners = action.payload.data;
-        state.meta = action.payload.meta;
+        state.meta = action.payload.meta ?? null;
       })
       .addCase(fetchPartners.rejected, (state, action) => {
         state.loading = 'failed';
