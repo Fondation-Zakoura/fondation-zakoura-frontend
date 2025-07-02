@@ -1,4 +1,5 @@
-import type { Project, ProjectsResponse, ProjectType, ProjectStatus, ProjectBankAccount } from '../types/project';
+import type { Partner } from '@/types/partners';
+import type { Project, ProjectsResponse, ProjectType, ProjectStatus, ProjectBankAccount, User } from '../types/project';
 import { baseApi } from './api';
 
 type ProjectsQueryParams = {
@@ -15,6 +16,10 @@ type ProjectsQueryParams = {
 type ProjectOptions = {
   types: ProjectType[];
   statuses: ProjectStatus[];
+  partners: Partner[];
+  partner_roles:[];
+  users:User[];
+  project_nature_options:[];
 };
 
 export const projectsApi = baseApi.enhanceEndpoints({
@@ -22,7 +27,7 @@ export const projectsApi = baseApi.enhanceEndpoints({
 }).injectEndpoints({
   endpoints: (builder) => ({
     getProjectFormOptions: builder.query<any, void>({
-      query: () => '/projects/create',
+      query: () => '/projects/options',
     }),
     addProject: builder.mutation<any, any>({
       query: (body) => ({
@@ -30,6 +35,7 @@ export const projectsApi = baseApi.enhanceEndpoints({
         method: 'POST',
         body,
       }),
+      invalidatesTags: ['Projects'],
     }),
     getProjects: builder.query<ProjectsResponse, ProjectsQueryParams>({
       query: (params) => ({
@@ -161,6 +167,14 @@ export const projectsApi = baseApi.enhanceEndpoints({
       }),
       invalidatesTags: ['ProjectBankAccounts'],
     }),
+    updateBankAccountSupportingDocument: builder.mutation<ProjectBankAccount, { id: number; formData: FormData }>({
+      query: ({ id, formData }) => ({
+        url: `/bank-accounts/${id}/supporting-document`,
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: ['ProjectBankAccounts'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -188,5 +202,6 @@ export const {
   useGetProjectBankAccountQuery,
   useCreateProjectBankAccountMutation,
   useUpdateProjectBankAccountMutation,
-  useDeleteProjectBankAccountMutation
+  useDeleteProjectBankAccountMutation,
+  useUpdateBankAccountSupportingDocumentMutation
 } = projectsApi;

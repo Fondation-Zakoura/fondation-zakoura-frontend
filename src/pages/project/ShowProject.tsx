@@ -176,6 +176,8 @@ const ShowProject: React.FC = () => {
   if (isError || !project) {
     return <div className="flex items-center justify-center min-h-screen text-lg font-semibold text-red-600">Erreur lors du chargement du projet.</div>;
   }
+
+  console.log(`this is the prooooooject`,project)
   // Example stats (replace with real fields if available)
   const stats = [
     { label: 'Type', value: project.project_type?.name || '-' },
@@ -240,7 +242,11 @@ const ShowProject: React.FC = () => {
                   </div>
                   <div className="mb-3">
                     <p className="text-xs text-gray-500">Dates</p>
-                    <p className="font-semibold text-gray-700">{project.start_date?.slice(0, 10)} - {project.end_date?.slice(0, 10)}</p>
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <div><span className="font-semibold">Date de début :</span> {project.start_date ? new Date(project.start_date).toLocaleDateString('fr-FR') : '-'}</div>
+                      <div><span className="font-semibold">Date de début réelle :</span> {project.actual_start_date ? new Date(project.actual_start_date).toLocaleDateString('fr-FR') : '-'}</div>
+                      <div><span className="font-semibold">Date de clôture :</span> {project.end_date ? new Date(project.end_date).toLocaleDateString('fr-FR') : '-'}</div>
+                    </div>
                   </div>
                   <div className="mb-3">
                     <p className="text-xs text-gray-500">Budget</p>

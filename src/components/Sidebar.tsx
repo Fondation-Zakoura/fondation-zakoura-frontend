@@ -1,15 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { MdOutlineDashboard } from "react-icons/md";
-import { LiaHandshake } from "react-icons/lia";
-import { GoProjectRoadmap } from "react-icons/go";
-import { SlPeople } from "react-icons/sl";
-import { CiShop } from "react-icons/ci";
-import { BsCoin } from "react-icons/bs";
-import { PiStudent } from "react-icons/pi";
-import { IoServerOutline } from 'react-icons/io5';
-import {IoSettingsOutline} from 'react-icons/io5';
-import {IoLayersOutline} from 'react-icons/io5'
-import { BiServer } from "react-icons/bi";
+import  { useEffect, useState } from 'react'
+
 import { menuItems } from '../constants';
 import SubSidebar from './SubSidebar';
 const Sidebar = ({isSidebarToggled}) => {
@@ -23,9 +13,6 @@ const Sidebar = ({isSidebarToggled}) => {
     useEffect(()=>{
       if (!isSidebarToggled){
         setActiveMainMenuItemId(null);
-
-
-        
         setToggleSubSidebar(false);
       }
     },[isSidebarToggled])

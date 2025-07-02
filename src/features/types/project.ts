@@ -1,3 +1,5 @@
+import type { Partner } from "@/types/partners";
+
 export interface Project {
   id: number;
   project_code:string;
@@ -16,6 +18,7 @@ export interface Project {
   responsible_id:number;
   created_by?:User;
   created_by_id:number;
+  partners:Partner[];
   project_bank_account?:ProjectBankAccount;
   project_nature:string;
   updated_at: string;
@@ -26,7 +29,8 @@ export interface Project {
 export interface ProjectType {
   id: number;
   name: string;
-  description?: string;
+  created_at?: string;
+  updated_at? : string;
 }
 
 export interface User{
@@ -40,8 +44,9 @@ export interface User{
 export interface ProjectStatus {
   id: number;
   name: string;
-  description?: string;
-  color?: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
 }
 
 export interface ProjectsResponse {
@@ -55,21 +60,35 @@ export interface ProjectsResponse {
     to: number;
     total: number;
   };
-  links: {
-    first: string;
-    last: string;
-    prev: string | null;
-    next: string | null;
-  };
+  links: [];
+  last_page:number;
+  current_page:number;
+  first_page_url:string;
+  from:number;
+  last_page_url:string;
+  next_page_url:string;
+  per_page:number;
+  prev_page_url:string;
+  to:number;
+  total:number;
 }
 
 
 
 export interface ProjectBankAccount{
   id: number;
-  rib: string;
+  rib_iban: string;
   agency: string;
   bank: string;
+  account_title:string;
+  opening_country: string;
+  account_holder_name: string;
+  bic_swift : string;
+  currency:string;
+  opening_date: string;
+  supporting_document : string;
+  comments : string;
+  status: string;
 }
 
 export interface ProjectsQueryParams {
@@ -78,3 +97,16 @@ export interface ProjectsQueryParams {
   sort?: string;
   filter?: string; 
 }
+
+export type ProjectInputRefKeys =
+    | "project_name"
+    | "project_nature"
+    | "project_type"
+    | "project_status"
+    | "start_date"
+    | "actual_start_date"
+    | "end_date"
+    | "responsible"
+    | "total_budget"
+    | "bank_account"
+    | "zakoura_contribution";

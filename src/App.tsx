@@ -3,9 +3,9 @@ import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import './App.css'
 
+
+
 import CategoriesPage from './pages/categories/CategoriesPage';
-import AddCategory from './pages/categories/AddCategory';
-import ModifyCategory from './pages/categories/EditCategoryModal';
 import LoginForm from './components/auth/LoginForm';
 import Projects from './pages/project/Projects';
 import AddProject from './pages/project/AddProject';
@@ -27,9 +27,10 @@ function App() {
             <Route path='projects/add' element={<AddProject />} />
             <Route path='projects/:id' element={<ShowProject />} />
             <Route path='projects/:id/edit' element={<EditProject />} />
-            <Route path='project-types' element={<ProjectTypesPage />} />
-            <Route path='project-statuses' element={<ProjectStatusesPage />} />
-            <Route path='project-bank-accounts' element={<ProjectBankAccountsPage />} />
+            <Route path='/settings/finance/types/projects' element={<ProjectTypesPage />} />
+            <Route path='/settings/finance/statuses/projects' element={<ProjectStatusesPage />} />
+            <Route path='/settings/projects/bank-accounts' element={<ProjectBankAccountsPage />} />
+            {/* <Route path='partners' element={<PartnersList />} /> */}
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>

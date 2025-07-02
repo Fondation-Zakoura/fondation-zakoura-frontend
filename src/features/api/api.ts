@@ -10,6 +10,7 @@ export const baseApi = createApi({
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
+      headers.set('Accept','Application/json')
       return headers;
     },
   }),

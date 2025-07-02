@@ -5,6 +5,7 @@ import storage from 'redux-persist/lib/storage';
 import { persistReducer, persistStore } from 'redux-persist';
 import { combineReducers } from 'redux';
 import userReducer from '../features/user/userSlice';
+import { partnersApi } from '../features/partnersApi';
 
 
 const persistConfig = {
@@ -15,6 +16,8 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   user: userReducer,
+    [partnersApi.reducerPath]: partnersApi.reducer,
+  
   [baseApi.reducerPath]: baseApi.reducer,
 });
 
@@ -25,7 +28,9 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false, // needed for redux-persist
-    }).concat(baseApi.middleware),
+    })
+      .concat(baseApi.middleware)
+      .concat(partnersApi.middleware),
 });
 
 setupListeners(store.dispatch);
