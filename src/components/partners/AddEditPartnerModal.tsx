@@ -1,9 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import type { Partner, PersonneContact, FilterOption } from '../../types/partners';
 import {
-  X, Building, Globe, MapPin, Flag, Text, HeartHandshake, User, Mail, Phone, UploadCloud,
+  X, Building, Globe, MapPin, Flag, Text, HeartHandshake, User, Mail, Phone,
   Loader2, Save, Network, ClipboardList, Briefcase, PencilLine
 } from 'lucide-react';
+
+// Shadcn UI Components
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AddEditPartnerModalProps {
   isOpen: boolean;
@@ -15,67 +37,6 @@ interface AddEditPartnerModalProps {
   isLoading: boolean;
 }
 
-const FieldWrapper: React.FC<{ children: React.ReactNode, error?: string[] }> = ({ children, error }) => (
-  <div>{children}{error && error.map((msg, i) => <p key={i} className="text-xs text-red-600 mt-1">{msg}</p>)}</div>
-);
-
-const InputField: React.FC<any> = ({ label, name, required = false, icon: Icon, value, onChange, serverErrors, ...props }) => (
-  <FieldWrapper error={serverErrors?.[name]}>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}{required && ' *'}</label>
-    <div className="relative">
-      <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-        <Icon className="h-5 w-5 text-gray-400" />
-      </div>
-      <input
-        id={name}
-        name={name}
-        required={required}
-        className={`block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-[#008c95] focus:ring-[#008c95] sm:text-sm ${serverErrors?.[name] ? 'border-red-500' : ''}`}
-        {...props}
-        value={value || ''}
-        onChange={onChange}
-      />
-    </div>
-  </FieldWrapper>
-);
-
-const SelectField: React.FC<any> = ({ label, name, required = false, icon: Icon, options, value, onChange, serverErrors, ...props }) => (
-  <FieldWrapper error={serverErrors?.[name]}>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}{required && ' *'}</label>
-    <div className="relative">
-      <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-        <Icon className="h-5 w-5 text-gray-400" />
-      </div>
-      <select
-        id={name}
-        name={name}
-        required={required}
-        className={`block w-full appearance-none rounded-md border-gray-300 pl-10 pr-8 shadow-sm focus:border-[#008c95] focus:ring-[#008c95] sm:text-sm ${serverErrors?.[name] ? 'border-red-500' : ''}`}
-        {...props}
-        value={value || ''}
-        onChange={onChange}
-      >
-        <option value="">Sélectionnez...</option>
-        {options.map((opt: FilterOption) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
-      </select>
-    </div>
-  </FieldWrapper>
-);
-
-const TextAreaField: React.FC<any> = ({ label, name, value, onChange, serverErrors, ...props }) => (
-  <FieldWrapper error={serverErrors?.[name]}>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <textarea
-      id={name}
-      name={name}
-      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#008c95] focus:ring-[#008c95] sm:text-sm"
-      {...props}
-      value={value || ''}
-      onChange={onChange}
-    />
-  </FieldWrapper>
-);
-
 export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   isOpen, onClose, onSave, partner, options, serverErrors, isLoading
 }) => {
@@ -83,6 +44,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   useEffect(() => {
+    // This logic remains the same
     const firstContact = partner?.contact_people?.[0];
     if (partner) {
       setFormData({
@@ -96,15 +58,19 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
         partner_type: partner.partner_type || 'National',
       });
     } else {
-      setFormData({});
+      setFormData({ partner_type: 'National' }); // Default value
     }
     setLogoFile(null);
   }, [partner, isOpen]);
 
-  if (!isOpen) return null;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  // Handler for standard inputs and textareas
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+  
+  // New handler for shadcn Select component
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,115 +83,154 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     e.preventDefault();
     const data = new FormData();
 
+    // This submission logic remains the same
     Object.entries(formData).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
         data.append(key, String(value));
       }
     });
-
-    data.append('partner_name', formData.partner_name);
-    data.append('abbreviation', formData.abbreviation);
-    data.append('phone', formData.phone);
-    data.append('email', formData.email);
-    data.append('partner_type', formData.partner_type);
-    data.append('nature_partner_id', formData.nature_partner_id);
-    data.append('structure_partner_id', formData.structure_partner_id);
-    data.append('status_id', formData.status_id);
-    data.append('address', formData.address);
-    data.append('country', formData.country);
-    data.append('note', formData.note);
     if (logoFile) data.append('partner_logo', logoFile);
-
-    if (partner?.id) {
-      data.append('_method', 'PUT');
-    }
+    if (partner?.id) data.append('_method', 'PUT');
 
     onSave(data, partner?.id);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl transform transition-all max-h-[95vh] flex flex-col">
-        <div className="flex justify-between items-center p-5 border-b">
-          <h2 className="text-xl font-bold text-gray-800">{partner ? 'Modifier le partenaire' : 'Ajouter un partenaire'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="overflow-y-auto">
-          <div className="p-6 space-y-6">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="!w-[1100px] !max-w-none p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="text-xl font-bold text-gray-800">
+            {partner ? 'Modifier le partenaire' : 'Ajouter un partenaire'}
+          </DialogTitle>
+        </DialogHeader>
 
-            {/* Informations Générales */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-medium text-[#008c95] mb-4">Informations Générales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <InputField label="Partner Name" name="partner_name" required icon={Building} value={formData.partner_name} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Abbreviation" name="abbreviation" required icon={Text} value={formData.abbreviation} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Country" name="country" required icon={Flag} value={formData.country} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Phone" name="phone" icon={Phone} value={formData.phone} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Email" name="email" type="email" icon={Mail} value={formData.email} onChange={handleChange} serverErrors={serverErrors} />
-                <div className="md:col-span-3"><InputField label="Address" name="address" icon={MapPin} value={formData.address} onChange={handleChange} serverErrors={serverErrors} /></div>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 pt-0">
+            <ScrollArea className="max-h-[65vh] overflow-auto pr-2">
+              <div className="space-y-10">
 
-            {/* Classification */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-medium text-[#008c95] mb-4">Classification & Phase</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <SelectField label="Nature" name="nature_partner_id" options={options.natures || []} required icon={HeartHandshake} value={formData.nature_partner_id} onChange={handleChange} serverErrors={serverErrors} />
-                <SelectField
-                  label="Type"
-                  name="partner_type"
-                  options={[
-                    { id: 'National', name: 'National' },
-                    { id: 'International', name: 'International' }
-                  ]}
-                  required
-                  icon={Globe}
-                  value={formData.partner_type}
-                  onChange={handleChange}
-                  serverErrors={serverErrors}
-                />
-                <SelectField label="Structure" name="structure_partner_id" options={options.structures || []} required icon={Network} value={formData.structure_partner_id} onChange={handleChange} serverErrors={serverErrors} />
-                <SelectField label="Phase" name="status_id" options={options.statuts || []} required icon={ClipboardList} value={formData.status_id} onChange={handleChange} serverErrors={serverErrors} />
-              </div>
-            </div>
+                {/* Informations Générales */}
+                <section>
+                  <h3 className="text-lg font-medium text-[#008c95] mb-4">Informations Générales</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                    <div>
+                      <Label htmlFor="partner_name">Nom du Partenaire *</Label>
+                      <Input id="partner_name" name="partner_name" value={formData.partner_name || ''} onChange={handleChange} required />
+                      {serverErrors?.partner_name && <p className="text-sm text-destructive mt-1">{serverErrors.partner_name[0]}</p>}
+                    </div>
+                     <div>
+                      <Label htmlFor="abbreviation">Abbréviation *</Label>
+                      <Input id="abbreviation" name="abbreviation" value={formData.abbreviation || ''} onChange={handleChange} required />
+                    </div>
+                    <div>
+                      <Label htmlFor="country">Pays *</Label>
+                      <Input id="country" name="country" value={formData.country || ''} onChange={handleChange} required />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Téléphone</Label>
+                      <Input id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" name="email" type="email" value={formData.email || ''} onChange={handleChange} />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Label htmlFor="address">Adresse</Label>
+                      <Input id="address" name="address" value={formData.address || ''} onChange={handleChange} />
+                    </div>
+                  </div>
+                </section>
 
-            {/* Personne de Contact */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-medium text-[#008c95] mb-4">Personne de Contact</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <InputField label="Prénom du contact" name="contact_first_name" required icon={User} value={formData.contact_first_name} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Nom du contact" name="contact_last_name" required icon={User} value={formData.contact_last_name} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Poste du contact" name="contact_position" required icon={Briefcase} value={formData.contact_position} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Email du contact" name="contact_email" type="email" required icon={Mail} value={formData.contact_email} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Téléphone du contact" name="contact_phone" required icon={Phone} value={formData.contact_phone} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Adresse du contact (facultative)" name="contact_address" icon={MapPin} value={formData.contact_address} onChange={handleChange} serverErrors={serverErrors} />
-              </div>
-            </div>
+                {/* Classification & Phase */}
+                <section>
+                  <h3 className="text-lg font-medium text-[#008c95] mb-4">Classification & Phase</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
+                    <div>
+                      <Label>Nature *</Label>
+                      <Select name="nature_partner_id" value={String(formData.nature_partner_id || '')} onValueChange={(value) => handleSelectChange('nature_partner_id', value)} required>
+                        <SelectTrigger><SelectValue placeholder="Sélectionnez..." /></SelectTrigger>
+                        <SelectContent>
+                          {(options.natures || []).map((opt) => <SelectItem key={opt.id} value={String(opt.id)}>{opt.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Type *</Label>
+                      <Select name="partner_type" value={formData.partner_type || ''} onValueChange={(value) => handleSelectChange('partner_type', value)} required>
+                        <SelectTrigger><SelectValue placeholder="Sélectionnez..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="National">National</SelectItem>
+                          <SelectItem value="International">International</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                     <div>
+                      <Label>Structure *</Label>
+                      <Select name="structure_partner_id" value={String(formData.structure_partner_id || '')} onValueChange={(value) => handleSelectChange('structure_partner_id', value)} required>
+                        <SelectTrigger><SelectValue placeholder="Sélectionnez..." /></SelectTrigger>
+                        <SelectContent>
+                          {(options.structures || []).map((opt) => <SelectItem key={opt.id} value={String(opt.id)}>{opt.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Phase *</Label>
+                      <Select name="status_id" value={String(formData.status_id || '')} onValueChange={(value) => handleSelectChange('status_id', value)} required>
+                        <SelectTrigger><SelectValue placeholder="Sélectionnez..." /></SelectTrigger>
+                        <SelectContent>
+                           {(options.statuts || []).map((opt) => <SelectItem key={opt.id} value={String(opt.id)}>{opt.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </section>
 
-            {/* Autres Informations */}
-            <div>
-              <h3 className="text-lg font-medium text-[#008c95] mb-4">Autres Informations</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <TextAreaField label="Note" name="note" rows={4} value={formData.note} onChange={handleChange} serverErrors={serverErrors} />
-                <InputField label="Actions" name="actions" icon={PencilLine} value={formData.actions} onChange={handleChange} serverErrors={serverErrors} />
-                <FieldWrapper>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
-                  <input type="file" accept="image/*" onChange={handleLogoChange} />
-                  {logoFile && <img src={URL.createObjectURL(logoFile)} alt="Preview" className="mt-2 h-24 object-contain" />}
-                </FieldWrapper>
+                {/* Personne de Contact */}
+                <section>
+                   <h3 className="text-lg font-medium text-[#008c95] mb-4">Personne de Contact</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                      <div><Label htmlFor="contact_first_name">Prénom *</Label><Input id="contact_first_name" name="contact_first_name" value={formData.contact_first_name || ''} onChange={handleChange} required /></div>
+                      <div><Label htmlFor="contact_last_name">Nom *</Label><Input id="contact_last_name" name="contact_last_name" value={formData.contact_last_name || ''} onChange={handleChange} required /></div>
+                      <div><Label htmlFor="contact_position">Poste *</Label><Input id="contact_position" name="contact_position" value={formData.contact_position || ''} onChange={handleChange} required /></div>
+                      <div><Label htmlFor="contact_email">Email *</Label><Input id="contact_email" name="contact_email" type="email" value={formData.contact_email || ''} onChange={handleChange} required /></div>
+                      <div><Label htmlFor="contact_phone">Téléphone *</Label><Input id="contact_phone" name="contact_phone" value={formData.contact_phone || ''} onChange={handleChange} required /></div>
+                      <div><Label htmlFor="contact_address">Adresse (facultative)</Label><Input id="contact_address" name="contact_address" value={formData.contact_address || ''} onChange={handleChange} /></div>
+                   </div>
+                </section>
+
+                {/* Autres Informations */}
+                <section>
+                  <h3 className="text-lg font-medium text-[#008c95] mb-4">Autres Informations</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div>
+                      <Label htmlFor="note">Note</Label>
+                      <Textarea id="note" name="note" rows={4} value={formData.note || ''} onChange={handleChange} />
+                    </div>
+                    <div>
+                       <Label htmlFor="actions">Actions</Label>
+                       <Input id="actions" name="actions" value={formData.actions || ''} onChange={handleChange} />
+                    </div>
+                    <div>
+                      <Label htmlFor="partner_logo">Logo</Label>
+                      <Input id="partner_logo" type="file" accept="image/*" onChange={handleLogoChange} />
+                      {logoFile && <img src={URL.createObjectURL(logoFile)} alt="Preview" className="mt-2 h-24 object-contain rounded-md border p-1" />}
+                    </div>
+                  </div>
+                </section>
+
               </div>
-            </div>
+            </ScrollArea>
           </div>
-
-          {/* Footer */}
-          <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100" disabled={isLoading}>Annuler</button>
-            <button type="submit" style={{ backgroundColor: '#008c95' }} className="flex items-center justify-center w-36 px-6 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50" disabled={isLoading}>
+          <DialogFooter className="p-4 bg-gray-50 border-t">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isLoading}>Annuler</Button>
+            </DialogClose>
+            <Button type="submit" style={{ backgroundColor: '#008c95' }} disabled={isLoading}>
               {isLoading ? <Loader2 className="animate-spin" /> : <><Save size={16} className="mr-2" />Sauvegarder</>}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
