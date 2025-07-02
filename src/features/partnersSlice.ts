@@ -25,7 +25,7 @@ const initialState: PartnersState = {
 
 export const fetchPartners = createAsyncThunk(
   'partners/fetchPartners',
-  async ({ filters, page }: { filters: Record<string, any>; page: number }) => {
+  async ({ filters, page }: { filters: Record<string, string | number | boolean | undefined>; page: number }) => {
     const response = await api.getPartners(filters, page);
     console.log(response);
     

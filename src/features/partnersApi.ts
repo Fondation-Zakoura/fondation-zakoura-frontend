@@ -21,9 +21,16 @@ export const partnersApi = createApi({
       }),
       providesTags: ['Partners'],
     }),
-    getOptions: builder.query<FilterOption[], string>({
-      // Pass endpoints like 'nature-partners', 'structure-partners', 'status-partners'
+       getOptions: builder.query<FilterOption[], string>({
       query: (endpoint) => `/${endpoint}`,
+      // FIX: Transform the response to ensure it's always an array.
+      // This handles cases where the API returns { "data": [...] }.
+      transformResponse: (response: { data: FilterOption[] } | FilterOption[]) => {
+        if (Array.isArray(response)) {
+            return response;
+        }
+        return response?.data || [];
+      },
     }),
     addPartner: builder.mutation<Partner, FormData>({
       query: (data) => ({

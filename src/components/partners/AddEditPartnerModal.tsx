@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type{ Partner, PersonneContact, FilterOption } from '../../types/partners';
+import type{ Partner, FilterOption } from '../../types/partners';
 import {
   Loader2, Save
 } from 'lucide-react';
@@ -36,10 +36,21 @@ interface AddEditPartnerModalProps {
   isLoading: boolean;
 }
 
+type PartnerFormData = Partial<Partner> & {
+  nature_partner_id?: string | number;
+  structure_partner_id?: string | number;
+  status_id?: string | number;
+  contact_first_name?: string;
+  contact_last_name?: string;
+  contact_position?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  contact_address?: string;
+};
 export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   isOpen, onClose, onSave, partner, options, serverErrors, isLoading
 }) => {
-  const [formData, setFormData] = useState<Partial<Partner & PersonneContact>>({});
+  const [formData, setFormData] = useState<PartnerFormData>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   useEffect(() => {
