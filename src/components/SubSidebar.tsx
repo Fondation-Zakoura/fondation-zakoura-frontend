@@ -1,7 +1,7 @@
-// src/components/SubSidebar.jsx - Refactored
+
 import React from 'react';
-import { menuItems } from '../constants'; // Use your combined menu data
-import MenuItemRenderer from './MenuItemRenderer'; // Import the new renderer
+import { menuItems } from '../constants'; 
+import MenuItemRenderer from './MenuItemRenderer'; 
 
 
 interface SubSidebarProps{
@@ -15,7 +15,7 @@ const SubSidebar:React.FC<SubSidebarProps> = ({ itemId }) => {
     }
 
     return (
-        <ul className='flex relative flex-col w-58 custom-sidebar-scroll overflow-y-auto bg-white font-nunito rounded-2xl border my-4 mb-0.5 shadow-lg py-4 border-gray-200 '>
+        <ul className='flex relative flex-col w-68 custom-sidebar-scroll overflow-y-auto bg-white font-nunito rounded-2xl border my-4 mb-0.5 shadow-lg py-4 border-gray-200 '>
             {selectedLink.subItems.map((item) => (
                 // MenuItemRenderer handles the specific rendering logic (link, header, dropdown)
                 // It will manage its own state for dropdowns if applicable.
