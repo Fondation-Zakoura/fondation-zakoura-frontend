@@ -5,7 +5,10 @@ import storage from 'redux-persist/lib/storage';
 import { persistReducer, persistStore } from 'redux-persist';
 import { combineReducers } from 'redux';
 import userReducer from '../features/user/userSlice';
+<<<<<<< HEAD
 import { partnersApi } from '../features/partnersApi';
+=======
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 
 
 const persistConfig = {
@@ -16,8 +19,11 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   user: userReducer,
+<<<<<<< HEAD
     [partnersApi.reducerPath]: partnersApi.reducer,
   
+=======
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   [baseApi.reducerPath]: baseApi.reducer,
 });
 
@@ -28,9 +34,13 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false, // needed for redux-persist
+<<<<<<< HEAD
     })
       .concat(baseApi.middleware)
       .concat(partnersApi.middleware),
+=======
+    }).concat(baseApi.middleware),
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 });
 
 setupListeners(store.dispatch);

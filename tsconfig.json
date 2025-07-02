@@ -7,8 +7,25 @@
   },
   "files": [],
   "references": [
+<<<<<<< HEAD
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ]
 }
 
+=======
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)

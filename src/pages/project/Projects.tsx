@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useMemo, useEffect } from 'react';
+=======
+import  { useState, useMemo } from 'react';
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 import {
   createColumnHelper,
   flexRender,
@@ -16,11 +20,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+<<<<<<< HEAD
 import { Search, Filter, ChevronDown, Settings, Plus, LayoutGrid, List, Trash, Pen, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+=======
+import {  ChevronDown, Settings, Plus, Trash, Pen, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+<<<<<<< HEAD
 import {
   Pagination,
   PaginationContent,
@@ -33,13 +42,22 @@ import { useGetProjectsQuery, useBulkDeleteProjectsMutation } from '@/features/a
 import type { Project } from '@/features/types/project'; // Make sure this Project type is accurate
 import { useNavigate } from 'react-router-dom';
 import EditProjectModal from './EditProjectModal';
+=======
+import { useGetProjectsQuery, useBulkDeleteProjectsMutation } from '@/features/api/projectsApi';
+import type { Project } from '@/features/types/project';
+import { useNavigate } from 'react-router-dom';
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 
 const columnHelper = createColumnHelper<Project>();
 
 function Projects() {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [sorting, setSorting] = useState<any>([]); // Stores [{ id: 'columnId', desc: boolean }]
+=======
+  const [sorting, setSorting] = useState<any>([]); 
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -47,11 +65,17 @@ function Projects() {
   });
   const [globalFilter, setGlobalFilter] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
+<<<<<<< HEAD
   const [editProject, setEditProject] = useState<Project | null>(null);
 
   // RTK Query: Fetches data based on current pagination, filter, and sorting states
   const { data, isLoading, isError, refetch } = useGetProjectsQuery({
     page: pagination.pageIndex + 1, // API usually expects 1-based page numbers
+=======
+
+  const { data, isLoading, isError, refetch } = useGetProjectsQuery({
+    page: pagination.pageIndex + 1, 
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
     per_page: pagination.pageSize,
     filter: globalFilter,
     sort: sorting.length > 0 ? `${sorting[0].id}:${sorting[0].desc ? 'desc' : 'asc'}` : undefined,
@@ -60,6 +84,7 @@ function Projects() {
   const [bulkDeleteProjects] = useBulkDeleteProjectsMutation();
 
   const projects = data?.data || [];
+<<<<<<< HEAD
   const totalItems = data?.meta?.total || 0;
   const pageCount = data?.meta?.last_page || 1;
 
@@ -67,6 +92,11 @@ function Projects() {
   // If your API's `filter` parameter is robust, this client-side filter
   // will only apply to the data *already returned* by the API for the current page.
   // This is typically fine for simple search on the current page.
+=======
+  const pageCount = data?.meta?.last_page || 1;
+
+  
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   const filteredProjects = useMemo(() => {
     if (!globalFilter) return projects;
     const filterLower = globalFilter.toLowerCase();
@@ -115,6 +145,7 @@ function Projects() {
     if (!window.confirm('Voulez-vous vraiment supprimer ce projet ? Cette action est irréversible.')) {
       return;
     }
+<<<<<<< HEAD
     // Assuming you have a useDeleteProjectMutation hook or similar API call for single delete
     // e.g., await deleteProject(id).unwrap();
     alert(`Simulating deletion of project ${id}.`);
@@ -127,6 +158,12 @@ function Projects() {
     }
   }
 
+=======
+    alert(`Simulating deletion of project ${id}.`);
+    refetch();
+  }
+  
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -186,7 +223,11 @@ function Projects() {
         enableSorting: true,
       }),
       columnHelper.accessor(row => row.project_type?.name || '', {
+<<<<<<< HEAD
         id: 'project_type_name', // Correct ID for nested property
+=======
+        id: 'project_type_name',
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -204,7 +245,11 @@ function Projects() {
         enableSorting: true,
       }),
       columnHelper.accessor(row => row.project_status?.name || '', {
+<<<<<<< HEAD
         id: 'project_status_name', // Correct ID for nested property
+=======
+        id: 'project_status_name', 
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -226,7 +271,11 @@ function Projects() {
         enableSorting: true,
       }),
       columnHelper.accessor(row => row.start_date ? new Date(row.start_date).toLocaleDateString() : '', {
+<<<<<<< HEAD
         id: 'start_date', // Correct ID
+=======
+        id: 'start_date', 
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -244,7 +293,11 @@ function Projects() {
         enableSorting: true,
       }),
       columnHelper.accessor(row => row.end_date ? new Date(row.end_date).toLocaleDateString() : '', {
+<<<<<<< HEAD
         id: 'end_date', // Correct ID
+=======
+        id: 'end_date',
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -286,7 +339,11 @@ function Projects() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-gray-400 hover:text-green-600 cursor-pointer"
+<<<<<<< HEAD
               onClick={e => { e.stopPropagation(); handleEdit(row.original.id); }}
+=======
+              onClick={e => { e.stopPropagation(); navigate(`/projects/${row.original.id}/edit`) }}
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
             >
               <Pen className="h-4 w-4" />
             </Button>
@@ -316,8 +373,13 @@ function Projects() {
     onPaginationChange: setPagination,
     onGlobalFilterChange: setGlobalFilter,
     manualPagination: true,
+<<<<<<< HEAD
     manualSorting: true, // This must be TRUE for server-side sorting
     manualFiltering: false, // This is fine if client-side filter is desired on fetched data
+=======
+    manualSorting: true, 
+    manualFiltering: false, 
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
     pageCount: pageCount,
   });
 
@@ -382,7 +444,11 @@ function Projects() {
               {table.getRowModel().rows.length ? (
                 table.getRowModel().rows.map((row, index) => (
                   <TableRow
+<<<<<<< HEAD
                     key={row.id}
+=======
+                    key={index}
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
                     data-state={row.getIsSelected() && 'selected'}
                     className="cursor-pointer hover:bg-[#E8F1FF] transition border-b border-[#A5D7E8] group"
                     onClick={() => handleShow(row.original.id)}
@@ -456,6 +522,7 @@ function Projects() {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
       {editProject && (
         <EditProjectModal
           isOpen={!!editProject}
@@ -466,6 +533,9 @@ function Projects() {
           project={editProject}
         />
       )}
+=======
+     
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
     </>
   );
 }

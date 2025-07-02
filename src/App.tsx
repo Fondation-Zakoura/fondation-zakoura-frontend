@@ -13,6 +13,18 @@ import AddProject from './pages/project/AddProject';
 import ShowProject from './pages/project/ShowProject';
 import EditProject from './pages/project/EditProject';
 
+import CategoriesPage from './pages/categories/CategoriesPage';
+import AddCategory from './pages/categories/AddCategory';
+import ModifyCategory from './pages/categories/EditCategoryModal';
+import LoginForm from './components/auth/LoginForm';
+import Projects from './pages/project/Projects';
+import AddProject from './pages/project/AddProject';
+import ShowProject from './pages/project/ShowProject';
+import EditProject from './pages/project/EditProject';
+import ProjectTypesPage from './pages/project/ProjectTypesPage';
+import ProjectStatusesPage from './pages/project/ProjectStatusesPage';
+import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
+
 
 function App() {
   
@@ -25,8 +37,14 @@ function App() {
             <Route path='projects/add' element={<AddProject />} />
             <Route path='projects/:id' element={<ShowProject />} />
             <Route path='projects/:id/edit' element={<EditProject />} />
+<<<<<<< HEAD
             <Route path='partenariat/partenaires' element={<PartnersList />} />
 
+=======
+            <Route path='project-types' element={<ProjectTypesPage />} />
+            <Route path='project-statuses' element={<ProjectStatusesPage />} />
+            <Route path='project-bank-accounts' element={<ProjectBankAccountsPage />} />
+>>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>
