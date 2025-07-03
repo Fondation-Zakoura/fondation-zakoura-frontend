@@ -4,7 +4,7 @@ import type { Partner, FilterOption, ApiResponse } from '../types/partners';
 export const partnersApi = createApi({
   reducerPath: 'partnersApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://127.0.0.1:8000/api',
+    baseUrl: 'http://localhost:8000/api',
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('authToken');
       if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -21,16 +21,9 @@ export const partnersApi = createApi({
       }),
       providesTags: ['Partners'],
     }),
-       getOptions: builder.query<FilterOption[], string>({
+    getOptions: builder.query<FilterOption[], string>({
+      // Pass endpoints like 'nature-partners', 'structure-partners', 'status-partners'
       query: (endpoint) => `/${endpoint}`,
-      // FIX: Transform the response to ensure it's always an array.
-      // This handles cases where the API returns { "data": [...] }.
-      transformResponse: (response: { data: FilterOption[] } | FilterOption[]) => {
-        if (Array.isArray(response)) {
-            return response;
-        }
-        return response?.data || [];
-      },
     }),
     addPartner: builder.mutation<Partner, FormData>({
       query: (data) => ({

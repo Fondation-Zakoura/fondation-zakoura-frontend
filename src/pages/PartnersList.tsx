@@ -53,9 +53,14 @@ const PartnersListPage: React.FC = () => {
   const [deletePartners] = useDeletePartnersMutation();
 
   // RTK Query: Fetch filter options
-  const { data: natures = [] } = useGetOptionsQuery("nature-partners");
-  const { data: structures = [] } = useGetOptionsQuery("structure-partners");
-  const { data: statuts = [] } = useGetOptionsQuery("status-partners");
+   const { data: naturesData } = useGetOptionsQuery("nature-partners");
+  const natures = naturesData?.data || [];
+  const { data: structuresData } = useGetOptionsQuery("structure-partners");
+  const structures = structuresData?.data || [];
+
+  const { data: statutsData } = useGetOptionsQuery("status-partners");
+  const statuts = statutsData?.data || [];
+
 
   // Memoize partners list and derived filter options to prevent re-renders
   const allPartners = useMemo(() => partnersData?.data || [], [partnersData]);
