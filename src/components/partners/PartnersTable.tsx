@@ -1,13 +1,18 @@
 import React from 'react';
-import { 
-    X, 
+import {
     Building,
     User,
     Mail,
     Phone,
-    Info
+    Info,
+    MapPin,
+    Briefcase,
+    Tag,
+    Flag,
+    FileText,
+    StickyNote
 } from 'lucide-react';
-import type { Partner, ContactPerson } from '../../types/partners'; // Assuming types are in this path
+import type { Partner, ContactPerson } from '../../types/partners'; // Make sure ContactPerson is exported from your types
 
 // --- Shadcn UI Components ---
 import {
@@ -15,13 +20,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
 // --- Helper Functions & Components ---
 
@@ -37,127 +39,119 @@ const getBadgeVariant = (text: string | null): "default" | "secondary" | "destru
 };
 
 /**
- * A reusable component for displaying a single piece of detail.
+ * A reusable component for displaying a single piece of detail with an icon.
  */
-const DetailItem: React.FC<{ label: string; value?: string | null; children?: React.ReactNode }> = ({ label, value, children }) => {
+const DetailItem: React.FC<{
+    icon: React.ElementType;
+    label: string;
+    value?: string | null;
+    children?: React.ReactNode;
+    className?: string
+}> = ({ icon: Icon, label, value, children, className }) => {
     if (!value && !children) return null;
     return (
-        <div>
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <div className="mt-1 text-base text-foreground">{value || children}</div>
+        <div className={`flex items-start gap-4 ${className}`}>
+            <Icon className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+            <div className="flex-grow">
+                <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                <div className="text-base text-foreground break-words">{value || children}</div>
+            </div>
         </div>
     );
 };
 
 // --- Main Modal Component ---
 
-export const PartnerDetailsModal: React.FC<{ 
-    isOpen: boolean; 
-    onClose: () => void; 
-    partner: Partner | null; 
+export const PartnerDetailsModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    partner: Partner | null;
 }> = ({ isOpen, onClose, partner }) => {
   if (!isOpen || !partner) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[1100px] !max-w-none p-0" onPointerDownOutside={e => e.preventDefault()}>
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px] p-0" onPointerDownOutside={e => e.preventDefault()}>
         <ScrollArea className="max-h-[90vh]">
-          <div className="p-6">
+          <div className="p-8 bg-slate-50">
             {/* --- HEADER --- */}
             <DialogHeader>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-5">
-                            <Avatar className="h-20 w-20 text-xl">
-                                <AvatarImage src={partner.logo_url ?? undefined} alt={partner.partner_name} />
-                                <AvatarFallback>
-                                    {partner.partner_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <DialogTitle className="text-3xl font-bold text-gray-900">
-                                    {partner.partner_name}
-                                </DialogTitle>
-                                <p className="text-lg text-muted-foreground">{partner.abbreviation}</p>
-                            </div>
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <Avatar className="h-28 w-28 text-3xl border-4 border-white shadow-lg">
+                        <AvatarImage src={partner.logo_url ?? undefined} alt={partner.partner_name} />
+                        <AvatarFallback className='bg-primary text-primary-foreground'>
+                            {partner.partner_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="text-center sm:text-left">
+                        <DialogTitle className="text-4xl font-extrabold text-gray-900 tracking-tight">
+                            {partner.partner_name}
+                        </DialogTitle>
+                        <p className="text-xl text-muted-foreground mt-1">{partner.abbreviation}</p>
+                        <div className="mt-4 flex items-center justify-center sm:justify-start gap-4">
+                            <Badge variant={getBadgeVariant(partner.status)} className="text-sm">{partner.status}</Badge>
+                            <Badge variant={partner.partner_type === 'National' ? 'secondary' : 'default'} className="text-sm">{partner.partner_type}</Badge>
                         </div>
-                        {/* <DialogClose className="text-muted-foreground">
-                            <X size={24} />
-                        </DialogClose> */}
                     </div>
-                </DialogHeader>
-
-                <div className="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-6 h-[600px]">
-
-                    {/* --- LEFT PANE: PARTNER DETAILS --- */}
-                    <Card className="lg:col-span-3 h-full">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3 text-xl">
-                                <Building className="w-6 h-6 text-primary"/>
-                                Informations sur le Partenaire
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                                <DetailItem label="Nature" value={partner.nature_partner} />
-                                <DetailItem label="Structure" value={partner.structure_partner} />
-                                <DetailItem label="Type">
-                                    <Badge variant={partner.partner_type === 'National' ? 'secondary' : 'default'}>{partner.partner_type}</Badge>
-                                </DetailItem>
-                                <DetailItem label="Phase">
-                                    <Badge variant={getBadgeVariant(partner.status)}>{partner.status}</Badge>
-                                </DetailItem>
-                                <DetailItem label="Pays" value={partner.country} />
-                                <DetailItem label="Téléphone (Général)" value={partner.phone} />
-                                <div className="md:col-span-2">
-                                    <DetailItem label="Courriel (Général)" value={partner.email} />
-                                </div>
-                            </dl>
-                            <Separator />
-                            <dl className="space-y-5">
-                                <DetailItem label="Adresse" value={partner.address}/>
-                                <DetailItem label="Actions/Projets" value={partner.actions}/>
-                                <DetailItem label="Note" value={partner.note}/>
-                            </dl>
-                        </CardContent>
-                    </Card>
-
-                    {/* --- RIGHT PANE: CONTACTS --- */}
-                    <Card className="lg:col-span-2 h-full flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3 text-xl">
-                                <User className="w-6 h-6 text-primary"/>
-                                Personnes de Contact
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col">
-                          <div className="space-y-4 flex-1 flex flex-col">
-                            {partner.contact_people && partner.contact_people.length > 0 ? (
-                              partner.contact_people.map((contact, index) => (
-                                <React.Fragment key={contact.id}>
-                                  <div className="flex flex-col">
-                                    <p className="font-bold text-base text-foreground">{contact.first_name} {contact.last_name}</p>
-                                    {contact.position && <p className="text-sm text-primary font-medium">{contact.position}</p>}
-                                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                      {contact.email && <p className="flex items-center gap-2"><Mail size={14}/> {contact.email}</p>}
-                                      {contact.phone && <p className="flex items-center gap-2"><Phone size={14}/> {contact.phone}</p>}
-                                    </div>
-                                  </div>
-                                  {index < partner.contact_people.length - 1 && <Separator />}
-                                </React.Fragment>
-                              ))
-                            ) : (
-                              <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-10">
-                                <div>
-                                  <Info size={24} className="mb-2"/>
-                                  <span>Aucune personne de contact.</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
                 </div>
+            </DialogHeader>
+
+            <div className="mt-10 space-y-8">
+                {/* --- CONTACTS SECTION (UPDATED FOR MULTIPLE CONTACTS) --- */}
+                {(partner.contact_people?.length ?? 0) > 0 && (
+                    <section className="bg-white rounded-xl p-6 shadow-sm">
+                        <h3 className="text-xl font-semibold text-foreground mb-5 flex items-center gap-3">
+                            <User className="w-6 h-6 text-primary"/>
+                            Personnes de Contact
+                        </h3>
+                        <div className="space-y-6">
+                            {partner.contact_people.map((contact: ContactPerson, index: number) => (
+                                <div key={contact.id || index} className="p-5 border rounded-lg bg-slate-50/50">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                                      <DetailItem icon={User} label="Nom" value={`${contact.first_name} ${contact.last_name}`} />
+                                      <DetailItem icon={Briefcase} label="Poste" value={contact.position} />
+                                      <DetailItem icon={Mail} label="Courriel" value={contact.email} />
+                                      <DetailItem icon={Phone} label="Téléphone" value={contact.phone} />
+                                      <DetailItem icon={MapPin} className="md:col-span-2" label="Adresse" value={contact.address} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* --- PARTNER INFO SECTION --- */}
+                <section className="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 className="text-xl font-semibold text-foreground mb-5 flex items-center gap-3">
+                        <Building className="w-6 h-6 text-primary"/>
+                        Informations sur le Partenaire
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                        <DetailItem icon={Tag} label="Nature" value={partner.nature_partner} />
+                        <DetailItem icon={Briefcase} label="Structure" value={partner.structure_partner} />
+                        <DetailItem icon={Flag} label="Pays" value={partner.country} />
+                        <DetailItem icon={Phone} label="Téléphone (Général)" value={partner.phone} />
+                        <DetailItem icon={Mail} className="md:col-span-2" label="Courriel (Général)" value={partner.email} />
+                        <DetailItem icon={MapPin} className="md:col-span-2" label="Adresse" value={partner.address}/>
+                    </div>
+                </section>
+
+                {/* --- OTHER INFO SECTION --- */}
+                {(partner.actions || partner.note) && (
+                    <section className="bg-white rounded-xl p-6 shadow-sm">
+                        <h3 className="text-xl font-semibold text-foreground mb-5 flex items-center gap-3">
+                            <Info className="w-6 h-6 text-primary"/>
+                            Autres Détails
+                        </h3>
+                        <div className="space-y-5">
+                            <DetailItem icon={FileText} label="Actions/Projets" value={partner.actions}/>
+                            <DetailItem icon={StickyNote} label="Note" value={partner.note}/>
+                        </div>
+                    </section>
+                )}
+
             </div>
+          </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>

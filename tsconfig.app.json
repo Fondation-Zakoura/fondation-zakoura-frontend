@@ -29,11 +29,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    /* --- ADD THIS FOR ALIASES TO WORK --- */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+  
   },
   "include": ["src"]
 }

@@ -23,11 +23,7 @@ const EditProject: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const projectId = Number(id);
-<<<<<<< HEAD
-  const { data: projectResponse, isLoading: projectLoading, isError } = useGetProjectQuery(projectId);
-=======
   const { data: p, isLoading: projectLoading, isError } = useGetProjectQuery(projectId);
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   const { data: formOptions, isLoading: optionsLoading } = useGetProjectFormOptionsQuery();
   const [updateProject, { isLoading: submitting }] = useUpdateProjectMutation();
   const [form, setForm] = useState(initialForm);
@@ -35,15 +31,8 @@ const EditProject: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-<<<<<<< HEAD
-    const p = projectResponse?.project;
     if (p) {
       setForm({
-        id:p.id,
-=======
-    if (p) {
-      setForm({
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         project_name: p.project_name || '',
         project_nature: p.project_nature || '',
         project_type_id: p.project_type?.id ? String(p.project_type.id) : '',
@@ -54,20 +43,12 @@ const EditProject: React.FC = () => {
         responsible_id: p.responsible?.id ? String(p.responsible.id) : '',
         total_budget: p.total_budget ? String(p.total_budget) : '',
         project_bank_account_id: p.project_bank_account?.id ? String(p.project_bank_account.id) : '',
-<<<<<<< HEAD
-        zakoura_contribution: p.zakoura_contribution ?? '',
-=======
         zakoura_contribution: p.zakoura_contribution ? String(p.zakoura_contribution) : '',
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         notes: p.notes ?? '',
         created_by_id: p.created_by?.id ? String(p.created_by.id) : '',
       });
     }
-<<<<<<< HEAD
-  }, [projectResponse]);
-=======
   }, [p]);
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -91,17 +72,10 @@ const EditProject: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-<<<<<<< HEAD
-    if (!projectResponse) return;
-    try {
-      const payload = {
-        id: projectResponse.id,
-=======
     if (!p) return;
     try {
       const payload = {
         id: p.id,
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         ...form,
         project_type_id: form.project_type_id ? Number(form.project_type_id) : undefined,
         project_status_id: form.project_status_id ? Number(form.project_status_id) : undefined,
@@ -116,19 +90,11 @@ const EditProject: React.FC = () => {
           apport: p.apport ? Number(p.apport) : undefined 
         }))
       };
-<<<<<<< HEAD
-      // Remove any undefined values from payload
-=======
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
       Object.keys(payload).forEach(key => {
         if ((payload as any)[key] === undefined) {
           delete (payload as any)[key];
         }
       });
-<<<<<<< HEAD
-      // Log the payload before submitting
-=======
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
       console.log('Submitting payload:', JSON.stringify(payload, null, 2));
       await updateProject(payload).unwrap();
       navigate('/projects');
@@ -158,11 +124,7 @@ const EditProject: React.FC = () => {
   if (projectLoading || optionsLoading) {
     return <div className="p-8 text-center text-lg font-semibold text-blue-900">Chargement du projet...</div>;
   }
-<<<<<<< HEAD
-  if (isError || !projectResponse) {
-=======
   if (isError || !p) {
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
     return <div className="p-8 text-center text-lg font-semibold text-red-600">Erreur lors du chargement du projet.</div>;
   }
 

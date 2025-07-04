@@ -49,6 +49,7 @@ export interface Partner {
   logo_url?: string;
   contact_people: ContactPerson[];
   is_active?: boolean;
+  deleted_at?: string;
 }
 
 export interface FilterOption {

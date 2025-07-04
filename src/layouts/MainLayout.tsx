@@ -78,7 +78,7 @@ const MainLayout: React.FC = () => { // Added React.FC for better type checking 
         <Sidebar isSidebarToggled={isSidebarToggled} />
       </aside>
       {/* Main content area where routed components are rendered */}
-      <main className='relative top-24 lg:mx-3'>
+      <main className='relative top-24 lg:mx-3 '>
         <Outlet />
       </main>
     </div>

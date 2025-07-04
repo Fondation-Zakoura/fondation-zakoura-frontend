@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import type { Project, ProjectsResponse, ProjectType, ProjectStatus } from '../types/project';
-=======
 import type { Project, ProjectsResponse, ProjectType, ProjectStatus, ProjectBankAccount } from '../types/project';
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 import { baseApi } from './api';
 
 type ProjectsQueryParams = {
@@ -12,11 +8,8 @@ type ProjectsQueryParams = {
   type?: string;
   status?: string;
   from?: string;
-<<<<<<< HEAD
-=======
   filter?:string;
   sort?:string;
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 };
 
 type ProjectOptions = {
@@ -25,11 +18,7 @@ type ProjectOptions = {
 };
 
 export const projectsApi = baseApi.enhanceEndpoints({
-<<<<<<< HEAD
-  addTagTypes: ['Projects']
-=======
   addTagTypes: ['Projects', 'ProjectTypes', 'ProjectStatuses', 'ProjectBankAccounts']
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 }).injectEndpoints({
   endpoints: (builder) => ({
     getProjectFormOptions: builder.query<any, void>({
@@ -49,11 +38,7 @@ export const projectsApi = baseApi.enhanceEndpoints({
       }),
       providesTags: ['Projects'],
     }),
-<<<<<<< HEAD
-    getProject: builder.query<Project, string>({
-=======
     getProject: builder.query<Project, number>({
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
       query: (id) => `/projects/${id}`,
     }),
     getProjectOptions: builder.query<ProjectOptions, void>({
@@ -83,8 +68,6 @@ export const projectsApi = baseApi.enhanceEndpoints({
       }),
       invalidatesTags: ['Projects'],
     }),
-<<<<<<< HEAD
-=======
     getProjectTypes: builder.query<ProjectType[], void>({
       query: () => '/project-types',
       providesTags: ['ProjectTypes'],
@@ -178,7 +161,6 @@ export const projectsApi = baseApi.enhanceEndpoints({
       }),
       invalidatesTags: ['ProjectBankAccounts'],
     }),
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   }),
   overrideExisting: false,
 });
@@ -191,9 +173,6 @@ export const {
   useUpdateProjectMutation, 
   useDeleteProjectMutation, 
   useBulkDeleteProjectsMutation,
-<<<<<<< HEAD
-  useGetProjectQuery 
-=======
   useGetProjectQuery,
   useGetProjectTypesQuery,
   useGetProjectTypeQuery,
@@ -210,5 +189,4 @@ export const {
   useCreateProjectBankAccountMutation,
   useUpdateProjectBankAccountMutation,
   useDeleteProjectBankAccountMutation
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 } = projectsApi;

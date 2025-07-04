@@ -1,28 +1,13 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-=======
 import React from 'react';
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useGetProjectQuery } from '@/features/api/projectsApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-<<<<<<< HEAD
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { BarChart2, Users, UserCheck, MapPin, Shield, Layers, FileText, ClipboardList, Megaphone, BookOpen, StickyNote, Wallet, Store, Calculator, Monitor, UserPlus, GraduationCap } from 'lucide-react';
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
-import { Badge } from '@/components/ui/badge';
-import { Gantt } from "gantt-task-react";
-import "gantt-task-react/dist/index.css";
-=======
 import { cn } from '@/lib/utils';
 import { BarChart2, Users, UserCheck, MapPin, Shield, Wallet, Store, Calculator, Monitor, UserPlus, GraduationCap } from 'lucide-react';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { Badge } from '@/components/ui/badge';
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 
 // --- Helper Components for better structure & styling ---
@@ -141,10 +126,6 @@ const ShortcutsCard = () => (
   </Card>
 );
 
-<<<<<<< HEAD
-// DashboardStats component
-=======
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
 const DashboardStats = () => {
   const stats = [
     {
@@ -186,15 +167,9 @@ const DashboardStats = () => {
 const ShowProject: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const { data: project, isLoading, isError } = useGetProjectQuery(id as string);
-  const [activeTab, setActiveTab] = React.useState('INFOS');
-
-=======
   const { data:project, isLoading, isError } = useGetProjectQuery(Number(id));
   const [activeTab, setActiveTab] = React.useState('INFOS');
   console.log(project)
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen text-lg font-semibold text-blue-900">Chargement du projet...</div>;
   }
@@ -203,44 +178,6 @@ const ShowProject: React.FC = () => {
   }
   // Example stats (replace with real fields if available)
   const stats = [
-<<<<<<< HEAD
-    { label: 'Type', value: project.project.project_type?.name || '-' },
-    { label: 'Statut', value: project.project.project_status?.name || '-' },
-    { label: 'Bénéficiaires', value: project.beneficiaries ?? '-' },
-    { label: 'Localité', value: project.location || '-' },
-    { label: 'Budget', value: project.project.total_budget ? `${project.project.total_budget} MAD` : '-' },
-    { label: 'Créé le', value: project.project.created_at ? new Date(project.project.created_at).toLocaleDateString() : '-' },
-  ];  
-  const iconClass = 'w-6 h-6 text-blue-600';
-
-  // Définis le type localement
-  type GanttTask = {
-    id: string;
-    name: string;
-    start: Date;
-    end: Date;
-    type: string;
-    progress: number;
-    isDisabled?: boolean;
-    styles?: {
-      progressColor?: string;
-      progressSelectedColor?: string;
-    };
-  };
-
-  const tasks: GanttTask[] = [
-    {
-      id: project.project.project_code,
-      name: project.project.project_name || project.title,
-      start: new Date(project.project.start_date),
-      end: new Date(project.project.end_date),
-      type: "task",
-      progress: 100,
-      isDisabled: true,
-      styles: { progressColor: "#2563eb", progressSelectedColor: "#1d4ed8" }
-    }
-  ];
-=======
     { label: 'Type', value: project.project_type?.name || '-' },
     { label: 'Statut', value: project.project_status?.name || '-' },
     { label: 'Budget', value: project.total_budget ? `${project.total_budget} MAD` : '-' },
@@ -250,7 +187,6 @@ const ShowProject: React.FC = () => {
 
   
   
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
   
   return (
     <div className="min-h-screen p-8">
@@ -292,31 +228,6 @@ const ShowProject: React.FC = () => {
                 <CardContent className="p-6">
                   <div className="mb-3">
                     <p className="text-xs text-gray-500">Nom du projet</p>
-<<<<<<< HEAD
-                    <p className="font-bold text-lg text-gray-800">{project.project.project_name}</p>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500">Type</p>
-                    <Badge>{project.project.project_type?.name || '-'}</Badge>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500">Statut</p>
-                    <Badge>{project.project.project_status?.name || '-'}</Badge>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500">Dates</p>
-                    <p className="font-semibold text-gray-700">{project.project.start_date?.slice(0, 10)} - {project.project.end_date?.slice(0, 10)}</p>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500">Budget</p>
-                    <p className="font-semibold text-gray-700">{project.project.total_budget ? `${project.project.total_budget} MAD` : '-'}</p>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500">Bénéficiaires</p>
-                    <p className="font-semibold text-gray-700">{project.beneficiaries ?? '-'}</p>
-                  </div>
-                  <Button size="sm" onClick={()=>navigate(`/projects/${project.project.id}/edit`)} variant="outline" className="w-full bg-gray-100 mt-4 cursor-pointer">Modifier le projet</Button>
-=======
                     <p className="font-bold text-lg text-gray-800">{project.project_name}</p>
                   </div>
                   <div className="mb-3">
@@ -340,7 +251,6 @@ const ShowProject: React.FC = () => {
                     <p className="font-semibold text-gray-700">{'-'}</p>
                   </div>
                   <Button size="sm" onClick={()=>navigate(`/projects/${project.id}/edit`)} variant="outline" className="w-full bg-gray-100 mt-4 cursor-pointer">Modifier le projet</Button>
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-blue-700 to-blue-500 text-white rounded-2xl shadow-lg flex flex-col  justify-between p-6 w-full ">
@@ -370,32 +280,13 @@ const ShowProject: React.FC = () => {
                 <CardContent className="p-6">
                   <p className="text-xs text-gray-500 mb-2">Notes & Observations</p>
                   <div className="text-gray-700 text-sm whitespace-pre-line min-h-[60px]">
-<<<<<<< HEAD
-                    {project.project.notes ? project.project.notes : <span className="italic text-gray-400">Aucune note fournie.</span>}
-=======
                     {project.notes ? project.notes : <span className="italic text-gray-400">Aucune note fournie.</span>}
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
                   </div>
                 </CardContent>
               </Card>
               <Card className="shadow border-l-4 border-green-200 bg-white">
                 <CardContent className="p-6">
                   <p className="text-xs text-gray-500 mb-2">Compte Bancaire du Projet</p>
-<<<<<<< HEAD
-                  {project.project.project_bank_account ? (
-                    <div className="space-y-2">
-                      <div>
-                        <span className="block text-xs text-gray-400">RIB</span>
-                        <span className="font-semibold text-gray-800 text-sm">{project.project.project_bank_account.rib || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="block text-xs text-gray-400">Agence</span>
-                        <span className="font-semibold text-gray-800 text-sm">{project.project.project_bank_account.agency || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="block text-xs text-gray-400">Banque</span>
-                        <span className="font-semibold text-gray-800 text-sm">{project.project.project_bank_account.bank || '-'}</span>
-=======
                   {project.project_bank_account ? (
                     <div className="space-y-2">
                       <div>
@@ -409,7 +300,6 @@ const ShowProject: React.FC = () => {
                       <div>
                         <span className="block text-xs text-gray-400">Banque</span>
                         <span className="font-semibold text-gray-800 text-sm">{project.project_bank_account.bank || '-'}</span>
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
                       </div>
                     </div>
                   ) : (
@@ -433,23 +323,6 @@ const ShowProject: React.FC = () => {
                   <div className="space-y-2">
                     <div>
                       <span className="block text-xs text-gray-400">Nature du projet</span>
-<<<<<<< HEAD
-                      <span className="font-semibold text-gray-800 text-sm">{project.project.project_nature || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-gray-400">Contribution Zakoura</span>
-                      <span className="font-semibold text-gray-800 text-sm">{project.project.zakoura_contribution ? `${project.project.zakoura_contribution} MAD` : '-'}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-gray-400">Responsable</span>
-                      <span className="font-semibold text-gray-800 text-sm">{project.project.responsible?.name || '-'}</span>
-                      <span className="block text-xs text-gray-500">{project.project.responsible?.email || ''}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-gray-400">Créé par</span>
-                      <span className="font-semibold text-gray-800 text-sm">{project.project.created_by?.name || '-'}</span>
-                      <span className="block text-xs text-gray-500">{project.project.created_by?.email || ''}</span>
-=======
                       <span className="font-semibold text-gray-800 text-sm">{project.project_nature || '-'}</span>
                     </div>
                     <div>
@@ -465,7 +338,6 @@ const ShowProject: React.FC = () => {
                       <span className="block text-xs text-gray-400">Créé par</span>
                       <span className="font-semibold text-gray-800 text-sm">{project.created_by?.name || '-'}</span>
                       <span className="block text-xs text-gray-500">{project.created_by?.email || ''}</span>
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
                     </div>
                   </div>
                 </CardContent>
@@ -473,15 +345,6 @@ const ShowProject: React.FC = () => {
               </div>
             </div>
           </div>
-<<<<<<< HEAD
-          <Gantt
-            tasks={tasks}
-            viewMode={"Month"}
-            listCellWidth="155px"
-            columnWidth={60}
-          />
-=======
->>>>>>> a1b5ad8 (feat: Add Project Management and Liste)
         </main>
       )}
       {activeTab !== 'INFOS' && (
