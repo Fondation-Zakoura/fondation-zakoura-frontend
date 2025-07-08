@@ -1,97 +1,121 @@
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
-import { useAddCategoryMutation } from '../../features/api/categories';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useAddCategoryMutation } from "../../features/api/categories";
 
-type ModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-};
+// Props definition for the modal component
+interface ModalProps {
+  isOpen: boolean; // Controls whether the modal is open
+  onClose: () => void; // Function to close the modal
+  title: string; // Title to display in the modal
+}
 
-const AddCategory = ({ isOpen, onClose, title }: ModalProps) => {
-  if (!isOpen) return null;
+// AddCategory component allows users to add a new category via a modal dialog
+const AddCategory: React.FC<ModalProps> = ({ isOpen, onClose, title }) => {
+  // State for category name input
+  const [name, setName] = useState("");
+  // State for category description input
+  const [description, setDescription] = useState("");
 
-  // Local state for the category name and description
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-
-  // Get the mutation hook
+  // RTK Query mutation hook for adding a category
+  // Provides the mutation function and status flags
   const [addCategory, { isLoading, isError, error }] = useAddCategoryMutation();
 
-  // Submit handler
+  // Handles form submission to add a new category
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); 
     try {
+    
       await addCategory({ name, description }).unwrap();
-      setName('');
-      setDescription('');
-      onClose(); // Close modal on success
+      // Reset form fields on success
+      setName("");
+      setDescription("");
+      // Close the modal
+      onClose();
     } catch (err) {
-      console.error('Failed to add category:', err);
+    
+      console.error("Failed to add category:", err);
     }
   };
 
-  return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-center">
-      {/* Background Overlay */}
-      <div
-        className="absolute inset-0 bg-black opacity-40"
-        onClick={onClose}
-      />
+  return (
+    // Dialog component controls modal visibility
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          {/* Modal title */}
+          <DialogTitle>{title}</DialogTitle>
+          {/* Modal description */}
+          <DialogDescription>
+            Remplissez les informations pour ajouter une nouvelle catégorie.
+          </DialogDescription>
+        </DialogHeader>
 
-      {/* Modal Content */}
-      <div className="relative z-[1001] bg-white py-4 shadow-md w-[90%] h-auto my-7 max-w-lg font-nunito rounded-2xl">
-        <div className="my-3 border-b border-neutral-300 px-4">
-          <h1 className="text-2xl font-semibold py-2">{title}</h1>
-        </div>
-        <form onSubmit={handleSubmit} className="flex flex-col m-2 py-3 px-4 gap-6">
-          <div className="flex gap-2.5 flex-col">
-            <label htmlFor="category-name">Nom de la catégorie</label>
-            <input
+        {/* Form for category creation */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Category name input field */}
+          <div className="space-y-2">
+            <label htmlFor="category-name" className="block text-sm font-medium">
+              Nom de la catégorie    <span className="text-red-500 text-right">*</span>
+            </label>
+            <Input
               id="category-name"
-              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="border p-2 rounded border-gray-300"
+              placeholder="Nom de la catégorie"
               required
+              disabled={isLoading} // Disable input while loading
             />
           </div>
-          <div className="flex gap-2.5 flex-col">
-            <label htmlFor="category-description">Description</label>
-            <textarea
+
+          {/* Category description input field */}
+          <div className="space-y-2">
+            <label htmlFor="category-description" className="block text-sm font-medium">
+              Description
+            </label>
+            <Textarea
               id="category-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="border p-2 rounded border-gray-300"
+              placeholder="Description de la catégorie"
               rows={3}
-              required
+              disabled={isLoading} // Disable textarea while loading
             />
           </div>
 
+          {/* Error message display if mutation fails */}
           {isError && (
-            <p className="text-red-500">Une erreur est survenue.</p>
+            <p className="text-sm text-red-500">{error?.data?.message}</p>
           )}
 
-          <div className="flex justify-center gap-9 text-lg">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="border p-3 rounded-2xl bg-cyan-900 hover:bg-cyan-800 cursor-pointer text-white"
-            >
-              {isLoading ? 'En cours...' : 'Sauvegarder'}
-            </button>
-            <button
+          {/* Modal footer with action buttons */}
+          <DialogFooter className="mt-4">
+            {/* Submit button, shows loading state if submitting */}
+            <Button type="submit" disabled={isLoading} className="bg-[#18365A] hover:bg-cyan-900">
+              {isLoading ? "En cours..." : "Sauvegarder"}
+            </Button>
+            {/* Cancel button to close the modal */}
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="p-2 text-red-500 cursor-pointer hover:border hover:rounded"
+              disabled={isLoading}
             >
               Annuler
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 };
 
