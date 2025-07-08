@@ -9,7 +9,7 @@ interface UserState {
 }
 
 const initialState: UserState = {
-  
+  name: '',
   token: null,
   loggedIn: false,
 };

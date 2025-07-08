@@ -3,8 +3,8 @@ import { useLoginUserMutation } from "../../features/api/authApi";
 import { useDispatch } from "react-redux";
 import { login } from "../../features/user/userSlice";
 import { useNavigate } from "react-router-dom";
-import girl from "../../../src/assets/images/login/girl.png"; // Assuming this path is correct
-import logo from "../../../src/assets/images/zakoura-logo.svg"; // Import the logo
+import girl from "../../../src/assets/images/login/girl.png"; 
+import logo from "../../../src/assets/images/zakoura-logo.svg"; 
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");

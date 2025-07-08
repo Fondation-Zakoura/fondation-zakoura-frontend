@@ -24,10 +24,11 @@ export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // needed for redux-persist
+      serializableCheck: false, 
     }).concat(baseApi.middleware),
 });
 
 setupListeners(store.dispatch);
 
 export const persistor = persistStore(store);
+export type RootState = ReturnType<typeof store.getState>;
