@@ -1,4 +1,3 @@
-
 import "./App.css";
 
 import { Routes, Route } from 'react-router-dom';
@@ -35,9 +34,6 @@ import EditCollaborateur from "./pages/collaborateurs/EditCollaborateurModal";
 import AddCollaborateurs from "./pages/collaborateurs/AddCollaborateur";
 
 import { UnitsListPage } from "./pages/units/UnitsListPage";
-import AddCategory from './pages/categories/AddCategory';
-import ModifyCategory from './pages/categories/EditCategoryModal';
-import LoginForm from './components/auth/LoginForm';
 
 
 function App() {
