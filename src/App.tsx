@@ -15,6 +15,7 @@ import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
 import NaturePartnersListPage from './pages/naturePartner/NaturePartnersList';
 import StructurePartnersListPage from './pages/structurePartner/StructurePartnersList';
 import PartnersListPage from './pages/PartnersList';
+import SitesListPage from './pages/sites/SitesList';
 
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
             <Route path='partenariat/partenaires' element={<PartnersListPage />} />
             <Route path='parametres/finance/types/natures-partenaires' element={<NaturePartnersListPage />} />
             <Route path='parametres/finance/types/structures-partenaires' element={<StructurePartnersListPage />} />
+            <Route path='/parametres/operations/sites' element={<SitesListPage />} />
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>

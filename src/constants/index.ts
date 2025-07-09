@@ -398,6 +398,18 @@ export const menuItems = [
                 ],
             },
             {
+                id: 'operations_param',
+                title: 'Opérations',
+                type: 'dropdown',
+                icon: null, // No icon for the header
+                link: '#', // Non-navigating parent
+                nestedDropdownItems: [
+                    { id: 'sites', title: 'Sites', link: '/parametres/operations/sites', icon: RiBankLine, type: 'link' },
+                    { id: 'agences-bancaires', title: 'Agences bancaires', link: '/parametres/projets/agences-bancaires', icon: RiBankLine, type: 'link' },
+                    { id: 'pays', title: 'Pays', link: '/parametres/projets/pays', icon: RiEarthLine, type: 'link' },
+                ],
+            },
+            {
                 id: 'rh_param',
                 title: 'RH',
                 type: 'dropdown',

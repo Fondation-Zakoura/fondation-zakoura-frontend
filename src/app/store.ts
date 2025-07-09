@@ -8,6 +8,9 @@ import userReducer from '../features/user/userSlice';
 import { partnersApi } from '../features/partnersApi';
 import { naturePartnersApi } from '@/features/api/naturePartnersApi';
 import { structurePartnersApi } from '@/features/api/structurePartnersApi';
+import { sitesApi } from '@/features/api/sitesApi';
+import { geographicApi } from '@/features/api/geographicApi';
+import { usersApi } from '@/features/api/usersApi'; // <-- Add this import
 
 const persistConfig = {
   key: 'root',
@@ -21,6 +24,9 @@ const rootReducer = combineReducers({
   [naturePartnersApi.reducerPath]: naturePartnersApi.reducer,
   [structurePartnersApi.reducerPath]: structurePartnersApi.reducer,
   [baseApi.reducerPath]: baseApi.reducer,
+  [sitesApi.reducerPath]: sitesApi.reducer,
+  [geographicApi.reducerPath]: geographicApi.reducer,
+  [usersApi.reducerPath]: usersApi.reducer, // <-- Add this line
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -34,7 +40,10 @@ export const store = configureStore({
       .concat(baseApi.middleware)
       .concat(partnersApi.middleware)
       .concat(naturePartnersApi.middleware)
-      .concat(structurePartnersApi.middleware),
+      .concat(structurePartnersApi.middleware)
+      .concat(sitesApi.middleware)
+      .concat(geographicApi.middleware)
+      .concat(usersApi.middleware), // <-- Add this line
 });
 
 setupListeners(store.dispatch);
