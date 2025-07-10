@@ -13,6 +13,7 @@ import ProjectTypesPage from './pages/project/ProjectTypesPage';
 import ProjectStatusesPage from './pages/project/ProjectStatusesPage';
 import LoginForm from './components/auth/LoginForm';
 import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
+import BudgetCategoryPage from './pages/budget-category/BudgetCategoryPage';
 
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
             <Route path='/settings/finance/types/projects' element={<ProjectTypesPage />} />
             <Route path='/settings/finance/statuses/projects' element={<ProjectStatusesPage />} />
             <Route path='bank-accounts' element={<ProjectBankAccountsPage />} />
+            <Route path='budget-categories' element={<BudgetCategoryPage />} />
             {/* <Route path='partners' element={<PartnersList />} /> */}
         </Route>
         <Route path='/login' element={<LoginForm />} />
