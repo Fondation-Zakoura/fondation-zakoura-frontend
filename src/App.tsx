@@ -16,6 +16,7 @@ import NaturePartnersListPage from './pages/naturePartner/NaturePartnersList';
 import StructurePartnersListPage from './pages/structurePartner/StructurePartnersList';
 import PartnersListPage from './pages/PartnersList';
 import SitesListPage from './pages/sites/SitesList';
+import { UnitsListPage } from './pages/units/UnitsListPage';
 
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
             <Route path='parametres/finance/types/natures-partenaires' element={<NaturePartnersListPage />} />
             <Route path='parametres/finance/types/structures-partenaires' element={<StructurePartnersListPage />} />
             <Route path='/parametres/operations/sites' element={<SitesListPage />} />
+            <Route path='/parametres/operations/unites' element={<UnitsListPage />} />
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>
