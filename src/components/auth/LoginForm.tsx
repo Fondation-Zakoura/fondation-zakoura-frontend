@@ -30,7 +30,7 @@ const LoginForm = () => {
     <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center " 
       style={{
-        backgroundImage: "url('/src/assets/images/login/course-lg.jpg')",
+        backgroundImage: "url('/src/assets/images/login/children.jpg')",
       }}
     >
    
