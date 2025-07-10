@@ -8,8 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useShowCategoryQuery } from "../../features/api/categories";
-
-const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
+type viewCategoryModalProps={
+  isOpen:boolean,
+  onClose:()=>void,
+  categoryId:number,
+  
+}
+const ViewCategoryModal = ({ categoryId, isOpen, onClose }:viewCategoryModalProps) => {
   const { data, error, isLoading } = useShowCategoryQuery(categoryId, {
     skip: !categoryId,
   });
