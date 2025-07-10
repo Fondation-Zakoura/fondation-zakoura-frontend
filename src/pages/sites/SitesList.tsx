@@ -60,16 +60,14 @@ const SitesListPage: React.FC = () => {
   const getCountryName = useCallback((countryCode: string | undefined) => {
     if (!countryCode) return "N/A";
     const country = countries.find(c => c.code === countryCode);
-    return country ? country.name : countryCode; // Return name if found, otherwise the code itself
+    return country ? country.name : countryCode; 
   }, []);
 
   const columnFilters = useMemo((): ColumnFilter<any>[] => [
     { id: "type", label: "Type", options: typeOptions },
-    { id: "status", label: "Statut", options: statusOptions },
-    // Adjust filter ID if you want to filter by the nested region name
-    // For filtering, you might need a custom filter function or adjust your backend
-    { id: "region.name", label: "Région", options: regionOptions }, // If your DataTable supports dot notation for filtering, this might work
-  ], [regionOptions, provinceOptions, communeOptions]); // Keep all dependencies for completeness
+    { id: "status", label: "Statut", options: statusOptions }, 
+    { id: "region.name", label: "Région", options: regionOptions },
+  ], [regionOptions, provinceOptions, communeOptions]); 
 
   const handleOpenAddModal = useCallback(() => {
     setEditingSite(null);
@@ -185,15 +183,12 @@ const SitesListPage: React.FC = () => {
           selectedRows={selectedRows}
           onSelectedRowsChange={setSelectedRows}
           emptyText={isLoading ? "Chargement des données..." : "Aucun site trouvé"}
-          initialPageSize={15}
+          initialPageSize={10}
           headerStyle="primary"
           hoverEffect
           striped
           globalFilterKey="name"
           serverPagination
-          pageCount={pageCount}
-          pageIndex={pageIndex}
-          onPaginationChange={({ pageIndex }) => refetch({ filters: {}, page: pageIndex + 1 })}
           onBulkDelete={handleBulkDelete}
         />
       </div>
