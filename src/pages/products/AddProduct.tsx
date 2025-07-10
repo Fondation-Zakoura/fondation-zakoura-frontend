@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,17 +37,21 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
   // Local state for the form fields
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  
+  // --- FIX 1: Manage category ID as a string ---
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedProductType, setSelectedProductType] = useState('');
 
   // Form submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(selectedCategoryId)
     try {
       await addProduct({
         name,
         description,
-        category_id: selectedCategoryId,
+       
+        category_id: Number(selectedCategoryId),
         product_type_id: Number(selectedProductType),
       }).unwrap();
 
@@ -60,22 +63,19 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
       onClose();
     } catch (err) {
       console.error('Failed to add product:', err);
-      // Here you could add a toast notification for the error
     }
   };
 
   const handleClose = () => {
-    if (isLoading) return; // Prevent closing while submitting
+    if (isLoading) return; 
     onClose();
   };
-  
-  // Note: We use `onOpenChange` for the Dialog to handle closing
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-         
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
@@ -98,7 +98,9 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
                 Category <span className="text-red-500">*</span>
               </Label>
               <Select
+           
                 value={selectedCategoryId}
+      
                 onValueChange={setSelectedCategoryId}
                 required
               >
@@ -106,9 +108,10 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesData?.data?.map((category: { category_id: string; name: string; status: number }) =>
+                  {categoriesData?.data?.map((category: { category_id: number; name: string; status: number }) =>
                     category.status === 1 && (
-                      <SelectItem key={category.category_id} value={category.category_id}>
+                      // --- FIX 4: Ensure the value is a string ---
+                      <SelectItem key={category.category_id} value={String(category.category_id)}>
                         {category.name}
                       </SelectItem>
                     )
@@ -123,21 +126,19 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
               </Label>
               <Select
                 value={selectedProductType}
-               onValueChange={setSelectedProductType}
-
+                onValueChange={setSelectedProductType}
                 required
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a product type" />
                 </SelectTrigger>
                 <SelectContent>
-  {product_typeData?.data?.map((product_type: { id: number; name: string }) => (
-    <SelectItem key={product_type.id} value={String(product_type.id)}>
-      {product_type.name}
-    </SelectItem>
-  ))}
-</SelectContent>
-
+                  {product_typeData?.data?.map((product_type: { id: number; name: string }) => (
+                    <SelectItem key={product_type.id} value={String(product_type.id)}>
+                      {product_type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
 
@@ -153,8 +154,6 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
                 rows={4}
               />
             </div>
-
-            
           </div>
 
           <DialogFooter>
@@ -165,14 +164,12 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
               {isLoading ? 'Saving...' : 'Save Product'}
             </Button>
             {isError && (
-              <p className="text-sm  text-red-500 col-span-4 text-center">
+              <p className="text-sm text-red-500 col-span-4 text-center">
                 An error occurred. Please try again.
               </p>
             )}
           </DialogFooter>
-          
         </form>
-        
       </DialogContent>
     </Dialog>
   );

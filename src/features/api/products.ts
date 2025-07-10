@@ -3,7 +3,7 @@ import { baseApi } from "./api";
 // 1. Updated interface to match your exact table columns
 interface Product {
   id: number;
-  product_id: string;
+  product_id: number;
   name: string;
   description: string;
   status: number;
@@ -11,7 +11,7 @@ interface Product {
   updated_at: string;
 
 
-  category_id: string;
+  category_id: number;
   category_name: string;    
   product_type_id: number;    
   product_type_name: string;  

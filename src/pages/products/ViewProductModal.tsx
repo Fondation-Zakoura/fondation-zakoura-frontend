@@ -9,7 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-const ViewProductModal = ({ productId, isOpen, onClose }) => {
+type ViewProductModalProps={
+  isOpen:boolean,
+  onClose:()=>void,
+  productId:number,
+}
+
+const ViewProductModal = ({ productId, isOpen, onClose }:ViewProductModalProps) => {
   const { data, error, isLoading } = useShowProductQuery(productId, {
     skip: !productId,
   });
