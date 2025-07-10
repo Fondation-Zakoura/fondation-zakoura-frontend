@@ -19,6 +19,7 @@ import { SiteDetailsModal } from "@/components/sites/SiteDetailsModal";
 import { DeleteSiteDialog } from "@/components/sites/DeleteSiteDialog";
 
 import countries from "@/data/countries.json"; // Import your countries data
+import { PageHeaderLayout } from "@/layouts/MainLayout";
 
 const SitesListPage: React.FC = () => {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
@@ -161,7 +162,13 @@ const SitesListPage: React.FC = () => {
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Liste des Sites</h1>
+        <PageHeaderLayout
+                  title="Liste des Sites"
+                  breadcrumbs={[
+                    { label: "Tableaux de bord" },
+                    { label: "Sites", active: true },
+                  ]}
+                />
         <Button className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2" onClick={handleOpenAddModal}>
           <Plus size={18} /> Ajouter un site
         </Button>

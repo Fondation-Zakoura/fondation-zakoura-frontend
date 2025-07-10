@@ -147,36 +147,29 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   const [selectedDouarId, setSelectedDouarId] = useState<number | null>(null);
 
   const { data: regions = [] } = useGetRegionsQuery();
-  const { data: provinces = [] } = useGetProvincesQuery(selectedRegionId);
-  const { data: cercles = [] } = useGetCerclesQuery(selectedProvinceId);
-  const { data: communes = [] } = useGetCommunesQuery(selectedCercleId);
-  const { data: douars = [] } = useGetDouarsQuery(selectedCommuneId);
+  const { data: provinces = [] } = useGetProvincesQuery(selectedRegionId, { skip: selectedRegionId === null });
+  const { data: cercles = [] } = useGetCerclesQuery(selectedProvinceId, { skip: selectedProvinceId === null });
+  const { data: communes = [] } = useGetCommunesQuery(selectedCercleId, { skip: selectedCercleId === null });
+  const { data: douars = [] } = useGetDouarsQuery(selectedCommuneId, { skip: selectedCommuneId === null });
 
   const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
   const users = usersData?.users || [];
-
 
   useEffect(() => {
     if (isOpen) {
       setFormData(site ? { ...site } : { type: "Rural", status: "Actif", country: "" });
       setErrors({});
 
-      setSelectedRegionId(null);
-      setSelectedProvinceId(null);
-      setSelectedCercleId(null);
-      setSelectedCommuneId(null);
-      setSelectedDouarId(null);
-
-      if (site) {
-        setSelectedRegionId(site.commune?.cercle?.province?.region?.id || null);
-        setSelectedProvinceId(site.commune?.cercle?.province?.id || null);
-        setSelectedCercleId(site.commune?.cercle?.id || null);
-        setSelectedCommuneId(site.commune?.id || null);
-        setSelectedDouarId(site.douar?.id || null);
-      }
+      // Reset geographic selections if opening for a new site or if site doesn't have full geo data
+      setSelectedRegionId(site?.commune?.cercle?.province?.region?.id || null);
+      setSelectedProvinceId(site?.commune?.cercle?.province?.id || null);
+      setSelectedCercleId(site?.commune?.cercle?.id || null);
+      setSelectedCommuneId(site?.commune?.id || null);
+      setSelectedDouarId(site?.douar?.id || null);
     }
   }, [site, isOpen]);
 
+  // Effects to clear dependent selections when a parent selection changes to null
   useEffect(() => {
     if (selectedRegionId === null) {
       setSelectedProvinceId(null);
@@ -211,28 +204,34 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
     }
   }, [selectedCommuneId]);
 
-  const handleRegionChange = useCallback((id: number | null) => {
+  // Handlers for geographic comboboxes
+  const handleRegionChange = useCallback((value: string) => {
+    const id = value ? Number(value) : null;
     setSelectedRegionId(id);
     setErrors((prev) => ({ ...prev, region: undefined, province: undefined, cercle: undefined, commune: undefined, douar: undefined }));
   }, []);
 
-  const handleProvinceChange = useCallback((id: number | null) => {
+  const handleProvinceChange = useCallback((value: string) => {
+    const id = value ? Number(value) : null;
     setSelectedProvinceId(id);
     setErrors((prev) => ({ ...prev, province: undefined, cercle: undefined, commune: undefined, douar: undefined }));
   }, []);
 
-  const handleCercleChange = useCallback((id: number | null) => {
+  const handleCercleChange = useCallback((value: string) => {
+    const id = value ? Number(value) : null;
     setSelectedCercleId(id);
     setErrors((prev) => ({ ...prev, cercle: undefined, commune: undefined, douar: undefined }));
   }, []);
 
-  const handleCommuneChange = useCallback((id: number | null) => {
+  const handleCommuneChange = useCallback((value: string) => {
+    const id = value ? Number(value) : null;
     setSelectedCommuneId(id);
     setFormData((prev) => ({ ...prev, commune_id: id }));
     setErrors((prev) => ({ ...prev, commune: undefined, douar: undefined }));
   }, []);
 
-  const handleDouarChange = useCallback((id: number | null) => {
+  const handleDouarChange = useCallback((value: string) => {
+    const id = value ? Number(value) : null;
     setSelectedDouarId(id);
     setFormData((prev) => ({ ...prev, douar_id: id }));
     setErrors((prev) => ({ ...prev, douar: undefined }));
@@ -264,15 +263,18 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   }, []);
 
-  const handleManagerComboboxChange = useCallback((id: number | null) => {
+  const handleManagerComboboxChange = useCallback((value: string) => {
+    const id = value ? Number(value) : null;
     setFormData((prev) => ({ ...prev, local_operational_manager_id: id }));
     setErrors((prev) => ({ ...prev, local_operational_manager_id: undefined }));
   }, []);
 
-  const handleCountryComboboxChange = useCallback((selectedCode: string | null) => {
+  const handleCountryComboboxChange = useCallback((selectedCode: string) => {
+    // ComboboxString expects a string, so we directly use it.
     setFormData((prev) => ({ ...prev, country: selectedCode || "" }));
     setErrors((prev) => ({ ...prev, country: undefined }));
   }, []);
+
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -320,6 +322,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
     });
 
     if (selectedCommuneId !== null) data.append('commune_id', String(selectedCommuneId));
+    // Douar ID is optional, append only if selected.
     if (selectedDouarId !== null) data.append('douar_id', String(selectedDouarId));
     if (formData.local_operational_manager_id !== null && formData.local_operational_manager_id !== undefined) {
       data.append('local_operational_manager_id', String(formData.local_operational_manager_id));
@@ -392,14 +395,13 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                     {/* Geographic Comboboxes */}
                     <div>
                       <RequiredLabel htmlFor="region">
-                        <span className="mb-2 block">Région
-                        </span>
+                        <span className="mb-2 block">Région</span>
                       </RequiredLabel>
                       <Combobox
-                        label=""
-                        options={(regions || []).map(r => ({ id: r.id, value: String(r.id), label: r.name }))}
-                        value={selectedRegionId}
-                        onValueChange={handleRegionChange}
+                        // label="" // Not defined in ComboboxProps, consider removing or adding if needed
+                        options={(regions || []).map(r => ({ value: String(r.id), label: r.name }))}
+                        value={String(selectedRegionId || '')} // Value must be a string
+                        onChange={handleRegionChange} // Corrected prop name
                         placeholder="Sélectionnez une région..."
                         className="w-full"
                       />
@@ -407,16 +409,15 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                     </div>
                     <div>
                       <RequiredLabel htmlFor="province">
-                        <span className="mb-2 block">Province
-                        </span>
+                        <span className="mb-2 block">Province</span>
                       </RequiredLabel>
                       <Combobox
-                        label=""
-                        options={(provinces || []).map(p => ({ id: p.id, value: String(p.id), label: p.name }))}
-                        value={selectedProvinceId}
-                        onValueChange={handleProvinceChange}
+                        // label="" // Not defined in ComboboxProps
+                        options={(provinces || []).map(p => ({ value: String(p.id), label: p.name }))}
+                        value={String(selectedProvinceId || '')} // Value must be a string
+                        onChange={handleProvinceChange} // Corrected prop name
                         placeholder="Sélectionnez une province..."
-                        disabled={selectedRegionId === null && regions.length > 0 && provinces.length === 0}
+                        disabled={selectedRegionId === null || provinces.length === 0} // Improved disabled logic
                         className="w-full"
                       />
                       {errors.province && <p className="text-sm text-destructive mt-1">{errors.province}</p>}
@@ -424,28 +425,27 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                     <div>
                       <Label className="mb-2 " htmlFor="cercle">Cercle</Label>
                       <Combobox
-                        label=""
-                        options={(cercles || []).map(c => ({ id: c.id, value: String(c.id), label: c.name }))}
-                        value={selectedCercleId}
-                        onValueChange={handleCercleChange}
+                        // label="" // Not defined in ComboboxProps
+                        options={(cercles || []).map(c => ({ value: String(c.id), label: c.name }))}
+                        value={String(selectedCercleId || '')} // Value must be a string
+                        onChange={handleCercleChange} // Corrected prop name
                         placeholder="Sélectionnez un cercle..."
-                        disabled={selectedProvinceId === null && provinces.length > 0 && cercles.length === 0}
+                        disabled={selectedProvinceId === null || cercles.length === 0} // Improved disabled logic
                         className="w-full"
                       />
                       {errors.cercle && <p className="text-sm text-destructive mt-1">{errors.cercle}</p>}
                     </div>
                     <div>
                       <RequiredLabel htmlFor="commune">
-                        <span className="mb-2 block">Commune
-                        </span>
+                        <span className="mb-2 block">Commune</span>
                       </RequiredLabel>
                       <Combobox
-                        label=""
-                        options={(communes || []).map(c => ({ id: c.id, value: String(c.id), label: c.name }))}
-                        value={selectedCommuneId}
-                        onValueChange={handleCommuneChange}
+                        // label="" // Not defined in ComboboxProps
+                        options={(communes || []).map(c => ({ value: String(c.id), label: c.name }))}
+                        value={String(selectedCommuneId || '')} // Value must be a string
+                        onChange={handleCommuneChange} // Corrected prop name
                         placeholder="Sélectionnez une commune..."
-                        disabled={selectedCercleId === null && cercles.length > 0 && communes.length === 0}
+                        disabled={selectedCercleId === null || communes.length === 0} // Improved disabled logic
                         className="w-full"
                       />
                       {errors.commune && <p className="text-sm text-destructive mt-1">{errors.commune}</p>}
@@ -453,12 +453,12 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                     <div>
                       <Label className="mb-2 " htmlFor="douar">Douar</Label>
                       <Combobox
-                        label=""
-                        options={(douars || []).map(d => ({ id: d.id, value: String(d.id), label: d.name }))}
-                        value={selectedDouarId}
-                        onValueChange={handleDouarChange}
+                        // label="" // Not defined in ComboboxProps
+                        options={(douars || []).map(d => ({ value: String(d.id), label: d.name }))}
+                        value={String(selectedDouarId || '')} // Value must be a string
+                        onChange={handleDouarChange} // Corrected prop name
                         placeholder="Sélectionnez un douar..."
-                        disabled={selectedCommuneId === null && communes.length > 0 && douars.length === 0}
+                        disabled={selectedCommuneId === null || douars.length === 0} // Improved disabled logic
                         className="w-full"
                       />
                       {errors.douar && <p className="text-sm text-destructive mt-1">{errors.douar}</p>}
@@ -470,8 +470,8 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       </RequiredLabel>
                       <ComboboxString
                         options={countries.map(c => ({ value: c.code, label: c.name }))}
-                        value={formData.country}
-                        onValueChange={handleCountryComboboxChange}
+                        value={formData.country || ""} // ComboboxString expects a string
+                        onChange={handleCountryComboboxChange} // Corrected prop name
                         placeholder="Sélectionnez un pays..."
                         className="w-full"
                       />
@@ -484,8 +484,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                     </div>
                     <div>
                       <RequiredLabel htmlFor="status">
-                        <span className="mb-2 block">Statut
-                        </span>
+                        <span className="mb-2 block">Statut</span>
                       </RequiredLabel>
                       <Select
                         name="status"
@@ -518,10 +517,10 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                     <div>
                       <Label className="mb-2 " htmlFor="local_operational_manager_id">Responsable opérationnel local</Label>
                       <Combobox
-                        label=""
-                        options={(users || []).map(u => ({ id: u.id, value: String(u.id), label: u.name }))}
-                        value={formData.local_operational_manager_id || null}
-                        onValueChange={handleManagerComboboxChange}
+                        // label="" // Not defined in ComboboxProps
+                        options={(users || []).map(u => ({ value: String(u.id), label: u.name }))}
+                        value={String(formData.local_operational_manager_id || '')} // Value must be a string
+                        onChange={handleManagerComboboxChange} // Corrected prop name
                         placeholder={usersLoading ? "Chargement..." : "Sélectionnez un responsable..."}
                         className="w-full"
                         disabled={usersLoading}

@@ -313,6 +313,7 @@ const PartnersListPage: React.FC = () => {
           }
           initialPageSize={10}
           headerStyle="primary"
+          
           hoverEffect
           striped
           onBulkDelete={handleBulkDelete}

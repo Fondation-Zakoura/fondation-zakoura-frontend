@@ -12,7 +12,7 @@ import { sitesApi } from '@/features/api/sitesApi';
 import { geographicApi } from '@/features/api/geographicApi';
 import { usersApi } from '@/features/api/usersApi';
 import { unitApi } from '@/features/api/unitApi';
-import { cycleApi } from '@/features/api/cycleApi';
+// import { cycleApi } from '@/features/api/cycleApi';
 
 const persistConfig = {
   key: 'root',
@@ -30,7 +30,7 @@ const rootReducer = combineReducers({
   [geographicApi.reducerPath]: geographicApi.reducer,
   [usersApi.reducerPath]: usersApi.reducer, 
   [unitApi.reducerPath]: unitApi.reducer,
-  [cycleApi.reducerPath]: cycleApi.reducer
+  // [cycleApi.reducerPath]: cycleApi.reducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -49,7 +49,7 @@ export const store = configureStore({
       .concat(geographicApi.middleware)
       .concat(usersApi.middleware)
       .concat(unitApi.middleware)
-      .concat(cycleApi.middleware),
+      // .concat(cycleApi.middleware),
 
 });
 

@@ -20,68 +20,48 @@ import BudgetCategoryPage from "./pages/budget-category/BudgetCategoryPage";
 import { UnitsListPage } from "./pages/units/UnitsListPage";
 
 function App() {
-  
-
   return (
     <Routes>
-      <Route path="projects" element={<Projects />} />
-      <Route path="projects/add" element={<AddProject />} />
-      <Route path="projects/:id" element={<ShowProject />} />
-      <Route path="projects/:id/edit" element={<EditProject />} />
-      <Route
-        path="settings/finance/types/projects"
-        element={<ProjectTypesPage />}
-      />
-      <Route
-        path="settings/finance/statuses/projects"
-        element={<ProjectStatusesPage />}
-      />
-      <Route
-        path="settings/projects/bank-accounts"
-        element={<ProjectBankAccountsPage />}
-      />
-      <Route path="partenariat/partenaires" element={<PartnersListPage />} />
-      <Route
-        path="parametres/finance/types/natures-partenaires"
-        element={<NaturePartnersListPage />}
-      />
-      <Route
-        path="parametres/finance/types/structures-partenaires"
-        element={<StructurePartnersListPage />}
-      />
-      <Route path="/parametres/operations/sites" element={<SitesListPage />} />
-      <Route path="/budget-category" element={<BudgetCategoryPage />} />
-      {/* <Route path="categories" element={<CategoriesPage />} /> */}
-      <Route path="projects" element={<Projects />} />
-      <Route path="projects/add" element={<AddProject />} />
-      <Route path="projects/:id" element={<ShowProject />} />
-      <Route path="projects/:id/edit" element={<EditProject />} />
-      <Route
-        path="settings/finance/types/projects"
-        element={<ProjectTypesPage />}
-      />
-      <Route
-        path="settings/finance/statuses/projects"
-        element={<ProjectStatusesPage />}
-      />
-      <Route
-        path="settings/projects/bank-accounts"
-        element={<ProjectBankAccountsPage />}
-      />
-      <Route path="partenariat/partenaires" element={<PartnersListPage />} />
-      <Route
-        path="parametres/finance/types/natures-partenaires"
-        element={<NaturePartnersListPage />}
-      />
-      <Route
-        path="parametres/finance/types/structures-partenaires"
-        element={<StructurePartnersListPage />}
-      />
-      <Route path="/parametres/operations/sites" element={<SitesListPage />} />
-      <Route path="/parametres/operations/unites" element={<UnitsListPage />} />
+      <Route path="/" element={<MainLayout />}>
+        <Route path="projects" element={<Projects />} />
+        <Route path="projects/add" element={<AddProject />} />
+        <Route path="projects/:id" element={<ShowProject />} />
+        <Route path="projects/:id/edit" element={<EditProject />} />
+        <Route
+          path="settings/finance/types/projects"
+          element={<ProjectTypesPage />}
+        />
+        <Route
+          path="settings/finance/statuses/projects"
+          element={<ProjectStatusesPage />}
+        />
+        <Route
+          path="settings/projects/bank-accounts"
+          element={<ProjectBankAccountsPage />}
+        />
+        <Route path="partenariat/partenaires" element={<PartnersListPage />} />
+        <Route
+          path="parametres/finance/types/natures-partenaires"
+          element={<NaturePartnersListPage />}
+        />
+        <Route
+          path="parametres/finance/types/structures-partenaires"
+          element={<StructurePartnersListPage />}
+        />
+        <Route
+          path="/parametres/operations/sites"
+          element={<SitesListPage />}
+        />
+        <Route path="/budget-category" element={<BudgetCategoryPage />} />
+        <Route
+          path="/parametres/operations/unites"
+          element={<UnitsListPage />}
+        />
+      </Route>
+
       <Route path="/login" element={<LoginForm />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

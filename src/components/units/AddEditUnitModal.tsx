@@ -1,5 +1,3 @@
-// src/components/units/AddEditUnitModal.tsx
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,10 +21,10 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { toast } from "sonner"; // Pour les notifications
+import { toast } from "sonner";
 
 import { useCreateUnitMutation, useUpdateUnitMutation, useGetUnitFormOptionsQuery } from '@/features/api/unitApi';
-import type{ Unit, UnitFormData,  } from '@/features/api/unitApi';
+import type { Unit, UnitFormData, } from '@/features/api/unitApi';
 
 // Options pour les types d'unité (doivent correspondre aux Enums backend)
 const unitTypeOptions = [
@@ -199,8 +197,8 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
   };
 
   // Préparer les options pour les Comboboxes
-  const sitesOptions = (formOptions?.sites || []).map(s => ({ id: s.id, value: String(s.id), label: s.name }));
-  const educatorsOptions = (formOptions?.educators || []).map(e => ({ id: e.id, value: String(e.id), label: e.name }));
+  const sitesOptions = (formOptions?.sites || []).map(s => ({ value: String(s.id), label: s.name }));
+  const educatorsOptions = (formOptions?.educators || []).map(e => ({ value: String(e.id), label: e.name }));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -213,12 +211,12 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6 pt-0">
             <ScrollArea className="max-h-[65vh] overflow-auto pr-2">
-              <div className="space-y-10"> {/* Utilise space-y-10 comme dans AddEditSiteModal */}
+              <div className="space-y-10">
                 <section>
                   <h3 className="text-lg font-medium text-primary mb-4">
                     Informations Générales
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4"> {/* Utilise grid-cols-3 */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                     <div>
                       <RequiredLabel htmlFor="name">
                         <span className="mb-2 block">Nom de l'unité</span>
@@ -245,10 +243,9 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                         <Input value="Chargement des sites..." disabled />
                       ) : (
                         <Combobox
-                          label=""
                           options={sitesOptions}
-                          value={formData.site_id || null}
-                          onValueChange={(val) => handleSelectChange('site_id', val)}
+                          value={String(formData.site_id)} // Ensure value is a string
+                          onChange={(val) => handleSelectChange('site_id', Number(val))} // Corrected prop name and value conversion
                           placeholder="Sélectionnez un site..."
                           className="w-full"
                         />
@@ -264,13 +261,13 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                         value={formData.type}
                         onValueChange={(value) => handleSelectChange("type", value as Unit['type'])}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate"> {/* Ajout de max-w et truncate */}
+                        <SelectTrigger className="w-full max-w-[220px] truncate">
                           <SelectValue placeholder="Sélectionnez un type..." className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
                           {unitTypeOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} className="truncate">
-                              <span className="block max-w-[160px] truncate">{opt.label}</span> {/* Ajout de max-w et truncate */}
+                              <span className="block max-w-[160px] truncate">{opt.label}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -293,13 +290,13 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                         value={formData.status}
                         onValueChange={(value) => handleSelectChange("status", value as Unit['status'])}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate"> {/* Ajout de max-w et truncate */}
+                        <SelectTrigger className="w-full max-w-[220px] truncate">
                           <SelectValue placeholder="Sélectionnez un statut..." className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
                           {unitStatusOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} className="truncate">
-                              <span className="block max-w-[160px] truncate">{opt.label}</span> {/* Ajout de max-w et truncate */}
+                              <span className="block max-w-[160px] truncate">{opt.label}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -312,10 +309,9 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                         <Input value="Chargement des éducatrices..." disabled />
                       ) : (
                         <Combobox
-                          label=""
                           options={educatorsOptions}
-                          value={formData.educator_id || null}
-                          onValueChange={(val) => handleSelectChange('educator_id', val)}
+                          value={String(formData.educator_id || '')} // Ensure value is a string, handle null
+                          onChange={(val) => handleSelectChange('educator_id', val ? Number(val) : null)} // Corrected prop name and value conversion
                           placeholder="Sélectionnez une éducatrice..."
                           className="w-full"
                         />

@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table'; // Assurez-vous que ce chemin est correct pour votre composant DataTable
 import type { Column, ColumnFilter } from "@/components/ui/data-table"; // Importez les types Column et ColumnFilter
+import { PageHeaderLayout } from '@/layouts/MainLayout';
 
 // Options pour les filtres de type et statut (doivent correspondre aux Enums backend)
 const unitTypeOptions = [
@@ -236,7 +237,13 @@ export const UnitsListPage: React.FC = () => {
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Liste des Unités</h1>
+        <PageHeaderLayout
+          title="Liste des unités"
+          breadcrumbs={[
+            { label: "Tableaux de bord" },
+            { label: "unité", active: true },
+          ]}
+        />
         <Button className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2" onClick={handleOpenAddModal}>
           <Plus size={18} /> Ajouter une unité
         </Button>
