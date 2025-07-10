@@ -17,6 +17,7 @@ import StructurePartnersListPage from './pages/structurePartner/StructurePartner
 import PartnersListPage from './pages/PartnersList';
 import SitesListPage from './pages/sites/SitesList';
 import { UnitsListPage } from './pages/units/UnitsListPage';
+import { CyclesListPage } from './pages/cycle/CyclesListPage';
 
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
             <Route path='parametres/finance/types/structures-partenaires' element={<StructurePartnersListPage />} />
             <Route path='/parametres/operations/sites' element={<SitesListPage />} />
             <Route path='/parametres/operations/unites' element={<UnitsListPage />} />
+            <Route path='/parametres/operations/cycles' element={<CyclesListPage />} />
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>
