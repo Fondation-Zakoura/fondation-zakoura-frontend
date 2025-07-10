@@ -125,15 +125,13 @@ export function DataTable<T extends { id:string | number }>({
     }
  
     // Other filters and sorting remain the same...
-   Object.entries(filterValues).forEach(([key, value]) => {
-    if (value) {
-      filteredData = filteredData.filter((row) => {
-        const nestedValue = key.split('.').reduce((acc: any, k) => acc?.[k], row);
-        return String(nestedValue ?? '').toLowerCase().includes(value.toLowerCase());
-      });
-    }
-  });
-
+    Object.entries(filterValues).forEach(([key, value]) => {
+      if (value) {
+        filteredData = filteredData.filter(
+          (row) => String(row[key as keyof T] ?? "") === value
+        );
+      }
+    });
  
     if (sortConfig) {
       filteredData.sort((a, b) => {
@@ -252,19 +250,26 @@ export function DataTable<T extends { id:string | number }>({
               >
                 {filter.label}
               </label>
-              <input
-                type="text"
-                id={`filter-${String(filter.id)}`}
-                placeholder={`Filtrer par ${filter.label.toLowerCase()}...`}
-                value={filterValues[String(filter.id)] || ''}
-                onChange={(e) =>
-                  handleFilterValueChange(String(filter.id), e.target.value)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <Select
+                value={filterValues[String(filter.id)] || "all"}
+                onValueChange={(value) => handleFilterValueChange(String(filter.id), value)}
+              >
+                <SelectTrigger id={`filter-${String(filter.id)}`} className="w-full">
+                  <SelectValue placeholder={`Tout...`} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{`Tout ${filter.label
+                    .split(" ")[0]
+                    .toLowerCase()}`}</SelectItem>
+                  {filter.options.map((opt) => (
+                    <SelectItem key={String(opt.value)} value={String(opt.value)}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           ))}
-
  
           {/* Reset Button */}
           <div className="w-full md:w-auto md:ml-auto pt-0 md:pt-5">

@@ -14,6 +14,10 @@ import EditProject from './pages/project/EditProject';
 import ProjectTypesPage from './pages/project/ProjectTypesPage';
 import ProjectStatusesPage from './pages/project/ProjectStatusesPage';
 import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
+import Collaborateurs from './pages/collaborateurs/Collaborateurs';
+import AddCollaborateurs from './pages/collaborateurs/AddCollaborateur';
+import EditColaborateur from './pages/collaborateurs/EditCollaborateurModal';
+import ShowCollaborateur from './pages/collaborateurs/ShowCollaborateur';
 
 
 function App() {
@@ -30,7 +34,11 @@ function App() {
             <Route path='/settings/finance/types/projects' element={<ProjectTypesPage />} />
             <Route path='/settings/finance/statuses/projects' element={<ProjectStatusesPage />} />
             <Route path='/settings/projects/bank-accounts' element={<ProjectBankAccountsPage />} />
-            {/* <Route path='partners' element={<PartnersList />} /> */}
+            <Route path='/rh/collaborateurs' element={<Collaborateurs/> } />
+            <Route path='/rh/collaborateurs/add' element={<AddCollaborateurs />} />
+            <Route path='/rh/collaborateurs/:id/edit' element={<EditColaborateur />} />
+            <Route path='/rh/collaborateurs/:id' element={<ShowCollaborateur />} />
+
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>
