@@ -49,8 +49,8 @@ export const store = configureStore({
       .concat(geographicApi.middleware)
       .concat(usersApi.middleware)
       .concat(unitApi.middleware)
-      .concat(cycleApi.middleware),
-
+      .concat(cycleApi.middleware)
+      .concat(unitApi.middleware),
 });
 
 setupListeners(store.dispatch);

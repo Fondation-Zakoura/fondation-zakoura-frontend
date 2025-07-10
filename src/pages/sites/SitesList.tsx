@@ -132,7 +132,7 @@ const SitesListPage: React.FC = () => {
       key: "region", // Keep the key as 'region' or change it to match the actual display field
       header: "Région",
       sortable: true, // You might need custom sorting if `DataTable` doesn't handle nested properties automatically
-      render: (row) => row.commune?.cercle?.province?.region?.name || 'N/A', // <-- FIX: Access nested name
+      render: (row) => row.commune?.cercle?.province?.region?.name || 'N/A', 
     },
     {
       key: "actions",

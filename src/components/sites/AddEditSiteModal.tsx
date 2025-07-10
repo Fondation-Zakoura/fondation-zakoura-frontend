@@ -1,7 +1,7 @@
 // src/components/sites/AddEditSiteModal.tsx
 
 import countries from "@/data/countries.json";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ import {
   useGetDouarsQuery,
 } from '@/features/api/geographicApi';
 import { useGetUsersQuery } from '@/features/api/usersApi';
+import { toast } from "sonner"; // For notifications
 
 interface Region {
   id: number;
@@ -96,11 +97,7 @@ interface UserOption {
   name: string;
 }
 
-interface GeoOption {
-  id: number;
-  name: string;
-}
-
+// Options for Type select
 const typeOptions = [
   { value: "Rural", label: "Rural" },
   { value: "Urbain", label: "Urbain" },
@@ -118,8 +115,9 @@ interface AddEditSiteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: FormData, id?: number) => void;
-  site: Site | null;
-  isLoading: boolean;
+  site: Site | null; // The site data for editing, or null for adding
+  isLoading: boolean; // Indicates if a save operation is in progress
+  allSiteInternalCodes: string[]; // Array of all existing site internal codes
 }
 
 type SiteFormData = Partial<Site>;
@@ -136,6 +134,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   onSave,
   site,
   isLoading,
+  allSiteInternalCodes = [], // <-- ADDED DEFAULT VALUE HERE
 }) => {
   const [formData, setFormData] = useState<SiteFormData>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -146,15 +145,29 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   const [selectedCommuneId, setSelectedCommuneId] = useState<number | null>(null);
   const [selectedDouarId, setSelectedDouarId] = useState<number | null>(null);
 
+  // RTK Query hooks for fetching geographic data
   const { data: regions = [] } = useGetRegionsQuery();
   const { data: provinces = [] } = useGetProvincesQuery(selectedRegionId);
   const { data: cercles = [] } = useGetCerclesQuery(selectedProvinceId);
   const { data: communes = [] } = useGetCommunesQuery(selectedCercleId);
   const { data: douars = [] } = useGetDouarsQuery(selectedCommuneId);
 
-  const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
-  const users = usersData?.users || [];
+  // RTK Query hook for fetching users (for local operational manager)
+  const { data: usersApiResponse, isLoading: usersLoading } = useGetUsersQuery();
 
+
+  // Safely extract the array of users from the API response
+  const users = useMemo(() => {
+    // Assuming usersApiResponse is an object like { data: [...] }
+    if (usersApiResponse && Array.isArray(usersApiResponse.users)) {
+      return usersApiResponse.users;
+    }
+    // Fallback if usersApiResponse is directly an array (less common for RTK Query, but possible)
+    if (Array.isArray(usersApiResponse)) {
+      return usersApiResponse;
+    }
+    return []; // Default to empty array
+  }, [usersApiResponse]);
 
   useEffect(() => {
     if (isOpen) {
@@ -177,6 +190,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
     }
   }, [site, isOpen]);
 
+  // Effects to auto-clear dependent dropdowns when a parent selection changes
   useEffect(() => {
     if (selectedRegionId === null) {
       setSelectedProvinceId(null);
@@ -245,7 +259,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
 
       if (name === "latitude" || name === "longitude") {
         newValue = value === "" ? null : parseFloat(value);
-        if (newValue !== null && (isNaN(newValue) || newValue < -90 || newValue > 90)) {
+        if (newValue !== null && (isNaN(newValue) || (name === "latitude" && (newValue < -90 || newValue > 90)) || (name === "longitude" && (newValue < -180 || newValue > 180)))) {
           setErrors((prev) => ({ ...prev, [name]: `Veuillez entrer une valeur valide pour ${name}.` }));
         } else {
           setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -274,11 +288,29 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
     setErrors((prev) => ({ ...prev, country: undefined }));
   }, []);
 
-  const validate = (): boolean => {
+  // Form validation logic
+  const validate = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name?.trim()) newErrors.name = "Le nom du site est obligatoire.";
-    if (!formData.internal_code?.trim()) newErrors.internal_code = "Le code interne est obligatoire.";
+
+    // Validate Internal Code for uniqueness and presence
+    const trimmedInternalCode = formData.internal_code?.trim();
+    if (!trimmedInternalCode) {
+      newErrors.internal_code = "Le code interne est obligatoire.";
+    } else {
+      const isEditing = !!site;
+      const originalInternalCode = site?.internal_code;
+
+      // Ensure allSiteInternalCodes is an array before using includes
+      if (
+        Array.isArray(allSiteInternalCodes) && // ADDED THIS DEFENSIVE CHECK
+        allSiteInternalCodes.includes(trimmedInternalCode) &&
+        !(isEditing && trimmedInternalCode === originalInternalCode)
+      ) {
+        newErrors.internal_code = "Ce code interne existe déjà. Veuillez en choisir un autre.";
+      }
+    }
 
     if (!formData.type) newErrors.type = "Le type est obligatoire.";
     if (!formData.status) newErrors.status = "Le statut est obligatoire.";
@@ -304,11 +336,12 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData, site, allSiteInternalCodes, selectedRegionId, selectedProvinceId, selectedCommuneId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
+      toast.error("Veuillez corriger les erreurs dans le formulaire.");
       return;
     }
 
@@ -397,7 +430,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       </RequiredLabel>
                       <Combobox
                         label=""
-                        options={(regions || []).map(r => ({ id: r.id, value: String(r.id), label: r.name }))}
+                        options={regions.map(r => ({ id: r.id, value: String(r.id), label: r.name }))}
                         value={selectedRegionId}
                         onValueChange={handleRegionChange}
                         placeholder="Sélectionnez une région..."
@@ -412,7 +445,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       </RequiredLabel>
                       <Combobox
                         label=""
-                        options={(provinces || []).map(p => ({ id: p.id, value: String(p.id), label: p.name }))}
+                        options={provinces.map(p => ({ id: p.id, value: String(p.id), label: p.name }))}
                         value={selectedProvinceId}
                         onValueChange={handleProvinceChange}
                         placeholder="Sélectionnez une province..."
@@ -425,7 +458,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       <Label className="mb-2 " htmlFor="cercle">Cercle</Label>
                       <Combobox
                         label=""
-                        options={(cercles || []).map(c => ({ id: c.id, value: String(c.id), label: c.name }))}
+                        options={cercles.map(c => ({ id: c.id, value: String(c.id), label: c.name }))}
                         value={selectedCercleId}
                         onValueChange={handleCercleChange}
                         placeholder="Sélectionnez un cercle..."
@@ -441,7 +474,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       </RequiredLabel>
                       <Combobox
                         label=""
-                        options={(communes || []).map(c => ({ id: c.id, value: String(c.id), label: c.name }))}
+                        options={communes.map(c => ({ id: c.id, value: String(c.id), label: c.name }))}
                         value={selectedCommuneId}
                         onValueChange={handleCommuneChange}
                         placeholder="Sélectionnez une commune..."
@@ -454,7 +487,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       <Label className="mb-2 " htmlFor="douar">Douar</Label>
                       <Combobox
                         label=""
-                        options={(douars || []).map(d => ({ id: d.id, value: String(d.id), label: d.name }))}
+                        options={douars.map(d => ({ id: d.id, value: String(d.id), label: d.name }))}
                         value={selectedDouarId}
                         onValueChange={handleDouarChange}
                         placeholder="Sélectionnez un douar..."
@@ -519,7 +552,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
                       <Label className="mb-2 " htmlFor="local_operational_manager_id">Responsable opérationnel local</Label>
                       <Combobox
                         label=""
-                        options={(users || []).map(u => ({ id: u.id, value: String(u.id), label: u.name }))}
+                        options={users.map(u => ({ id: u.id, value: String(u.id), label: u.name }))}
                         value={formData.local_operational_manager_id || null}
                         onValueChange={handleManagerComboboxChange}
                         placeholder={usersLoading ? "Chargement..." : "Sélectionnez un responsable..."}
@@ -542,7 +575,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
               <Button type="button" variant="outline" disabled={isLoading}>Annuler</Button>
             </DialogClose>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? (<Loader2 className="animate-spin" />) : (<> <Save size={16} className="mr-2" /> Sauvegarder </>)}
+              {isLoading ? (<Loader2 className="animate-spin mr-2" size={16} />) : (<Save size={16} className="mr-2" />)} Sauvegarder
             </Button>
           </DialogFooter>
         </form>
