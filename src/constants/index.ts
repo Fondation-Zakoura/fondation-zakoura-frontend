@@ -406,6 +406,7 @@ export const menuItems = [
                 nestedDropdownItems: [
                     { id: 'sites', title: 'Sites', link: '/parametres/operations/sites', icon: RiBankLine, type: 'link' },
                     {id: 'unites', title: 'Unités', link: '/parametres/operations/unites', icon: RiBankLine, type: 'link' },
+                    {id: 'cycles', title: 'Cycles', link: '/parametres/operations/cycles', icon: RiBankLine, type: 'link' },
                     { id: 'agences-bancaires', title: 'Agences bancaires', link: '/parametres/projets/agences-bancaires', icon: RiBankLine, type: 'link' },
                     { id: 'pays', title: 'Pays', link: '/parametres/projets/pays', icon: RiEarthLine, type: 'link' },
                 ],
