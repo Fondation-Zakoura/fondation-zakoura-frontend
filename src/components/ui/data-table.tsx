@@ -26,9 +26,10 @@ import {
   RotateCw,
   Trash2,
 } from "lucide-react";
- 
+
 // --- TYPE DEFINITIONS ---
-export interface Column<T> {
+// Added 'deleted_at' to the generic type T for better type safety
+export interface Column<T extends { deleted_at?: string | null }> {
   key: keyof T | string;
   header: React.ReactNode;
   render?: (row: T) => React.ReactNode;
@@ -36,14 +37,15 @@ export interface Column<T> {
   width?: string | number;
   align?: "left" | "center" | "right";
 }
- 
+
 export interface ColumnFilter<T> {
   id: keyof T;
   label: string;
   options: { value: string | number; label: string }[];
 }
- 
-interface DataTableProps<T extends { id: string | number }> {
+
+// Updated T type for DataTableProps
+interface DataTableProps<T extends { id: string | number; deleted_at?: string | null }> {
   columns: Column<T>[];
   data: T[];
   columnFilters?: ColumnFilter<T>[];
@@ -58,33 +60,45 @@ interface DataTableProps<T extends { id: string | number }> {
   onBulkDelete?: (selectedIds: T["id"][]) => void;
   enableBulkDelete?: boolean;
   globalFilterKey?: keyof T;
+  // Removed serverPagination related props as we are doing client-side
   serverPagination?: boolean;
   pageCount?: number;
   pageIndex?: number;
   onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
+
+  // Add onFilterChange to allow parent component to receive filter values (optional, but good practice)
+  onFilterChange?: (filters: Record<string, any>) => void;
+  // Add onSelectedRowsChange
+  onSelectedRowsChange?: (selectedIds: T["id"][]) => void;
+  // Add selectedRows prop to control checked state externally
+  selectedRows?: T["id"][];
 }
- 
+
 // --- REUSABLE DATA TABLE COMPONENT ---
-export function DataTable<T extends { id:string | number }>({
-  columns,
-  data,
-  columnFilters = [],
-  emptyText = "No data available",
-  striped = true,
-  hoverEffect = true,
-  rowHeight = "md",
-  headerStyle = "light",
-  onRowClick,
-  className = "",
-  initialPageSize = 10,
-  onBulkDelete,
-  enableBulkDelete = true,
-  globalFilterKey,
-  serverPagination = false,
-  pageCount,
-  pageIndex,
-  onPaginationChange,
-}: DataTableProps<T>) {
+export function DataTable<T extends { id:string | number; deleted_at?: string | null }>(
+  {
+    columns,
+    data,
+    columnFilters = [],
+    emptyText = "No data available",
+    striped = true,
+    hoverEffect = true,
+    rowHeight = "md",
+    headerStyle = "light",
+    onRowClick,
+    className = "",
+    initialPageSize = 10,
+    onBulkDelete,
+    enableBulkDelete = true,
+    globalFilterKey,
+    serverPagination ,// This prop is effectively ignored or can be removed
+    pageCount,
+    pageIndex,
+    onPaginationChange,
+    onFilterChange, // Received from parent
+    onSelectedRowsChange, // Received from parent
+    selectedRows: controlledSelectedRows = [], // Received from parent, default to empty array
+  }: DataTableProps<T>) {
   // --- STATE MANAGEMENT ---
   const [sortConfig, setSortConfig] = React.useState<{
     key: keyof T | string;
@@ -94,19 +108,21 @@ export function DataTable<T extends { id:string | number }>({
   const [filterValues, setFilterValues] = React.useState<Record<string, string>>(
     {}
   );
+  // Internal pagination state
   const [currentPage, setCurrentPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(initialPageSize);
-  const [selectedRows, setSelectedRows] = React.useState<T["id"][]>([]);
- 
+  // Use internal state for selected rows if not controlled externally
+  const [internalSelectedRows, setInternalSelectedRows] = React.useState<T["id"][]>([]);
+  const selectedRows = onSelectedRowsChange ? controlledSelectedRows : internalSelectedRows;
+
+
   // --- DATA PROCESSING & FILTERING ---
   const processedData = React.useMemo(() => {
-    let filteredData = [...data];
- 
-    // ✨ UPDATED: Logic now depends on whether globalFilterKey is provided
+    let filteredData = [...data]; // 'data' here is the `allCycles` from CyclesListPage
+
+    // Global Filter (Search)
     if (globalFilter) {
       const lowercasedFilter = globalFilter.toLowerCase();
- 
-      // If a specific key is provided, search only that column
       if (globalFilterKey) {
         filteredData = filteredData.filter((row) =>
           String(row[globalFilterKey] ?? "")
@@ -114,7 +130,6 @@ export function DataTable<T extends { id:string | number }>({
             .includes(lowercasedFilter)
         );
       } else {
-        // Otherwise, perform the default search across all columns
         filteredData = filteredData.filter((row) => {
           return columns.some(col => {
             const cellValue = row[col.key as keyof T];
@@ -123,16 +138,29 @@ export function DataTable<T extends { id:string | number }>({
         });
       }
     }
- 
-    // Other filters and sorting remain the same...
+
+    // Column Filters (including the 'status' filter)
     Object.entries(filterValues).forEach(([key, value]) => {
-      if (value) {
-        filteredData = filteredData.filter(
-          (row) => String(row[key as keyof T] ?? "") === value
-        );
+      if (value && value !== "all") { // Ensure value is not empty and not "all"
+        filteredData = filteredData.filter((row) => {
+          if (key === "status") {
+            // Logic for the 'status' filter based on 'deleted_at'
+            // Ensure row.deleted_at is checked correctly (null for active, non-null for inactive)
+            if (value === "Actif") {
+              return row.deleted_at === null;
+            } else if (value === "Inactif") {
+              return row.deleted_at !== null;
+            }
+            return false; // Should not happen with current options, but good fallback
+          } else {
+            // Existing logic for other filters
+            return String(row[key as keyof T] ?? "") === value;
+          }
+        });
       }
     });
- 
+
+    // Sorting
     if (sortConfig) {
       filteredData.sort((a, b) => {
         const aValue = a[sortConfig.key as keyof T];
@@ -143,40 +171,51 @@ export function DataTable<T extends { id:string | number }>({
       });
     }
     return filteredData;
-  }, [data, globalFilter, globalFilterKey, filterValues, sortConfig, columns]);
- 
+  }, [data, globalFilter, globalFilterKey, filterValues, sortConfig, columns]); // Ensure 'columns' is in dependency array if using it in filtering
+
+
+  // --- Pagination (fully client-side) ---
   const paginatedData = React.useMemo(() => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     return processedData.slice(startIndex, startIndex + rowsPerPage);
   }, [processedData, currentPage, rowsPerPage]);
- 
+
   const totalPages = Math.ceil(processedData.length / rowsPerPage);
- 
+
   // --- SELECTION HANDLERS ---
   const onSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = processedData.map((row) => row.id);
-      setSelectedRows(allIds);
+    const newSelectedIds = checked ? processedData.map((row) => row.id) : [];
+    if (onSelectedRowsChange) {
+      onSelectedRowsChange(newSelectedIds);
     } else {
-      setSelectedRows([]);
+      setInternalSelectedRows(newSelectedIds);
     }
   };
- 
+
   const onSelectRow = (row: T, checked: boolean) => {
-    if (checked) {
-      setSelectedRows((prev) => [...prev, row.id]);
+    const newSelectedIds = checked
+      ? [...selectedRows, row.id]
+      : selectedRows.filter((id) => id !== row.id);
+
+    if (onSelectedRowsChange) {
+      onSelectedRowsChange(newSelectedIds);
     } else {
-      setSelectedRows((prev) => prev.filter((id) => id !== row.id));
+      setInternalSelectedRows(newSelectedIds);
     }
   };
- 
+
   const handleBulkDelete = () => {
     if (onBulkDelete) {
       onBulkDelete(selectedRows);
     }
-    setSelectedRows([]);
+    // Clear selection after action
+    if (onSelectedRowsChange) {
+      onSelectedRowsChange([]);
+    } else {
+      setInternalSelectedRows([]);
+    }
   };
- 
+
   // --- EVENT HANDLERS ---
   const requestSort = (key: keyof T | string) => {
     let direction: "asc" | "desc" = "asc";
@@ -185,25 +224,39 @@ export function DataTable<T extends { id:string | number }>({
     }
     setSortConfig({ key, direction });
   };
- 
+
   const handleGlobalFilterChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setGlobalFilter(event.target.value);
-    setCurrentPage(1);
+    const newFilterValue = event.target.value;
+    setGlobalFilter(newFilterValue);
+    setCurrentPage(1); // Reset to first page on filter change
+    if (onFilterChange) {
+      // Notify parent about global filter change
+      onFilterChange({ ...filterValues, globalFilterKey: newFilterValue });
+    }
   };
- 
+
   const handleFilterValueChange = (id: string, value: string) => {
-    setFilterValues((prev) => ({ ...prev, [id]: value === "all" ? "" : value }));
-    setCurrentPage(1);
+    const newFilterValues = { ...filterValues, [id]: value === "all" ? "" : value };
+    setFilterValues(newFilterValues);
+    setCurrentPage(1); // Reset to first page on filter change
+    if (onFilterChange) {
+      // Notify parent about column filter change
+      onFilterChange({ ...newFilterValues, globalFilter: globalFilter });
+    }
   };
- 
+
   const handleResetFilters = () => {
     setGlobalFilter("");
     setFilterValues({});
     setCurrentPage(1);
+    if (onFilterChange) {
+      // Notify parent about filter reset
+      onFilterChange({});
+    }
   };
- 
+
   // --- STYLE HELPERS ---
   const getRowHeightClass = () =>
     ({ sm: "h-10", md: "h-12", lg: "h-14" }[rowHeight] || "h-12");
@@ -215,12 +268,7 @@ export function DataTable<T extends { id:string | number }>({
         primary: "bg-gray-300 text-white",
       } as const
     )[headerStyle] || "bg-gray-50 text-gray-700";
- 
-  // If serverPagination, use props; else use internal state
-  const effectivePage = serverPagination && typeof pageIndex === 'number' ? pageIndex + 1 : currentPage;
-  const effectiveTotalPages = serverPagination && typeof pageCount === 'number' ? pageCount : totalPages;
-  const effectiveRowsPerPage = serverPagination && typeof initialPageSize === 'number' ? initialPageSize : rowsPerPage;
- 
+
   // --- RENDER ---
   return (
     <div className={`space-y-4 ${className}`}>
@@ -240,7 +288,7 @@ export function DataTable<T extends { id:string | number }>({
               />
             </div>
           </div>
- 
+
           {/* Mapped Dropdown Filters */}
           {columnFilters.map((filter) => (
             <div key={String(filter.id)} className="w-full md:w-auto md:min-w-[180px]">
@@ -270,7 +318,7 @@ export function DataTable<T extends { id:string | number }>({
               </Select>
             </div>
           ))}
- 
+
           {/* Reset Button */}
           <div className="w-full md:w-auto md:ml-auto pt-0 md:pt-5">
             <Button
@@ -283,7 +331,7 @@ export function DataTable<T extends { id:string | number }>({
           </div>
         </div>
       </div>
- 
+
       {/* TABLE */}
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
         <Table className="min-w-full">
@@ -294,8 +342,9 @@ export function DataTable<T extends { id:string | number }>({
                   <input
                     type="checkbox"
                     checked={
-                      selectedRows.length === processedData.length &&
-                      processedData.length > 0
+                      selectedRows.length === paginatedData.length && // Check if all *displayed* rows are selected
+                      paginatedData.length > 0 &&
+                      selectedRows.length === processedData.length // Check if all *filtered* data is selected (for accurate "select all")
                     }
                     onChange={(e) => onSelectAll(e.target.checked)}
                   />
@@ -400,7 +449,7 @@ export function DataTable<T extends { id:string | number }>({
           </TableBody>
         </Table>
       </div>
- 
+
       {/* BULK DELETE BUTTON */}
       {enableBulkDelete && selectedRows.length > 0 && (
         <div className="flex justify-end my-2">
@@ -413,24 +462,20 @@ export function DataTable<T extends { id:string | number }>({
           </Button>
         </div>
       )}
- 
-      {/* PAGINATION CONTROLS */}
+
+      {/* PAGINATION CONTROLS (now client-side) */}
       <div className="flex items-center justify-between text-sm font-medium text-gray-600">
         <div className="flex items-center space-x-2">
           <span>Rows per page:</span>
           <Select
-            value={String(effectiveRowsPerPage)}
+            value={String(rowsPerPage)}
             onValueChange={(value) => {
-              if (serverPagination && onPaginationChange) {
-                onPaginationChange({ pageIndex: 0, pageSize: Number(value) });
-              } else {
-                setRowsPerPage(Number(value));
-                setCurrentPage(1);
-              }
+              setRowsPerPage(Number(value));
+              setCurrentPage(1); // Reset to first page when rows per page changes
             }}
           >
             <SelectTrigger className="w-20">
-              <SelectValue placeholder={String(effectiveRowsPerPage)} />
+              <SelectValue placeholder={String(rowsPerPage)} />
             </SelectTrigger>
             <SelectContent>
               {[5, 10, 20, 50].map((size) => (
@@ -443,34 +488,22 @@ export function DataTable<T extends { id:string | number }>({
         </div>
         <div className="flex items-center space-x-4">
           <span>
-            Page {effectiveTotalPages > 0 ? effectivePage : 0} of {effectiveTotalPages}
+            Page {totalPages > 0 ? currentPage : 0} of {totalPages}
           </span>
           <div className="flex items-center space-x-1">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                if (serverPagination && onPaginationChange) {
-                  onPaginationChange({ pageIndex: Math.max(0, (pageIndex || 0) - 1), pageSize: effectiveRowsPerPage });
-                } else {
-                  setCurrentPage((p) => Math.max(1, p - 1));
-                }
-              }}
-              disabled={effectivePage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                if (serverPagination && onPaginationChange) {
-                  onPaginationChange({ pageIndex: Math.min((pageCount || 1) - 1, (pageIndex || 0) + 1), pageSize: effectiveRowsPerPage });
-                } else {
-                  setCurrentPage((p) => Math.min(effectiveTotalPages, p + 1));
-                }
-              }}
-              disabled={effectivePage === effectiveTotalPages || effectiveTotalPages === 0}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -480,4 +513,3 @@ export function DataTable<T extends { id:string | number }>({
     </div>
   );
 }
- 
