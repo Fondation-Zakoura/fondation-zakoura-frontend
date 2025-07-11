@@ -356,7 +356,350 @@ const EditProject: React.FC = () => {
                 disabled={optionsLoading}
               />
               {errors.responsible_id && <div className="text-red-500 text-xs mt-1">{errors.responsible_id}</div>}
+            </div>
           </div>
+          {/* Détails du projet */}
+          <div className="bg-white rounded-xl shadow p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label ref={inputRefs.project_type} className="block text-gray-700 font-semibold mb-2 text-left">Type de projet</label>
+                <Combobox
+                  options={formOptions?.project_types?.filter(Boolean).map((t: any) => ({ value: String(t.id), label: t.name })) || []}
+                  value={form.project_type_id}
+                  onChange={value => handleChange({ target: { name: 'project_type_id', value } } as React.ChangeEvent<HTMLInputElement>)}
+                  placeholder="Sélectionner le type de projet"
+                  disabled={optionsLoading}
+                />
+                {errors.project_type_id && <div className="text-red-500 text-xs mt-1">{errors.project_type_id}</div>}
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Nature du projet</label>
+                <Combobox
+                  options={formOptions?.project_nature_options?.map((n: string) => ({ value: n, label: n })) || []}
+                  value={form.project_nature}
+                  onChange={value => handleChange({ target: { name: 'project_nature', value } } as React.ChangeEvent<HTMLInputElement>)}
+                  placeholder="Sélectionner la nature"
+                  disabled={optionsLoading}
+                />
+                {errors.project_nature && <div className="text-red-500 text-xs mt-1">{errors.project_nature}</div>}
+              </div>
+              <div>
+                <label ref={inputRefs.project_status} className="block text-gray-700 font-semibold mb-2 text-left">Statut du projet</label>
+                <Combobox
+                  options={formOptions?.project_statuses?.filter(Boolean).map((s: any) => ({ value: String(s.id), label: s.name })) || []}
+                  value={form.project_status_id}
+                  onChange={value => handleChange({ target: { name: 'project_status_id', value } } as React.ChangeEvent<HTMLInputElement>)}
+                  placeholder="Sélectionner le statut"
+                  disabled={optionsLoading}
+                />
+                {errors.project_status_id && <div className="text-red-500 text-xs mt-1">{errors.project_status_id}</div>}
+              </div>
+              <div>
+                <label ref={inputRefs.start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de lancement</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      {startDate ? format(startDate, 'yyyy-MM-dd') : 'Sélectionner la date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={date => {
+                        setStartDate(date);
+                        handleChange({ target: { name: 'start_date', value: date ? format(date, 'yyyy-MM-dd') : '' } } as React.ChangeEvent<HTMLInputElement>);
+                      }}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear() + 5}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateErrors.start_date && <div className="text-red-500 text-xs mt-1">{dateErrors.start_date}</div>}
+              </div>
+              <div>
+                <label ref={inputRefs.actual_start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de début réelle</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      {actualStartDate ? format(actualStartDate, 'yyyy-MM-dd') : 'Sélectionner la date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Calendar
+                      mode="single"
+                      selected={actualStartDate}
+                      onSelect={date => {
+                        setActualStartDate(date);
+                        handleChange({ target: { name: 'actual_start_date', value: date ? format(date, 'yyyy-MM-dd') : '' } } as React.ChangeEvent<HTMLInputElement>);
+                      }}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear() + 5}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateErrors.actual_start_date && <div className="text-red-500 text-xs mt-1">{dateErrors.actual_start_date}</div>}
+              </div>
+              <div>
+                <label ref={inputRefs.end_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de clôture</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      {endDate ? format(endDate, 'yyyy-MM-dd') : 'Sélectionner la date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={date => {
+                        setEndDate(date);
+                        handleChange({ target: { name: 'end_date', value: date ? format(date, 'yyyy-MM-dd') : '' } } as React.ChangeEvent<HTMLInputElement>);
+                      }}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear() + 5}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateErrors.end_date && <div className="text-red-500 text-xs mt-1">{dateErrors.end_date}</div>}
+              </div>
+            </div>
+            {/* Détails Financiers */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Budget total</label>
+                <Input
+                  ref={inputRefs.total_budget}
+                  name="total_budget"
+                  type="number"
+                  min={0}
+                  value={form.total_budget}
+                  onChange={handleChange}
+                  className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                  placeholder="Montant en MAD"
+                />
+                <div className="text-xs text-gray-500 mt-1">Le budget est exprimé en MAD (Dirham marocain).</div>
+                {errors.total_budget && <div className="text-red-500 text-xs mt-1">{errors.total_budget}</div>}
+              </div>
+              <div>
+                <label ref={inputRefs.bank_account} className="block text-gray-700 font-semibold mb-2 text-left">Compte Bancaire de Projet</label>
+                <Combobox
+                  options={formOptions?.bank_accounts?.filter(Boolean).map((b: any) => ({ value: String(b.id), label: b.account_title })) || []}
+                  value={form.project_bank_account_id}
+                  onChange={value => handleChange({ target: { name: 'project_bank_account_id', value } } as React.ChangeEvent<HTMLInputElement>)}
+                  placeholder="Sélectionner le compte bancaire"
+                  disabled={optionsLoading}
+                />
+                {errors.project_bank_account_id && <div className="text-red-500 text-xs mt-1">{errors.project_bank_account_id}</div>}
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Apport FZ (%)</label>
+                <Input
+                  ref={inputRefs.zakoura_contribution}
+                  name="zakoura_contribution"
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="% (0-100)"
+                  value={form.zakoura_contribution}
+                  onChange={handleChange}
+                  className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                />
+                {errors.zakoura_contribution && <div className="text-red-500 text-xs mt-1">{errors.zakoura_contribution}</div>}
+              </div>
+            </div>
+            {/* Partners section */}
+            <div className="mt-10">
+              <h3 className="text-lg font-bold text-blue-900 mb-4">
+                Partenaires
+              </h3>
+              <div className="flex flex-col gap-6">
+                {partners.map((partner, idx) => (
+                  <div
+                    key={idx}
+                    className="border rounded-lg p-4 flex flex-col md:flex-row md:items-end gap-4 relative shadow-sm"
+                  >
+                    <div className="flex-1 flex flex-col md:flex-row gap-4">
+                      <div className="flex-1">
+                        <label className="block text-gray-700 font-semibold mb-1 text-left">
+                          Nom du partenaire
+                        </label>
+                        <Combobox
+                          options={
+                            formOptions?.partners?.data?.map((p: any) => ({
+                              value: String(p.id),
+                              label: p.partner_name,
+                            })) || []
+                          }
+                          value={partner.partner_id}
+                          onChange={(value) =>
+                            handlePartnerChange(idx, {
+                              target: { name: "partner_id", value },
+                            } as React.ChangeEvent<HTMLInputElement>)
+                          }
+                          placeholder="Sélectionner un partenaire"
+                          disabled={optionsLoading}
+                        />
+                        {partnerErrors[idx]?.partner_id && (
+                          <div className="text-red-500 text-xs mt-1">
+                            {partnerErrors[idx].partner_id}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-gray-700 font-semibold mb-1 text-left">
+                          Rôle
+                        </label>
+                        <Combobox
+                          options={
+                            formOptions?.partner_roles
+                              ? Object.entries(formOptions.partner_roles).map(
+                                  ([key, label]) => ({
+                                    value: String(label),
+                                    label: label as string,
+                                  })
+                                )
+                              : []
+                          }
+                          value={partner.partner_role}
+                          onChange={(value) =>
+                            handlePartnerChange(idx, {
+                              target: { name: "partner_role", value },
+                            } as React.ChangeEvent<HTMLInputElement>)
+                          }
+                          placeholder="Sélectionner un rôle"
+                          disabled={optionsLoading}
+                        />
+                        {partnerErrors[idx]?.partner_role && (
+                          <div className="text-red-500 text-xs mt-1">
+                            {partnerErrors[idx].partner_role}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-gray-700 font-semibold mb-1 text-left">
+                          % Apport Partenaire
+                        </label>
+                        <Input
+                          name="partner_contribution"
+                          placeholder="% (0-100)"
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={partner.partner_contribution}
+                          onChange={(e) => handlePartnerChange(idx, e)}
+                          className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        />
+                        {partnerErrors[idx]?.partner_contribution && (
+                          <div className="text-red-500 text-xs mt-1">
+                            {partnerErrors[idx].partner_contribution}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {partners.length > 0 && (
+                      <Button
+                        type="button"
+                        onClick={() => removePartner(idx)}
+                        className=" text-red-500 text-xs font-semibold px-2 py-1 border border-red-200 rounded transition hover:bg-red-600 hover:text-white bg-white shadow"
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex justify-end">
+                <Button
+                  type="button"
+                  onClick={addPartner}
+                  className=" px-6 py-2 rounded-lg font-bold  transition shadow-sm flex items-center gap-2"
+                >
+                  <span className="text-xl leading-none">+</span> Ajouter un
+                  partenaire
+                </Button>
+              </div>
+            </div>
+            {/* Notes et/ou observation */}
+            <div className="bg-white rounded-xl shadow p-6 mb-8">
+              <label className="block text-gray-700 font-semibold mb-2 text-left">
+                Notes et/ou observation
+              </label>
+              <textarea
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                rows={3}
+              />
+            </div>
+            {/* Actions */}
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                className="bg-gray-200 hover:bg-gray-300 transition text-gray-700 px-8 py-2 rounded-lg font-semibold shadow"
+                onClick={() => navigate("/projects")}
+                disabled={submitting}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                className="bg-blue-900 hover:bg-blue-800 transition text-white px-8 py-2 rounded-lg font-semibold shadow"
+                disabled={submitting}
+              >
+                {submitting ? "Mise à jour..." : "Mettre à jour"}
+              </Button>
+            </div>
+            {error && (
+              <div className="text-red-500 text-sm mt-2 text-center">{error}</div>
+            )}
+          </div>
+        </form>
+        {/* Modal for budget percentage check */}
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent>
+            <DialogHeader>
+              <div className="text-lg font-semibold text-red-500">
+                Alerte budget
+              </div>
+            </DialogHeader>
+            <div className="py-4 text-gray-800 text-center">{modalMessage}</div>
+            <DialogFooter className="flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={handleModalCancel}
+                type="button"
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleModalConfirm}
+                type="button"
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                Confirmer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* Show the sum of percentages with color */}
+        <div
+          className={`mt-2 text-center text-lg font-bold ${
+            getTotalPercent().sum < 100
+              ? "text-red-600"
+              : getTotalPercent().sum > 100
+              ? "text-green-600"
+              : "text-gray-700"
+          }`}
+        >
+          Total contributions: {getTotalPercent().sum.toFixed(2)}%
         </div>
         {/* Détails du projet */}
         <div className="bg-white rounded-xl shadow p-6 mb-8">
