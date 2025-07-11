@@ -48,7 +48,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className, !selected && "text-muted-foreground")}
+          className={cn(
+            "w-full justify-between",
+            className,
+            !selected && "text-muted-foreground"
+          )}
           disabled={disabled}
         >
           {selected ? selected.label : placeholder}
@@ -85,4 +89,4 @@ export const Combobox: React.FC<ComboboxProps> = ({
       </PopoverContent>
     </Popover>
   );
-}; 
+};
