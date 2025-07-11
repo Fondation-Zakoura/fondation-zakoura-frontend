@@ -1,21 +1,21 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { setupListeners } from '@reduxjs/toolkit/query';
-import { baseApi } from '../features/api/api';
-import storage from 'redux-persist/lib/storage';
-import { persistReducer, persistStore } from 'redux-persist';
-import { combineReducers } from 'redux';
-import userReducer from '../features/user/userSlice';
-import { partnersApi } from '../features/partnersApi';
-import { naturePartnersApi } from '@/features/api/naturePartnersApi';
-import { structurePartnersApi } from '@/features/api/structurePartnersApi';
-import { sitesApi } from '@/features/api/sitesApi';
-import { geographicApi } from '@/features/api/geographicApi';
-import { usersApi } from '@/features/api/usersApi'; // <-- Add this import
+import { configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/query";
+import { baseApi } from "../features/api/api";
+import storage from "redux-persist/lib/storage";
+import { persistReducer, persistStore } from "redux-persist";
+import { combineReducers } from "redux";
+import userReducer from "../features/user/userSlice";
+import { partnersApi } from "../features/partnersApi";
+import { naturePartnersApi } from "@/features/api/naturePartnersApi";
+import { structurePartnersApi } from "@/features/api/structurePartnersApi";
+import { sitesApi } from "@/features/api/sitesApi";
+import { geographicApi } from "@/features/api/geographicApi";
+import { usersApi } from "@/features/api/usersApi"; // <-- Add this import
 
 const persistConfig = {
-  key: 'root',
+  key: "root",
   storage,
-  whitelist: ['user'],
+  whitelist: ["user"],
 };
 
 const rootReducer = combineReducers({
