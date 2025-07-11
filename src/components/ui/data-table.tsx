@@ -276,7 +276,7 @@ export function DataTable<T extends { id:string | number; deleted_at?: string | 
       <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4">
           {/* Search Input */}
-          <div className="w-full md:w-1/3 mt-5.5 lg:w-1/4">
+          <div className="w-full md:w-1/3 lg:w-1/4"> {/* Adjusted pt-0 to remove top padding */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
@@ -290,51 +290,54 @@ export function DataTable<T extends { id:string | number; deleted_at?: string | 
           </div>
 
           {/* Mapped Dropdown Filters */}
-          {columnFilters.map((filter) => (
-            <div key={String(filter.id)} className="w-full md:w-auto md:min-w-[180px]">
-              <label
-                htmlFor={`filter-${String(filter.id)}`}
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {filter.label}
-              </label>
-              <Select
-                value={filterValues[String(filter.id)] || "all"}
-                onValueChange={(value) => handleFilterValueChange(String(filter.id), value)}
-              >
-                <SelectTrigger id={`filter-${String(filter.id)}`} className="w-full">
-                  <SelectValue placeholder={`Tout...`} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{`Tout ${filter.label
-                    .split(" ")[0]
-                    .toLowerCase()}`}</SelectItem>
-                  {filter.options.map((opt) => (
-                    <SelectItem key={String(opt.value)} value={String(opt.value)}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
+          {/* Use flex-wrap and responsive widths for filters */}
+          <div className="flex flex-wrap items-center gap-4 w-full md:w-2/3 lg:w-3/4">
+            {columnFilters.map((filter) => (
+              <div key={String(filter.id)} className="w-full sm:w-auto flex-grow"> {/* Use flex-grow */}
+                <label
+                  htmlFor={`filter-${String(filter.id)}`}
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {filter.label}
+                </label>
+                <Select
+                  value={filterValues[String(filter.id)] || "all"}
+                  onValueChange={(value) => handleFilterValueChange(String(filter.id), value)}
+                >
+                  <SelectTrigger id={`filter-${String(filter.id)}`} className="w-full">
+                    <SelectValue placeholder={`Tout...`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{`Tout ${filter.label
+                      .split(" ")[0]
+                      .toLowerCase()}`}</SelectItem>
+                    {filter.options.map((opt) => (
+                      <SelectItem key={String(opt.value)} value={String(opt.value)}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
 
-          {/* Reset Button */}
-          <div className="w-full md:w-auto md:ml-auto pt-0 md:pt-5">
-            <Button
-              variant="outline"
-              onClick={handleResetFilters}
-              className="w-full flex items-center justify-center gap-2 text-gray-700"
-            >
-              <RotateCw size={14} /> Réinitialiser
-            </Button>
+            {/* Reset Button */}
+            <div className="w-full sm:w-auto md:ml-auto mt-auto"> {/* Adjusted alignment and margin */}
+              <Button
+                variant="outline"
+                onClick={handleResetFilters}
+                className="w-full flex items-center justify-center gap-2 text-gray-700"
+              >
+                <RotateCw size={14} /> Réinitialiser
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TABLE */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-        <Table className="min-w-full">
+      {/* TABLE CONTAINER - Added overflow-x-auto for horizontal scrolling on small screens */}
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <Table className="min-w-full divide-y divide-gray-200"> {/* Added divide-y for separation */}
           <TableHeader>
             <TableRow className={`${getHeaderStyleClass()} border-b border-gray-200`}>
               {enableBulkDelete && (
@@ -464,7 +467,7 @@ export function DataTable<T extends { id:string | number; deleted_at?: string | 
       )}
 
       {/* PAGINATION CONTROLS (now client-side) */}
-      <div className="flex items-center justify-between text-sm font-medium text-gray-600">
+      <div className="flex flex-col sm:flex-row items-center justify-between text-sm font-medium text-gray-600 gap-4"> {/* Added flex-col and gap */}
         <div className="flex items-center space-x-2">
           <span>Rows per page:</span>
           <Select

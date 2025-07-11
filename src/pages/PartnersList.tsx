@@ -1,15 +1,16 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { Plus, Trash2, Eye, Pencil, RotateCw } from "lucide-react";
+import { Plus, Trash2, Eye, Pencil, RotateCw, XCircle, CheckCircle } from "lucide-react"; // Import XCircle and CheckCircle
 import { AddEditPartnerModal } from "../components/partners/AddEditPartnerModal";
-import { PartnerDetailsModal } from "../components/partners/PartnersTable";
+import { PartnerDetailsModal } from "../components/partners/PartnersTable"; // Assuming this is correct
 import type { Partner, FilterOption } from "../types/partners";
 import {
   useGetPartnersQuery,
   useAddPartnerMutation,
   useUpdatePartnerMutation,
-  useDeletePartnersMutation,
+  useDeletePartnersMutation, 
   useGetOptionsQuery,
 } from "../features/partnersApi";
+import type { ToggleActivationResult } from "../features/partnersApi";
 import { DataTable } from "../components/ui/data-table";
 import type { Column, ColumnFilter } from "../components/ui/data-table";
 import {
@@ -24,6 +25,7 @@ import {
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner"; // Re-import toast for notifications
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -47,16 +49,25 @@ const PartnersListPage: React.FC = () => {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const navigate = useNavigate();
 
+  // State for displaying custom modal alerts (for errors only now)
+  const [showCustomAlert, setShowCustomAlert] = useState(false);
+  const [customAlertTitle, setCustomAlertTitle] = useState("");
+  const [customAlertMessage, setCustomAlertMessage] = useState("");
+  const [customAlertVariant, setCustomAlertVariant] = useState<"success" | "error">("success"); // Still needed for error dialog styling
+
+
   // RTK Query: Fetch ALL partners once
   const {
     data: partnersData,
     error: fetchError,
     isLoading,
+    isFetching, // <--- Added isFetching here
     refetch,
   } = useGetPartnersQuery({ filters: {} });
 
   const [addPartner] = useAddPartnerMutation();
   const [updatePartner] = useUpdatePartnerMutation();
+  // Ensure useDeletePartnersMutation is correctly typed to return ToggleActivationResult[]
   const [deletePartners] = useDeletePartnersMutation();
 
   // RTK Query: Fetch filter options
@@ -121,6 +132,14 @@ const PartnersListPage: React.FC = () => {
     ];
   }, [filterOptions]);
 
+  // Function to show a custom modal alert (now primarily for errors)
+  const showModalAlert = useCallback((title: string, message: string, variant: "success" | "error") => {
+    setCustomAlertTitle(title);
+    setCustomAlertMessage(message);
+    setCustomAlertVariant(variant);
+    setShowCustomAlert(true);
+  }, []);
+
   // --- Modal and Action Handlers (wrapped in useCallback) ---
   const handleOpenAddModal = useCallback(() => {
     setEditingPartner(null);
@@ -138,18 +157,22 @@ const PartnersListPage: React.FC = () => {
       try {
         if (id) {
           await updatePartner({ id, data: formData }).unwrap();
+          toast.success("Partenaire mis à jour avec succès."); // Success toast
         } else {
           await addPartner(formData).unwrap();
+          toast.success("Partenaire créé avec succès."); // Success toast
         }
         setEditModalOpen(false);
         refetch();
-      } catch (err) {
-        console.error("Failed to save partner:", err);
+      } catch (err: any) { // Catch the error here
+        console.error("Failed to save partner in PartnersListPage:", err);
+        // Re-throw the error so AddEditPartnerModal can catch and display specific toasts
+        throw err;
       } finally {
         setIsSaving(false);
       }
     },
-    [addPartner, updatePartner, refetch]
+    [addPartner, updatePartner, refetch] // Removed showModalAlert from dependencies as it's not used for success here
   );
 
   const handleToggleRequest = useCallback((partner: Partner) => {
@@ -161,16 +184,35 @@ const PartnersListPage: React.FC = () => {
     if (!partnerToAction) return;
     setIsDeleting(true);
     try {
-      await deletePartners([partnerToAction.id]).unwrap();
-      setConfirmOpen(false);
-      setPartnerToAction(null);
-      refetch();
-    } catch (err) {
-      console.error("Toggle failed:", err);
+      const response = await deletePartners([partnerToAction.id]);
+      
+      if ('data' in response && response.data) {
+        // Backend returns { message: string, successful_count: number } for single successful toggle
+        toast.success(response.data.message || "Statut du partenaire mis à jour avec succès."); // Success toast
+      } else if ('error' in response && response.error) {
+        const errorData = (response.error as any)?.data;
+        
+        if (errorData && errorData.failed_operations && Array.isArray(errorData.failed_operations)) {
+          // This handles the 422 case where some operations failed (even for a single item)
+          // Prioritize specific messages from failed_operations
+          const specificMessages = errorData.failed_operations.map((failedResult: ToggleActivationResult) => failedResult.message).join("\n");
+          showModalAlert("Échec de l'opération", specificMessages, "error");
+        } else if (errorData && errorData.message) {
+          // Generic error message from backend for other error statuses (e.g., 500)
+          showModalAlert("Erreur", errorData.message, "error");
+        } else {
+          // Fallback generic error if the response structure is unexpected
+          showModalAlert("Erreur", "Échec de la modification du statut du partenaire.", "error");
+        }
+        console.error("Toggle failed:", response.error);
+      }
     } finally {
       setIsDeleting(false);
+      setConfirmOpen(false); // Close dialog in finally
+      setPartnerToAction(null); // Reset partner in finally
+      refetch(); // Refetch in finally
     }
-  }, [partnerToAction, deletePartners, refetch]);
+  }, [partnerToAction, deletePartners, refetch, showModalAlert]);
 
   const handleCancelToggle = useCallback(() => {
     if (isDeleting) return;
@@ -193,16 +235,35 @@ const PartnersListPage: React.FC = () => {
     if (!pendingDeleteIds.length) return;
     setIsBulkDeleting(true);
     try {
-      await deletePartners(pendingDeleteIds).unwrap();
-      setPendingDeleteIds([]);
-      setShowBulkDeleteDialog(false);
-      refetch();
-    } catch (err) {
-      console.error("Bulk delete failed:", err);
+      const response = await deletePartners(pendingDeleteIds);
+      
+      if ('data' in response && response.data) {
+        toast.success(response.data.message || `${response.data.successful_count} partenaire(s) mis à jour avec succès.`); // Success toast
+      } else if ('error' in response && response.error) {
+        const errorData = (response.error as any)?.data;
+        
+        if (errorData && errorData.failed_operations && Array.isArray(errorData.failed_operations)) {
+          const specificMessages = errorData.failed_operations.map((failedResult: ToggleActivationResult) => failedResult.message).join("\n");
+          showModalAlert("Certaines opérations ont échoué", specificMessages, "error");
+          
+          if (errorData.successful_count > 0) {
+            toast.success(`${errorData.successful_count} partenaire(s) mis à jour avec succès.`); // Partial success toast
+          }
+        } else if (errorData && errorData.message) {
+          showModalAlert("Erreur", errorData.message, "error");
+        } else {
+          // Fallback generic error if the response structure is unexpected
+          showModalAlert("Erreur", "Échec de l'action groupée.", "error");
+        }
+        console.error("Bulk delete failed:", response.error);
+      }
     } finally {
       setIsBulkDeleting(false);
+      setPendingDeleteIds([]); // Reset pending IDs in finally
+      setShowBulkDeleteDialog(false); // Close dialog in finally
+      refetch(); // Refetch in finally
     }
-  }, [deletePartners, pendingDeleteIds, refetch]);
+  }, [deletePartners, pendingDeleteIds, refetch, showModalAlert]);
 
   // --- DataTable Column Definitions (Updated) ---
   const columns: Column<Partner>[] = useMemo(
@@ -278,6 +339,24 @@ const PartnersListPage: React.FC = () => {
 
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
+      {/* Custom Modal Alert (now primarily for errors) */}
+      <Dialog open={showCustomAlert} onOpenChange={setShowCustomAlert}>
+        <DialogContent className="max-w-md p-6 bg-white rounded-lg shadow-xl"> {/* Added padding, background, shadow */}
+          <DialogHeader className="pb-4 border-b border-gray-200 mb-4"> {/* Added border-b and margin-bottom */}
+            <DialogTitle className={`text-2xl font-bold flex items-center gap-2 ${customAlertVariant === "error" ? "text-red-600" : "text-green-600"}`}>
+              {customAlertVariant === "error" ? <XCircle className="h-6 w-6" /> : <CheckCircle className="h-6 w-6" />}
+              {customAlertTitle}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="text-gray-700 text-base leading-relaxed mb-6"> {/* Adjusted text styles and margin */}
+            {customAlertMessage}
+          </DialogDescription>
+          <DialogFooter className="flex justify-end pt-4 border-t border-gray-200"> {/* Added padding and border-t */}
+            <Button onClick={() => setShowCustomAlert(false)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md transition-colors">OK</Button> {/* Enhanced button style */}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Liste des Partenaires"
@@ -287,7 +366,7 @@ const PartnersListPage: React.FC = () => {
           ]}
         />
         <Button
-          className="bg-[#576CBC] hover:bg-[#19376D]  text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+          className="bg-[#576CBC] hover:bg-[#19376D]  text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
           onClick={handleOpenAddModal}
         >
           <Plus size={18} /> Ajouter un partenaire
@@ -307,16 +386,21 @@ const PartnersListPage: React.FC = () => {
         <DataTable
           columns={columns}
           data={allPartners}
+          isLoading={isLoading || isFetching}
+          pageCount={partnersData?.meta?.last_page || 0}
+          pagination={{ pageIndex: partnersData?.meta?.current_page ? partnersData.meta.current_page - 1 : 0, pageSize: partnersData?.meta?.per_page || 10 }}         
           columnFilters={columnFilters}
-          emptyText={
-            isLoading ? "Chargement des données..." : "Aucun partenaire trouvé"
-          }
+          onFilterChange={(filters) => { /* Handle filter changes if your DataTable supports it */ }}
+          onBulkDelete={handleBulkDelete}
+          hasSelectedRows={Object.keys(partnersData?.data || {}).some(key => (partnersData?.data as any)[key]?.isSelected)} // Placeholder, adjust based on actual DataTable row selection state
+          isBulkDeleting={isBulkDeleting}
+          emptyText={isLoading ? "Chargement des données..." : "Aucun partenaire trouvé."}
           initialPageSize={10}
           headerStyle="primary"
           hoverEffect
           striped
-          onBulkDelete={handleBulkDelete}
           globalFilterKey="partner_name"
+          serverPagination 
         />
       </div>
 
@@ -326,7 +410,6 @@ const PartnersListPage: React.FC = () => {
         onSave={handleSavePartner}
         partner={editingPartner}
         options={filterOptions}
-        serverErrors={{}}
         isLoading={isSaving}
       />
       <PartnerDetailsModal
@@ -440,7 +523,7 @@ const PartnersListPage: React.FC = () => {
                   <path
                     className="opacity-75"
                     fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    d="M4 12a8 8 0 018-8v4a4 0 00-4 4H4z"
                   ></path>
                 </svg>
               )}

@@ -13,6 +13,7 @@ import { geographicApi } from '@/features/api/geographicApi';
 import { usersApi } from '@/features/api/usersApi';
 import { unitApi } from '@/features/api/unitApi';
 import { cycleApi } from '@/features/api/cycleApi';
+import {levelApi} from '@/features/api/levelApi';
 
 const persistConfig = {
   key: 'root',
@@ -30,7 +31,8 @@ const rootReducer = combineReducers({
   [geographicApi.reducerPath]: geographicApi.reducer,
   [usersApi.reducerPath]: usersApi.reducer, 
   [unitApi.reducerPath]: unitApi.reducer,
-  [cycleApi.reducerPath]: cycleApi.reducer
+  [cycleApi.reducerPath]: cycleApi.reducer,
+  [levelApi.reducerPath]: levelApi.reducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -50,7 +52,8 @@ export const store = configureStore({
       .concat(usersApi.middleware)
       .concat(unitApi.middleware)
       .concat(cycleApi.middleware)
-      .concat(unitApi.middleware),
+      .concat(levelApi.middleware),
+
 });
 
 setupListeners(store.dispatch);

@@ -18,6 +18,7 @@ import PartnersListPage from './pages/PartnersList';
 import SitesListPage from './pages/sites/SitesList';
 import { UnitsListPage } from './pages/units/UnitsListPage';
 import { CyclesListPage } from './pages/cycle/CyclesListPage';
+import { LevelsListPage } from './pages/levels/LevelsListPage';
 
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
             <Route path='/parametres/operations/sites' element={<SitesListPage />} />
             <Route path='/parametres/operations/unites' element={<UnitsListPage />} />
             <Route path='/parametres/operations/cycles' element={<CyclesListPage />} />
+            <Route path='/parametres/operations/levels' element={<LevelsListPage />} />
         </Route>
         <Route path='/login' element={<LoginForm />} />
     </Routes>

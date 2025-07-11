@@ -1,6 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Partner, FilterOption, ApiResponse } from '../types/partners';
 
+// Define the response structure for toggleActivation
+export interface ToggleActivationResult {
+  id: number;
+  success: boolean;
+  message: string;
+}
+
 export const partnersApi = createApi({
   reducerPath: 'partnersApi',
   baseQuery: fetchBaseQuery({
@@ -44,7 +51,8 @@ export const partnersApi = createApi({
       }),
       invalidatesTags: ['Partners'],
     }),
-    deletePartners: builder.mutation<void, number[]>({
+    // IMPORTANT: Changed return type from 'void' to 'ToggleActivationResult[]'
+    deletePartners: builder.mutation<ToggleActivationResult[], number[]>({
       query: (ids) => ({
         url: '/partners/bulk-delete',
         method: 'POST',

@@ -264,7 +264,7 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                         value={formData.type}
                         onValueChange={(value) => handleSelectChange("type", value as Unit['type'])}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate"> {/* Ajout de max-w et truncate */}
+                        <SelectTrigger className="w-full  truncate"> {/* Ajout de max-w et truncate */}
                           <SelectValue placeholder="Sélectionnez un type..." className="truncate" />
                         </SelectTrigger>
                         <SelectContent>

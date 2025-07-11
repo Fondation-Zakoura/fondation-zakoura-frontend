@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { Partner, FilterOption, ContactPerson } from "../../types/partners"; // Make sure to define ContactPerson in your types
 import { Loader2, Save, Check, ChevronsUpDown, PlusCircle, XCircle } from "lucide-react";
+import { toast } from "sonner"; // Import toast from sonner
 
 // Shadcn UI Components (assuming these are correctly imported)
 import { Button } from "@/components/ui/button";
@@ -110,10 +111,9 @@ const CountryCombobox: React.FC<CountryComboboxProps> = ({
 interface AddEditPartnerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: FormData, id?: number) => void;
+  onSave: (data: FormData, id?: number) => Promise<void>; // onSave now returns a Promise<void>
   partner: Partner | null;
   options: Record<string, FilterOption[]>;
-  serverErrors: Record<string, string[]>;
   isLoading: boolean;
 }
 
@@ -130,7 +130,6 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   onSave,
   partner,
   options,
-  serverErrors, // Note: serverErrors might need adjustments for arrays
   isLoading,
 }) => {
   const emptyContact: Partial<ContactPerson> = {
@@ -148,42 +147,40 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (partner) {
-        setFormData({
-          ...partner,
-          partner_type: partner.partner_type || "National",
-          // Ensure contact_people is an array, provide one empty if none exist
-          contact_people:
-            partner.contact_people && partner.contact_people.length > 0
-              ? [...partner.contact_people]
-              : [emptyContact],
-        });
-      } else {
-        // Initialize a new partner with one empty contact
-        setFormData({ partner_type: "National", contact_people: [emptyContact] });
-      }
+      setFormData(partner ? {
+        ...partner,
+        partner_type: partner.partner_type || "National",
+        // Ensure contact_people is an array, provide one empty if none exist
+        contact_people:
+          partner.contact_people && partner.contact_people.length > 0
+            ? [...partner.contact_people]
+            : [emptyContact],
+      } : { partner_type: "National", contact_people: [emptyContact] });
       setLogoFile(null);
-      setErrors({});
+      setErrors({}); // Clear all errors on modal open
     }
   }, [partner, isOpen]);
 
   const clearError = (name: string, index?: number) => {
-    if (index !== undefined && errors.contact_people?.[index]?.[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.contact_people[index][name];
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      if (index !== undefined && newErrors.contact_people?.[index]) {
+        if (newErrors.contact_people[index][name]) {
+          delete newErrors.contact_people[index][name];
+        }
+        // If the contact object becomes empty, remove it from contact_people errors
         if (Object.keys(newErrors.contact_people[index]).length === 0) {
           delete newErrors.contact_people[index];
+          // If contact_people errors array becomes empty, remove it
+          if (Object.keys(newErrors.contact_people).length === 0) {
+            delete newErrors.contact_people;
+          }
         }
-        return newErrors;
-      });
-    } else if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
+      } else if (newErrors[name]) {
         delete newErrors[name];
-        return newErrors;
-      });
-    }
+      }
+      return newErrors;
+    });
   };
 
   // --- Handlers for regular form fields ---
@@ -203,7 +200,16 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     clearError("partner_logo");
     if (e.target.files && e.target.files[0]) {
-      setLogoFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        setErrors(prev => ({ ...prev, partner_logo: "Le logo ne doit pas dépasser 2 Mo." }));
+        setLogoFile(null); // Clear the file if it's too large
+        toast.error("Le logo ne doit pas dépasser 2 Mo.");
+      } else {
+        setLogoFile(file);
+      }
+    } else {
+      setLogoFile(null);
     }
   };
 
@@ -230,6 +236,17 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     const updatedContacts = [...(formData.contact_people || [])];
     updatedContacts.splice(index, 1);
     setFormData((prev) => ({ ...prev, contact_people: updatedContacts }));
+    // Also clear any errors associated with the removed contact
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      if (newErrors.contact_people?.[index]) {
+        delete newErrors.contact_people[index];
+        if (Object.keys(newErrors.contact_people).length === 0) {
+          delete newErrors.contact_people;
+        }
+      }
+      return newErrors;
+    });
   };
 
   // --- Validation and Submission ---
@@ -282,18 +299,22 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
       newErrors.contact_people = contactErrors;
     }
 
-    if (logoFile && logoFile.size > 2 * 1024 * 1024)
+    // Logo file size validation (already handled in handleLogoChange, but double-check)
+    if (logoFile && logoFile.size > 2 * 1024 * 1024) {
       newErrors.partner_logo = "Le logo ne doit pas dépasser 2 Mo.";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
+      toast.error("Veuillez corriger les erreurs dans le formulaire.");
       return;
     }
+
     const data = new FormData();
 
     // Append all top-level partner fields
@@ -315,7 +336,70 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
 
     if (logoFile) data.append("partner_logo", logoFile);
     if (partner?.id) data.append("_method", "PUT");
-    onSave(data, partner?.id);
+
+    try {
+      await onSave(data, partner?.id);
+      // onSave success is handled by the parent component (PartnersListPage)
+      // which will then close the modal and show a success toast.
+    } catch (err: any) {
+      console.error("Erreur lors de la sauvegarde du partenaire:", err);
+
+      // Robust error data extraction
+      const errorData = err?.data || err?.response?.data || err;
+      console.log("Extracted errorData:", errorData);
+
+      if (errorData?.errors) {
+        const backendErrors: Record<string, string[]> = errorData.errors;
+        const newErrors: Record<string, any> = {}; // To update inline errors
+
+        // Display toasts for each error
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          messages.forEach(message => {
+            toast.error(message); // Display each message as a toast
+          });
+
+          // Also update inline errors for the first message of each field
+          if (messages.length > 0) {
+            // Handle nested errors for contact_people
+            if (field.startsWith('contact_people.')) {
+              const parts = field.split('.'); // e.g., "contact_people.0.email"
+              if (parts.length === 3 && parts[0] === 'contact_people') {
+                const contactIndex = parseInt(parts[1]);
+                const contactField = parts[2];
+                if (!newErrors.contact_people) newErrors.contact_people = {};
+                if (!newErrors.contact_people[contactIndex]) newErrors.contact_people[contactIndex] = {};
+                newErrors.contact_people[contactIndex][contactField] = messages[0];
+              }
+            } else {
+              newErrors[field] = messages[0];
+            }
+          }
+        });
+        setErrors(newErrors); // Update state for inline error display
+        
+        // Show generic validation error if specific errors were not already shown
+        if (Object.keys(backendErrors).length === 0 && errorData.message) {
+           toast.error(errorData.message);
+        } else if (Object.keys(backendErrors).length > 0) {
+          //  toast.error("Veuillez corriger les erreurs de validation.");
+        }
+      } else if (errorData?.message) {
+        const errorMessage = String(errorData.message).toLowerCase(); // Ensure it's a string
+        if (errorMessage.includes('duplicate entry') && errorMessage.includes('for key \'partners_email_unique\'')) {
+          toast.error("L'adresse e-mail du partenaire est déjà utilisée.");
+          setErrors(prev => ({ ...prev, email: "Cette adresse e-mail est déjà utilisée." })); // Set inline error for email field
+        } else if (errorMessage.includes('duplicate entry') && errorMessage.includes('for key \'partners_partner_name_unique\'')) {
+          toast.error("Le nom du partenaire est déjà utilisé.");
+          setErrors(prev => ({ ...prev, partner_name: "Ce nom de partenaire est déjà utilisé." })); // Set inline error for partner_name field
+        }
+        else {
+          toast.error(errorData.message);
+        }
+      } else {
+        // Generic error message if no specific validation errors from backend or unknown error structure
+        toast.error("Échec de la sauvegarde du partenaire.");
+      }
+    }
   };
 
   return (
@@ -337,31 +421,31 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                     <div>
-                      <Label className="mb-2"  htmlFor="partner_name">Nom du Partenaire <p className="text-xs text-red-600">*</p></Label>
+                      <Label className="mb-2" htmlFor="partner_name">Nom du Partenaire <p className="text-xs text-red-600">*</p></Label>
                       <Input id="partner_name" name="partner_name" value={formData.partner_name || ""} onChange={handleChange} />
                       {errors.partner_name && <p className="text-sm text-destructive mt-1">{errors.partner_name}</p>}
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="abbreviation">Abbréviation <p className="text-xs text-red-600">*</p></Label>
+                      <Label className="mb-2" htmlFor="abbreviation">Abbréviation <p className="text-xs text-red-600">*</p></Label>
                       <Input id="abbreviation" name="abbreviation" value={formData.abbreviation || ""} onChange={handleChange} />
                       {errors.abbreviation && <p className="text-sm text-destructive mt-1">{errors.abbreviation}</p>}
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="country">Pays <p className="text-xs text-red-600">*</p></Label>
+                      <Label className="mb-2" htmlFor="country">Pays <p className="text-xs text-red-600">*</p></Label>
                       <CountryCombobox value={formData.country || ""} onValueChange={(value) => handleSelectChange("country", value)} />
                       {errors.country && <p className="text-sm text-destructive mt-1">{errors.country}</p>}
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="phone">Téléphone</Label>
+                      <Label className="mb-2" htmlFor="phone">Téléphone</Label>
                       <Input id="phone" name="phone" value={formData.phone || ""} onChange={handleChange} />
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="email">Email</Label>
+                      <Label className="mb-2" htmlFor="email">Email</Label>
                       <Input id="email" name="email" type="email" value={formData.email || ""} onChange={handleChange} />
                       {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
                     </div>
                     <div className="md:col-span-3">
-                      <Label className="mb-2"  htmlFor="address">Adresse</Label>
+                      <Label className="mb-2" htmlFor="address">Adresse</Label>
                       <Input id="address" name="address" value={formData.address || ""} onChange={handleChange} />
                     </div>
                   </div>
@@ -380,7 +464,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                         value={String(formData.nature_partner_id || "")}
                         onValueChange={(value) => handleSelectChange("nature_partner_id", value)}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate">
+                        <SelectTrigger className="w-full truncate"> {/* Removed max-w-[220px] for full width */}
                           <SelectValue
                             placeholder="Sélectionnez..."
                             className="truncate"
@@ -405,7 +489,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                         value={formData.partner_type || ""}
                         onValueChange={(value) => handleSelectChange("partner_type", value)}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate">
+                        <SelectTrigger className="w-full truncate"> {/* Removed max-w-[220px] for full width */}
                           <SelectValue placeholder="Sélectionnez..." className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
@@ -421,7 +505,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                         value={String(formData.structure_partner_id || "")}
                         onValueChange={(value) => handleSelectChange("structure_partner_id", value)}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate">
+                        <SelectTrigger className="w-full truncate"> {/* Removed max-w-[220px] for full width */}
                           <SelectValue placeholder="Sélectionnez..." className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
@@ -443,7 +527,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                         value={String(formData.status_id || "")}
                         onValueChange={(value) => handleSelectChange("status_id", value)}
                       >
-                        <SelectTrigger className="w-full max-w-[220px] truncate">
+                        <SelectTrigger className="w-full truncate"> {/* Removed max-w-[220px] for full width */}
                           <SelectValue placeholder="Sélectionnez..." className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
@@ -477,6 +561,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                       Ajouter un contact
                     </Button>
                   </div>
+                  {errors.contacts && <p className="text-sm text-destructive mb-4">{errors.contacts}</p>}
                   <div className="space-y-6">
                     {(formData.contact_people || []).map((contact, index) => (
                       <div
@@ -582,15 +667,15 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <Label className="mb-2"  htmlFor="note">Note</Label>
+                      <Label className="mb-2" htmlFor="note">Note</Label>
                       <Textarea id="note" name="note" rows={4} value={formData.note || ""} onChange={handleChange}/>
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="actions">Actions</Label>
+                      <Label className="mb-2" htmlFor="actions">Actions</Label>
                       <Input id="actions" name="actions" value={formData.actions || ""} onChange={handleChange} />
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="partner_logo">Logo</Label>
+                      <Label className="mb-2" htmlFor="partner_logo">Logo</Label>
                       <Input id="partner_logo" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoChange} />
                       {errors.partner_logo && <p className="text-sm text-destructive mt-1">{errors.partner_logo}</p>}
                       {logoFile && ( <img src={URL.createObjectURL(logoFile)} alt="Preview" className="mt-2 h-24 object-contain rounded-md border p-1" /> )}
