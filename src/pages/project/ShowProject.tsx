@@ -10,7 +10,6 @@ import 'react-circular-progressbar/dist/styles.css';
 import { Badge } from '@/components/ui/badge';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 
-// --- Helper Components for better structure & styling ---
 
 const PageHeader = ({ projectTitle, activeTab, setActiveTab }: { projectTitle: string; activeTab: string; setActiveTab: (tab: string) => void; }) => (
   <div className="mb-6">
@@ -176,6 +175,8 @@ const ShowProject: React.FC = () => {
   if (isError || !project) {
     return <div className="flex items-center justify-center min-h-screen text-lg font-semibold text-red-600">Erreur lors du chargement du projet.</div>;
   }
+
+  console.log(`this is the prooooooject`,project)
   // Example stats (replace with real fields if available)
   const stats = [
     { label: 'Type', value: project.project_type?.name || '-' },
@@ -240,7 +241,11 @@ const ShowProject: React.FC = () => {
                   </div>
                   <div className="mb-3">
                     <p className="text-xs text-gray-500">Dates</p>
-                    <p className="font-semibold text-gray-700">{project.start_date?.slice(0, 10)} - {project.end_date?.slice(0, 10)}</p>
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <div><span className="font-semibold">Date de début :</span> {project.start_date ? new Date(project.start_date).toLocaleDateString('fr-FR') : '-'}</div>
+                      <div><span className="font-semibold">Date de début réelle :</span> {project.actual_start_date ? new Date(project.actual_start_date).toLocaleDateString('fr-FR') : '-'}</div>
+                      <div><span className="font-semibold">Date de clôture :</span> {project.end_date ? new Date(project.end_date).toLocaleDateString('fr-FR') : '-'}</div>
+                    </div>
                   </div>
                   <div className="mb-3">
                     <p className="text-xs text-gray-500">Budget</p>
@@ -291,7 +296,7 @@ const ShowProject: React.FC = () => {
                     <div className="space-y-2">
                       <div>
                         <span className="block text-xs text-gray-400">RIB</span>
-                        <span className="font-semibold text-gray-800 text-sm">{project.project_bank_account.rib || '-'}</span>
+                        <span className="font-semibold text-gray-800 text-sm">{project.project_bank_account.rib_iban || '-'}</span>
                       </div>
                       <div>
                         <span className="block text-xs text-gray-400">Agence</span>

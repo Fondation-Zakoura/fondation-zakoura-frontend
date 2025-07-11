@@ -1,4 +1,3 @@
-// features/api/api.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export const baseApi = createApi({
@@ -10,6 +9,7 @@ export const baseApi = createApi({
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
+      headers.set('Accept','Application/json')
       return headers;
     },
   }),
