@@ -745,6 +745,8 @@ const AddProject: React.FC = () => {
                         <Input
                           name="partner_contribution"
                           placeholder="Apport Partenaire"
+                          min={0}
+                          max={100}
                           type="number"
                           value={partner.partner_contribution}
                           onChange={(e) =>
@@ -830,12 +832,7 @@ const AddProject: React.FC = () => {
                   Compte Bancaire de Projet
                 </label>
                 <Combobox
-                  options={
-                    formOptions?.bank_accounts?.map((b: any) => ({
-                      value: String(b.id),
-                      label: b.rib,
-                    })) || []
-                  }
+                  options={formOptions?.bank_accounts?.map((b: any) => ({ value: String(b.id), label: b.account_title })) || []}
                   value={form.bank_account_id}
                   onChange={(value) =>
                     handleSelectChange("bank_account_id", value)

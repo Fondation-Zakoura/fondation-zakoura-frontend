@@ -502,134 +502,60 @@ const EditProject: React.FC = () => {
                 placeholder="Sélectionner le responsable"
                 disabled={optionsLoading}
               />
-              {errors.responsible_id && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.responsible_id}
-                </div>
-              )}
+              {errors.responsible_id && <div className="text-red-500 text-xs mt-1">{errors.responsible_id}</div>}
             </div>
           </div>
           {/* Détails du projet */}
           <div className="bg-white rounded-xl shadow p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label
-                  ref={inputRefs.project_type}
-                  className="block text-gray-700 font-semibold mb-2 text-left"
-                >
-                  Type de projet
-                </label>
+                <label ref={inputRefs.project_type} className="block text-gray-700 font-semibold mb-2 text-left">Type de projet</label>
                 <Combobox
-                  options={
-                    formOptions?.project_types
-                      ?.filter(Boolean)
-                      .map((t: any) => ({
-                        value: String(t.id),
-                        label: t.name,
-                      })) || []
-                  }
+                  options={formOptions?.project_types?.filter(Boolean).map((t: any) => ({ value: String(t.id), label: t.name })) || []}
                   value={form.project_type_id}
-                  onChange={(value) =>
-                    handleChange({
-                      target: { name: "project_type_id", value },
-                    } as React.ChangeEvent<HTMLInputElement>)
-                  }
+                  onChange={value => handleChange({ target: { name: 'project_type_id', value } } as React.ChangeEvent<HTMLInputElement>)}
                   placeholder="Sélectionner le type de projet"
                   disabled={optionsLoading}
                 />
-                {errors.project_type_id && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {errors.project_type_id}
-                  </div>
-                )}
+                {errors.project_type_id && <div className="text-red-500 text-xs mt-1">{errors.project_type_id}</div>}
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Nature du projet
-                </label>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Nature du projet</label>
                 <Combobox
-                  options={
-                    formOptions?.project_nature_options?.map((n: string) => ({
-                      value: n,
-                      label: n,
-                    })) || []
-                  }
+                  options={formOptions?.project_nature_options?.map((n: string) => ({ value: n, label: n })) || []}
                   value={form.project_nature}
-                  onChange={(value) =>
-                    handleChange({
-                      target: { name: "project_nature", value },
-                    } as React.ChangeEvent<HTMLInputElement>)
-                  }
+                  onChange={value => handleChange({ target: { name: 'project_nature', value } } as React.ChangeEvent<HTMLInputElement>)}
                   placeholder="Sélectionner la nature"
                   disabled={optionsLoading}
                 />
-                {errors.project_nature && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {errors.project_nature}
-                  </div>
-                )}
+                {errors.project_nature && <div className="text-red-500 text-xs mt-1">{errors.project_nature}</div>}
               </div>
               <div>
-                <label
-                  ref={inputRefs.project_status}
-                  className="block text-gray-700 font-semibold mb-2 text-left"
-                >
-                  Statut du projet
-                </label>
+                <label ref={inputRefs.project_status} className="block text-gray-700 font-semibold mb-2 text-left">Statut du projet</label>
                 <Combobox
-                  options={
-                    formOptions?.project_statuses
-                      ?.filter(Boolean)
-                      .map((s: any) => ({
-                        value: String(s.id),
-                        label: s.name,
-                      })) || []
-                  }
+                  options={formOptions?.project_statuses?.filter(Boolean).map((s: any) => ({ value: String(s.id), label: s.name })) || []}
                   value={form.project_status_id}
-                  onChange={(value) =>
-                    handleChange({
-                      target: { name: "project_status_id", value },
-                    } as React.ChangeEvent<HTMLInputElement>)
-                  }
+                  onChange={value => handleChange({ target: { name: 'project_status_id', value } } as React.ChangeEvent<HTMLInputElement>)}
                   placeholder="Sélectionner le statut"
                   disabled={optionsLoading}
                 />
-                {errors.project_status_id && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {errors.project_status_id}
-                  </div>
-                )}
+                {errors.project_status_id && <div className="text-red-500 text-xs mt-1">{errors.project_status_id}</div>}
               </div>
               <div>
-                <label
-                  ref={inputRefs.start_date}
-                  className="block text-gray-700 font-semibold mb-2 text-left"
-                >
-                  Date de lancement
-                </label>
+                <label ref={inputRefs.start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de lancement</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left"
-                    >
-                      {startDate
-                        ? format(startDate, "yyyy-MM-dd")
-                        : "Sélectionner la date"}
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      {startDate ? format(startDate, 'yyyy-MM-dd') : 'Sélectionner la date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent>
                     <Calendar
                       mode="single"
                       selected={startDate}
-                      onSelect={(date) => {
+                      onSelect={date => {
                         setStartDate(date);
-                        handleChange({
-                          target: {
-                            name: "start_date",
-                            value: date ? format(date, "yyyy-MM-dd") : "",
-                          },
-                        } as React.ChangeEvent<HTMLInputElement>);
+                        handleChange({ target: { name: 'start_date', value: date ? format(date, 'yyyy-MM-dd') : '' } } as React.ChangeEvent<HTMLInputElement>);
                       }}
                       initialFocus
                       captionLayout="dropdown"
@@ -638,42 +564,23 @@ const EditProject: React.FC = () => {
                     />
                   </PopoverContent>
                 </Popover>
-                {dateErrors.start_date && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {dateErrors.start_date}
-                  </div>
-                )}
+                {dateErrors.start_date && <div className="text-red-500 text-xs mt-1">{dateErrors.start_date}</div>}
               </div>
               <div>
-                <label
-                  ref={inputRefs.actual_start_date}
-                  className="block text-gray-700 font-semibold mb-2 text-left"
-                >
-                  Date de début réelle
-                </label>
+                <label ref={inputRefs.actual_start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de début réelle</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left"
-                    >
-                      {actualStartDate
-                        ? format(actualStartDate, "yyyy-MM-dd")
-                        : "Sélectionner la date"}
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      {actualStartDate ? format(actualStartDate, 'yyyy-MM-dd') : 'Sélectionner la date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent>
                     <Calendar
                       mode="single"
                       selected={actualStartDate}
-                      onSelect={(date) => {
+                      onSelect={date => {
                         setActualStartDate(date);
-                        handleChange({
-                          target: {
-                            name: "actual_start_date",
-                            value: date ? format(date, "yyyy-MM-dd") : "",
-                          },
-                        } as React.ChangeEvent<HTMLInputElement>);
+                        handleChange({ target: { name: 'actual_start_date', value: date ? format(date, 'yyyy-MM-dd') : '' } } as React.ChangeEvent<HTMLInputElement>);
                       }}
                       initialFocus
                       captionLayout="dropdown"
@@ -682,42 +589,23 @@ const EditProject: React.FC = () => {
                     />
                   </PopoverContent>
                 </Popover>
-                {dateErrors.actual_start_date && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {dateErrors.actual_start_date}
-                  </div>
-                )}
+                {dateErrors.actual_start_date && <div className="text-red-500 text-xs mt-1">{dateErrors.actual_start_date}</div>}
               </div>
               <div>
-                <label
-                  ref={inputRefs.end_date}
-                  className="block text-gray-700 font-semibold mb-2 text-left"
-                >
-                  Date de clôture
-                </label>
+                <label ref={inputRefs.end_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de clôture</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left"
-                    >
-                      {endDate
-                        ? format(endDate, "yyyy-MM-dd")
-                        : "Sélectionner la date"}
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      {endDate ? format(endDate, 'yyyy-MM-dd') : 'Sélectionner la date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent>
                     <Calendar
                       mode="single"
                       selected={endDate}
-                      onSelect={(date) => {
+                      onSelect={date => {
                         setEndDate(date);
-                        handleChange({
-                          target: {
-                            name: "end_date",
-                            value: date ? format(date, "yyyy-MM-dd") : "",
-                          },
-                        } as React.ChangeEvent<HTMLInputElement>);
+                        handleChange({ target: { name: 'end_date', value: date ? format(date, 'yyyy-MM-dd') : '' } } as React.ChangeEvent<HTMLInputElement>);
                       }}
                       initialFocus
                       captionLayout="dropdown"
@@ -726,91 +614,51 @@ const EditProject: React.FC = () => {
                     />
                   </PopoverContent>
                 </Popover>
-                {dateErrors.end_date && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {dateErrors.end_date}
-                  </div>
-                )}
+                {dateErrors.end_date && <div className="text-red-500 text-xs mt-1">{dateErrors.end_date}</div>}
               </div>
             </div>
             {/* Détails Financiers */}
-            <div className="bg-white rounded-xl shadow p-6 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2 text-left">
-                    Budget total
-                  </label>
-                  <Input
-                    ref={inputRefs.total_budget}
-                    name="total_budget"
-                    type="number"
-                    min={0}
-                    value={form.total_budget}
-                    onChange={handleChange}
-                    className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-                    placeholder="Montant en MAD"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    Le budget est exprimé en MAD (Dirham marocain).
-                  </div>
-                  {errors.total_budget && (
-                    <div className="text-red-500 text-xs mt-1">
-                      {errors.total_budget}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label
-                    ref={inputRefs.bank_account}
-                    className="block text-gray-700 font-semibold mb-2 text-left"
-                  >
-                    Compte Bancaire de Projet
-                  </label>
-                  <Combobox
-                    options={
-                      formOptions?.bank_accounts
-                        ?.filter(Boolean)
-                        .map((b: any) => ({
-                          value: String(b.id),
-                          label: b.rib,
-                        })) || []
-                    }
-                    value={form.project_bank_account_id}
-                    onChange={(value) =>
-                      handleChange({
-                        target: { name: "project_bank_account_id", value },
-                      } as React.ChangeEvent<HTMLInputElement>)
-                    }
-                    placeholder="Sélectionner le compte bancaire"
-                    disabled={optionsLoading}
-                  />
-                  {errors.project_bank_account_id && (
-                    <div className="text-red-500 text-xs mt-1">
-                      {errors.project_bank_account_id}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2 text-left">
-                    Apport FZ (%)
-                  </label>
-                  <Input
-                    ref={inputRefs.zakoura_contribution}
-                    name="zakoura_contribution"
-                    type="number"
-                    min={0}
-                    max={100}
-                    placeholder="% (0-100)"
-                    value={form.zakoura_contribution}
-                    onChange={handleChange}
-                    className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-                  />
-                  {errors.zakoura_contribution && (
-                    <div className="text-red-500 text-xs mt-1">
-                      {errors.zakoura_contribution}
-                    </div>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Budget total</label>
+                <Input
+                  ref={inputRefs.total_budget}
+                  name="total_budget"
+                  type="number"
+                  min={0}
+                  value={form.total_budget}
+                  onChange={handleChange}
+                  className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                  placeholder="Montant en MAD"
+                />
+                <div className="text-xs text-gray-500 mt-1">Le budget est exprimé en MAD (Dirham marocain).</div>
+                {errors.total_budget && <div className="text-red-500 text-xs mt-1">{errors.total_budget}</div>}
+              </div>
+              <div>
+                <label ref={inputRefs.bank_account} className="block text-gray-700 font-semibold mb-2 text-left">Compte Bancaire de Projet</label>
+                <Combobox
+                  options={formOptions?.bank_accounts?.filter(Boolean).map((b: any) => ({ value: String(b.id), label: b.account_title })) || []}
+                  value={form.project_bank_account_id}
+                  onChange={value => handleChange({ target: { name: 'project_bank_account_id', value } } as React.ChangeEvent<HTMLInputElement>)}
+                  placeholder="Sélectionner le compte bancaire"
+                  disabled={optionsLoading}
+                />
+                {errors.project_bank_account_id && <div className="text-red-500 text-xs mt-1">{errors.project_bank_account_id}</div>}
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Apport FZ (%)</label>
+                <Input
+                  ref={inputRefs.zakoura_contribution}
+                  name="zakoura_contribution"
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="% (0-100)"
+                  value={form.zakoura_contribution}
+                  onChange={handleChange}
+                  className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                />
+                {errors.zakoura_contribution && <div className="text-red-500 text-xs mt-1">{errors.zakoura_contribution}</div>}
               </div>
             </div>
             {/* Partners section */}
@@ -925,42 +773,41 @@ const EditProject: React.FC = () => {
                 </Button>
               </div>
             </div>
+            {/* Notes et/ou observation */}
+            <div className="bg-white rounded-xl shadow p-6 mb-8">
+              <label className="block text-gray-700 font-semibold mb-2 text-left">
+                Notes et/ou observation
+              </label>
+              <textarea
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                rows={3}
+              />
+            </div>
+            {/* Actions */}
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                className="bg-gray-200 hover:bg-gray-300 transition text-gray-700 px-8 py-2 rounded-lg font-semibold shadow"
+                onClick={() => navigate("/projects")}
+                disabled={submitting}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                className="bg-blue-900 hover:bg-blue-800 transition text-white px-8 py-2 rounded-lg font-semibold shadow"
+                disabled={submitting}
+              >
+                {submitting ? "Mise à jour..." : "Mettre à jour"}
+              </Button>
+            </div>
+            {error && (
+              <div className="text-red-500 text-sm mt-2 text-center">{error}</div>
+            )}
           </div>
-
-          {/* Notes et/ou observation */}
-          <div className="bg-white rounded-xl shadow p-6 mb-8">
-            <label className="block text-gray-700 font-semibold mb-2 text-left">
-              Notes et/ou observation
-            </label>
-            <textarea
-              name="notes"
-              value={form.notes}
-              onChange={handleChange}
-              className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-              rows={3}
-            />
-          </div>
-          {/* Actions */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              className="bg-gray-200 hover:bg-gray-300 transition text-gray-700 px-8 py-2 rounded-lg font-semibold shadow"
-              onClick={() => navigate("/projects")}
-              disabled={submitting}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              className="bg-blue-900 hover:bg-blue-800 transition text-white px-8 py-2 rounded-lg font-semibold shadow"
-              disabled={submitting}
-            >
-              {submitting ? "Mise à jour..." : "Mettre à jour"}
-            </Button>
-          </div>
-          {error && (
-            <div className="text-red-500 text-sm mt-2 text-center">{error}</div>
-          )}
         </form>
         {/* Modal for budget percentage check */}
         <Dialog open={showModal} onOpenChange={setShowModal}>
