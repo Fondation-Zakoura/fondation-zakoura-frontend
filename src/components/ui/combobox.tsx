@@ -1,3 +1,5 @@
+// combobox.tsx (No changes needed, keeping as is)
+
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,7 +26,7 @@ export interface ComboboxOption {
 interface ComboboxProps {
   options: ComboboxOption[];
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string) => void; // This is correct for Combobox
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -70,7 +72,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue) => {
-                    onChange(currentValue);
+                    onChange(currentValue); // This is line 73, and it's correct because onChange is defined
                     setOpen(false);
                   }}
                 >

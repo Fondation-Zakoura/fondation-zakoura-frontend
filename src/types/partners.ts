@@ -55,7 +55,7 @@ export interface Partner {
 export interface FilterOption {
   id: number | string;
   name: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface ApiResponse<T> {

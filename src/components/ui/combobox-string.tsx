@@ -1,3 +1,5 @@
+// src/components/ui/combobox-string.tsx
+
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 
@@ -19,9 +21,9 @@ import {
 import { Label } from "@/components/ui/label";
 
 interface ComboboxStringProps {
-  options: { value: string; label: string }[]; // No 'id' here, 'value' is the unique identifier
-  value: string | null | undefined; // The selected string value (e.g., country code)
-  onValueChange: (value: string | null) => void;
+  options: { value: string; label: string }[];
+  value: string | null | undefined;
+  onValueChange: (value: string | null) => void; // Explicitly allow null
   placeholder?: string;
   label?: string;
   disabled?: boolean;
@@ -69,9 +71,9 @@ export const ComboboxString: React.FC<ComboboxStringProps> = ({
                 {/* Option for "None" or "Aucun" if the field is nullable */}
                 {options.some(opt => opt.value === null) || (options.length > 0 && !value && placeholder === "Sélectionnez...") ? (
                   <CommandItem
-                    value="aucun-string-value" // A unique value for "none" in string context
+                    value="aucun-string-value" // A unique value for "none" in string context for Command's internal search
                     onSelect={() => {
-                      onValueChange(null);
+                      onValueChange(null); // Pass null when "Aucun" is selected
                       setOpen(false);
                     }}
                   >

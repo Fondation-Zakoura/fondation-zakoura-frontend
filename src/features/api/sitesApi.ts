@@ -1,33 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
-export interface Site {
-  id: number;
-  site_id: string;
-  name: string;
-  internal_code: string;
-  partner_reference_code?: string;
-  type: string;
-  commune: string;
-  province: string;
-  region: string;
-  country: string;
-  start_date: string;
-  status: string;
-  latitude?: number;
-  longitude?: number;
-  local_operational_manager_id?: number;
-  observations?: string;
-  created_by: number;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
-}
-
-export interface ApiResponse<T> {
-  data: T[];
-  links?: any;
-  meta?: any;
-}
+import type{ Site, ApiResponse } from "@/types/site"; // Import from your types file
 
 export const sitesApi = createApi({
   reducerPath: 'sitesApi',
@@ -42,11 +14,37 @@ export const sitesApi = createApi({
   }),
   tagTypes: ['Sites'],
   endpoints: (builder) => ({
-    getSites: builder.query<ApiResponse<Site>, { filters: Record<string, any>; page?: number }>({
-      query: ({ filters, page = 1 }) => ({
-        url: '/sites',
-        params: { ...filters, page },
-      }),
+    getSites: builder.query<ApiResponse<Site>, { filters: Record<string, string | string[]>; page?: number }>({
+      query: ({ filters, page = 1 }) => {
+        const params: Record<string, string | number | string[]> = { page };
+
+        // Process filters for backend compatibility
+        for (const key in filters) {
+          if (Object.prototype.hasOwnProperty.call(filters, key)) {
+            const value = filters[key];
+            if (value !== null && value !== undefined && value !== '') { // Ensure value is not empty
+              // Example: If 'region.name' filter is sent from frontend
+              // Your backend might expect 'region_name' or 'region_id'
+              // Adjust this logic based on your actual backend API's filter parameter names
+              if (key === 'region.name') {
+                // If your backend expects a specific parameter for region name
+                // For example, if your backend uses 'region_name' for filtering by name:
+                params['region_name'] = value;
+                // Or if it expects 'region_id' and you need to look up the ID:
+                // This would require fetching regions and mapping name to ID,
+                // which is often better handled on the backend or in a pre-processing step.
+                // For now, assuming your backend can handle 'region_name' or similar if not 'region.name' directly.
+              } else {
+                params[key] = value;
+              }
+            }
+          }
+        }
+        return {
+          url: '/sites',
+          params: params,
+        };
+      },
       providesTags: ['Sites'],
     }),
     addSite: builder.mutation<Site, FormData>({
@@ -60,9 +58,9 @@ export const sitesApi = createApi({
     updateSite: builder.mutation<Site, { id: number; data: FormData }>({
       query: ({ id, data }) => ({
         url: `/sites/${id}`,
-        method: 'POST',
+        method: 'POST', // Use POST for FormData with _method=PUT
         body: (() => {
-          data.append('_method', 'PUT');
+          data.append('_method', 'PUT'); // Laravel expects this for PUT with FormData
           return data;
         })(),
       }),
@@ -72,7 +70,7 @@ export const sitesApi = createApi({
       query: (ids) => ({
         url: '/sites/bulk-delete',
         method: 'POST',
-        body: { ids },
+        body: { ids }, // Send an array of IDs
       }),
       invalidatesTags: ['Sites'],
     }),

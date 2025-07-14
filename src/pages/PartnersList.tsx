@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Plus, Trash2, Eye, Pencil, RotateCw } from "lucide-react";
 import { AddEditPartnerModal } from "../components/partners/AddEditPartnerModal";
 import { PartnerDetailsModal } from "../components/partners/PartnersTable";
-import type { Partner, FilterOption } from "../types/partners";
+import type { Partner } from "../types/partners"; // Assuming 'Partner' is defined here
 import {
   useGetPartnersQuery,
   useAddPartnerMutation,
@@ -11,7 +11,7 @@ import {
   useGetOptionsQuery,
 } from "../features/partnersApi";
 import { DataTable } from "../components/ui/data-table";
-import type { Column, ColumnFilter } from "../components/ui/data-table";
+import type { Column, ColumnFilter } from "../components/ui/data-table"; // Import ColumnFilter WITHOUT generic
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,20 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+
+// Define the type for an individual option item (what's inside the 'data' array)
+// This is now effectively the same as FilterOption in partners.ts, but let's keep it
+// here for clarity of the RTK Query response structure.
+interface OptionItem {
+  id: string | number;
+  name: string;
+}
+
+// Define the type for the response from useGetOptionsQuery
+// This matches your ApiResponse<T> structure from partners.ts, with T being OptionItem
+interface GetOptionsResponse {
+  data: OptionItem[];
+}
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -34,7 +47,7 @@ const PartnersListPage: React.FC = () => {
   const [selectedPartnerForDetails, setSelectedPartnerForDetails] =
     useState<Partner | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  
+
   // State for the partner being activated or deactivated
   const [partnerToAction, setPartnerToAction] = useState<Partner | null>(null);
 
@@ -45,7 +58,6 @@ const PartnersListPage: React.FC = () => {
   // Loading states for delete dialogs
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const navigate = useNavigate();
 
   // RTK Query: Fetch ALL partners once
   const {
@@ -60,18 +72,23 @@ const PartnersListPage: React.FC = () => {
   const [deletePartners] = useDeletePartnersMutation();
 
   // RTK Query: Fetch filter options
-  const { data: naturesData } = useGetOptionsQuery("nature-partners");
-  const natures = naturesData?.data || [];
-  const { data: structuresData } = useGetOptionsQuery("structure-partners");
-  const structures = structuresData?.data || [];
-  const { data: statutsData } = useGetOptionsQuery("status-partners");
-  const statuts = statutsData?.data || [];
+  // Use GetOptionsResponse as the generic type for useGetOptionsQuery
+  const { data: naturesResponse } = useGetOptionsQuery<GetOptionsResponse>("nature-partners");
+  const { data: structuresResponse } = useGetOptionsQuery<GetOptionsResponse>("structure-partners");
+  const { data: statutsResponse } = useGetOptionsQuery<GetOptionsResponse>("status-partners");
 
   // Memoize partners list and derived filter options to prevent re-renders
   const allPartners = useMemo(() => partnersData?.data || [], [partnersData]);
 
+  // Derive filter options inside useMemo and explicitly type them
   const filterOptions = useMemo(() => {
-    const typeOptions: FilterOption[] = [
+    // Access the 'data' property from the RTK Query response, defaulting to an empty array
+    // This is correct based on GetOptionsResponse and ApiResponse<T>
+    const natures: OptionItem[] = naturesResponse?.data || [];
+    const structures: OptionItem[] = structuresResponse?.data || [];
+    const statuts: OptionItem[] = statutsResponse?.data || [];
+
+    const typeOptions: OptionItem[] = [
       { id: "National", name: "National" },
       { id: "International", name: "International" },
     ];
@@ -81,45 +98,50 @@ const PartnersListPage: React.FC = () => {
       statuts,
       types: typeOptions,
     };
-  }, [natures, structures, statuts]);
+  }, [naturesResponse, structuresResponse, statutsResponse]); // Depend on the raw data objects
 
   // Prepare the filter configuration for the DataTable
-  const columnFilters = useMemo((): ColumnFilter<Partner>[] => {
+  // Correct: ColumnFilter is NOT generic
+  const columnFilters = useMemo((): ColumnFilter[] => {
     return [
       {
         id: "nature_partner",
         label: "Nature du partenaire",
-        options: (filterOptions.natures || []).map((n) => ({
-          value: n.name,
+        // Explicitly type 'n' as OptionItem
+        options: (filterOptions.natures || []).map((n: OptionItem) => ({
+          value: String(n.name), // Ensure value is a string
           label: n.name,
         })),
       },
       {
         id: "partner_type",
         label: "Type du partenaire",
-        options: (filterOptions.types || []).map((t) => ({
-          value: t.name,
+        // Explicitly type 't' as OptionItem
+        options: (filterOptions.types || []).map((t: OptionItem) => ({
+          value: String(t.name), // Ensure value is a string
           label: t.name,
         })),
       },
       {
         id: "structure_partner",
         label: "Structure du partenaire",
-        options: (filterOptions.structures || []).map((s) => ({
-          value: s.name,
+        // Explicitly type 's' as OptionItem
+        options: (filterOptions.structures || []).map((s: OptionItem) => ({
+          value: String(s.name), // Ensure value is a string
           label: s.name,
         })),
       },
       {
         id: "status",
         label: "Phase du partenaire",
-        options: (filterOptions.statuts || []).map((s) => ({
-          value: s.name,
+        // Explicitly type 's' as OptionItem
+        options: (filterOptions.statuts || []).map((s: OptionItem) => ({
+          value: String(s.name), // Ensure value is a string
           label: s.name,
         })),
-      }
+      },
     ];
-  }, [filterOptions]);
+  }, [filterOptions]); // Now correctly depends on filterOptions
 
   // --- Modal and Action Handlers (wrapped in useCallback) ---
   const handleOpenAddModal = useCallback(() => {
@@ -161,6 +183,7 @@ const PartnersListPage: React.FC = () => {
     if (!partnerToAction) return;
     setIsDeleting(true);
     try {
+      // Assuming deletePartners expects an array of numbers (partner IDs)
       await deletePartners([partnerToAction.id]).unwrap();
       setConfirmOpen(false);
       setPartnerToAction(null);
@@ -183,6 +206,7 @@ const PartnersListPage: React.FC = () => {
   }, []);
 
   const handleBulkDelete = useCallback((ids: (string | number)[]) => {
+    // Convert to number[] as per pendingDeleteIds state type
     const numericIds = ids.map((id) => Number(id));
     if (!numericIds.length) return;
     setPendingDeleteIds(numericIds);
@@ -193,6 +217,7 @@ const PartnersListPage: React.FC = () => {
     if (!pendingDeleteIds.length) return;
     setIsBulkDeleting(true);
     try {
+      // Assuming deletePartners expects an array of numbers (partner IDs)
       await deletePartners(pendingDeleteIds).unwrap();
       setPendingDeleteIds([]);
       setShowBulkDeleteDialog(false);
@@ -207,31 +232,31 @@ const PartnersListPage: React.FC = () => {
   // --- DataTable Column Definitions (Updated) ---
   const columns: Column<Partner>[] = useMemo(
     () => [
-        {
-            key: "partner_logo",
-            header: "Logo",
-            render: (row) =>
-              row.logo_url ? (
-                <img
-                  src={row.logo_url}
-                  alt={row.partner_name}
-                  className="h-10 w-10 rounded-full object-cover border"
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
-                  <span className="text-xs font-bold">
-                    {row.partner_name?.[0]?.toUpperCase() || "?"}
-                  </span>
-                </div>
-              ),
-            width: 80,
-            align: "center",
-          },
-          { key: "partner_name", header: "Nom du partenaire", sortable: true },
-          { key: "abbreviation", header: "Abréviation", sortable: true },
-          { key: "phone", header: "Téléphone", sortable: true },
-          { key: "email", header: "E-mail", sortable: true },
-          { key: "country", header: "Pays", sortable: true },
+      {
+        key: "partner_logo",
+        header: "Logo",
+        render: (row) =>
+          row.logo_url ? (
+            <img
+              src={row.logo_url}
+              alt={row.partner_name}
+              className="h-10 w-10 rounded-full object-cover border"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+              <span className="text-xs font-bold">
+                {row.partner_name?.[0]?.toUpperCase() || "?"}
+              </span>
+            </div>
+          ),
+        width: 80,
+        align: "center",
+      },
+      { key: "partner_name", header: "Nom du partenaire", sortable: true },
+      { key: "abbreviation", header: "Abréviation", sortable: true },
+      { key: "phone", header: "Téléphone", sortable: true },
+      { key: "email", header: "E-mail", sortable: true },
+      { key: "country", header: "Pays", sortable: true },
       {
         key: "actions",
         header: "Actions",
@@ -287,7 +312,7 @@ const PartnersListPage: React.FC = () => {
           ]}
         />
         <Button
-          className="bg-[#576CBC] hover:bg-[#19376D]  text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+          className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
           onClick={handleOpenAddModal}
         >
           <Plus size={18} /> Ajouter un partenaire
@@ -325,7 +350,7 @@ const PartnersListPage: React.FC = () => {
         onClose={() => setEditModalOpen(false)}
         onSave={handleSavePartner}
         partner={editingPartner}
-        options={filterOptions}
+        options={filterOptions} // Pass the correctly structured filterOptions
         serverErrors={{}}
         isLoading={isSaving}
       />
@@ -339,7 +364,7 @@ const PartnersListPage: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-                {partnerToAction?.deleted_at ? "Confirmer la réactivation" : "Confirmer la désactivation"}
+              {partnerToAction?.deleted_at ? "Confirmer la réactivation" : "Confirmer la désactivation"}
             </DialogTitle>
             <DialogDescription>
               {partnerToAction?.deleted_at
@@ -400,9 +425,10 @@ const PartnersListPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Confirmer l'action groupée</DialogTitle>
             <DialogDescription>
-                Vous êtes sur le point de modifier le statut de {pendingDeleteIds.length} partenaire(s). 
-                Les partenaires actifs seront désactivés et les inactifs seront réactivés.
-                Êtes-vous sûr de vouloir continuer ?
+              Vous êtes sur le point de modifier le statut de{" "}
+              {pendingDeleteIds.length} partenaire(s). Les partenaires actifs
+              seront désactivés et les inactifs seront réactivés. Êtes-vous sûr
+              de vouloir continuer ?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -87,8 +87,18 @@ export const StructurePartnersListPage: React.FC = () => {
       setDeleteId(null);
       refetch();
     } catch (error) {
-      if (error.status === 409) {
-        setErrorMessage(error.data?.error || "Cette structure est utilisée et ne peut pas être supprimée.");
+      interface ApiError {
+        status: number;
+        data?: { error?: string };
+      }
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        (error as ApiError).status === 409
+      ) {
+        const err = error as ApiError;
+        setErrorMessage(err.data?.error || "Cette structure est utilisée et ne peut pas être supprimée.");
         setErrorAlertOpen(true);
         setDeleteDialogOpen(false);
       } else {
