@@ -11,6 +11,8 @@ import { structurePartnersApi } from "@/features/api/structurePartnersApi";
 import { sitesApi } from "@/features/api/sitesApi";
 import { geographicApi } from "@/features/api/geographicApi";
 import { usersApi } from "@/features/api/usersApi"; // <-- Add this import
+import { unitApi } from '@/features/api/unitApi';
+
 
 const persistConfig = {
   key: "root",
@@ -27,6 +29,7 @@ const rootReducer = combineReducers({
   [sitesApi.reducerPath]: sitesApi.reducer,
   [geographicApi.reducerPath]: geographicApi.reducer,
   [usersApi.reducerPath]: usersApi.reducer, // <-- Add this line
+  [unitApi.reducerPath]: unitApi.reducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -43,7 +46,8 @@ export const store = configureStore({
       .concat(structurePartnersApi.middleware)
       .concat(sitesApi.middleware)
       .concat(geographicApi.middleware)
-      .concat(usersApi.middleware), // <-- Add this line
+      .concat(usersApi.middleware) // <-- Add this line
+      .concat(unitApi.middleware)
 });
 
 setupListeners(store.dispatch);
