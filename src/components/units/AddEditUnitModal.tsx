@@ -23,8 +23,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
 import { toast } from "sonner";
 
-import { useCreateUnitMutation, useUpdateUnitMutation, useGetUnitFormOptionsQuery } from '@/features/api/unitApi';
-import type { Unit, UnitFormData, } from '@/features/api/unitApi';
+import { useCreateUnitMutation, useUpdateUnitMutation } from '@/features/api/unitApi';
+// Ensure these types correctly reflect your API's nullable fields
+import type { Unit, UnitFormData, UnitFormOptions, Site, User } from '@/features/api/unitApi';
 
 // Options pour les types d'unité (doivent correspondre aux Enums backend)
 const unitTypeOptions = [
@@ -46,7 +47,8 @@ const unitStatusOptions = [
 interface AddEditUnitModalProps {
   isOpen: boolean;
   onClose: () => void;
-  unit: Unit | null; // L'unité à modifier, ou null pour une nouvelle unité
+  unit: Unit | null;
+  formOptions: UnitFormOptions | undefined;
 }
 
 // Helper component for required labels with a red asterisk
@@ -56,139 +58,159 @@ const RequiredLabel: React.FC<{ htmlFor: string; children: React.ReactNode }> = 
   </Label>
 );
 
+// Define a local UnitFormData type that explicitly allows null for site_id and educator_id.
+// This is important if the imported UnitFormData does not already reflect this,
+// or if your API can return nulls for these fields.
+interface LocalUnitFormData extends Omit<UnitFormData, 'site_id' | 'educator_id'> {
+  site_id: number | null;
+  educator_id: number | null;
+}
+
 export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
   isOpen,
   onClose,
   unit,
+  formOptions,
 }) => {
-  const [formData, setFormData] = useState<UnitFormData>({
+  // Use LocalUnitFormData to correctly type the state
+  const [formData, setFormData] = useState<LocalUnitFormData>({
     name: '',
     internal_code: '',
-    partner_reference_code: '',
-    site_id: 0, // Valeur par défaut ou placeholder
-    type: 'Préscolaire', // Valeur par défaut
+    partner_reference_code: undefined,
+    site_id: null, // Initialize with null as it's optional
+    type: 'Préscolaire',
     number_of_classes: 0,
-    status: 'Active', // Valeur par défaut
-    educator_id: null,
-    observations: '',
+    status: 'Active',
+    educator_id: null, // Initialize with null as it's optional
+    observations: undefined,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // RTK Query hooks pour récupérer les options des formulaires (sites, éducateurs)
-  const { data: formOptions, isLoading: formOptionsLoading } = useGetUnitFormOptionsQuery();
+  const formOptionsLoading = !formOptions;
+
   const [createUnit, { isLoading: isCreating }] = useCreateUnitMutation();
   const [updateUnit, { isLoading: isUpdating }] = useUpdateUnitMutation();
-  const isLoading = isCreating || isUpdating; // Indicateur global de chargement pour le bouton de sauvegarde
+  const isLoading = isCreating || isUpdating;
 
-  // Effet pour initialiser les données du formulaire lorsque le modal s'ouvre ou que l'unité change
   useEffect(() => {
     if (isOpen) {
       if (unit) {
-        // Remplir les données du formulaire pour l'édition
         setFormData({
           name: unit.name,
           internal_code: unit.internal_code,
-          partner_reference_code: unit.partner_reference_code || '',
-          site_id: unit.site_id,
+          partner_reference_code: unit.partner_reference_code || undefined,
+          // Coerce unit.site_id to number or null correctly
+          site_id: (unit.site_id === 0 || unit.site_id === null || unit.site_id === undefined) ? null : unit.site_id,
           type: unit.type,
           number_of_classes: unit.number_of_classes,
           status: unit.status,
-          educator_id: unit.educator_id || null,
-          observations: unit.observations || '',
+          // Coerce unit.educator_id to number or null correctly
+          educator_id: (unit.educator_id === 0 || unit.educator_id === null || unit.educator_id === undefined) ? null : unit.educator_id,
+          observations: unit.observations || undefined,
         });
       } else {
-        // Réinitialiser le formulaire pour l'ajout d'une nouvelle unité
         setFormData({
           name: '',
           internal_code: '',
-          partner_reference_code: '',
-          site_id: 0, // Réinitialiser à une valeur par défaut/invalide
+          partner_reference_code: undefined,
+          site_id: null, // For new units, default to null
           type: 'Préscolaire',
           number_of_classes: 0,
           status: 'Active',
-          educator_id: null,
-          observations: '',
+          educator_id: null, // For new units, default to null
+          observations: undefined,
         });
       }
-      setErrors({}); // Effacer les erreurs précédentes
+      setErrors({});
     }
   }, [isOpen, unit]);
 
-  // Gestionnaire de changement générique pour les champs de texte et numériques
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
       setFormData((prev) => ({
         ...prev,
-        [name]: name === 'number_of_classes' ? parseInt(value) || 0 : value, // Convertir en entier pour number_of_classes
+        [name]: name === 'number_of_classes' ? parseInt(value) || 0 : value,
       }));
-      setErrors((prev) => ({ ...prev, [name]: undefined })); // Effacer l'erreur pour ce champ
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     },
     []
   );
 
-  // Gestionnaire de changement générique pour les composants Select et Combobox (pour IDs numériques)
-  const handleSelectChange = useCallback((name: string, value: string | number | null) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  const handleSelectChange = useCallback((name: keyof LocalUnitFormData, value: string | number | null) => {
+    // If the value is an empty string for a numeric field that can be null, convert it to null
+    const processedValue = (name === 'site_id' || name === 'educator_id') && value === '' ? null : value;
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[name];
+      return newErrors;
+    });
   }, []);
 
-  // Logique de validation du formulaire
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Champs de texte requis
     if (!formData.name?.trim()) newErrors.name = "Le nom de l'unité est obligatoire.";
     if (!formData.internal_code?.trim()) newErrors.internal_code = "Le code interne est obligatoire.";
 
-    // Champs Select/Combobox requis
-    if (!formData.site_id || formData.site_id === 0) newErrors.site_id = "Le site d'appartenance est obligatoire.";
+    // FIX: Corrected validation for site_id to handle null explicitly
+    // If site_id is null or a non-positive number after conversion (if it exists)
+    if (formData.site_id === null || formData.site_id <= 0) {
+      newErrors.site_id = "Le site d'appartenance est obligatoire.";
+    }
+
     if (!formData.type) newErrors.type = "Le type d'unité est obligatoire.";
-    if (formData.number_of_classes === undefined || formData.number_of_classes < 0) newErrors.number_of_classes = "Le nombre de classes est obligatoire et doit être positif.";
+    if (formData.number_of_classes === undefined || formData.number_of_classes < 0 || isNaN(formData.number_of_classes)) {
+      newErrors.number_of_classes = "Le nombre de classes est obligatoire et doit être un nombre positif.";
+    }
     if (!formData.status) newErrors.status = "Le statut de l'unité est obligatoire.";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Retourne true si aucune erreur
+    return Object.keys(newErrors).length === 0;
   };
 
-  // Gestionnaire de soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
       toast.error("Veuillez corriger les erreurs dans le formulaire.");
-      return; // Arrêter si la validation échoue
+      return;
     }
 
-    // Créer un objet FormData pour la soumission
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
-      // Ajouter uniquement les valeurs non nulles/non définies
-      if (value !== null && value !== undefined) {
+      if (value !== null && value !== undefined && value !== '') {
         data.append(key, String(value));
+      } else if (key === 'number_of_classes' && (value === 0 || value === undefined)) {
+        data.append(key, '0');
       }
+      // Explicitly append empty string for null educator_id if backend expects it to unset
+      // Otherwise, not appending means it won't be updated, which is often fine.
+      // If backend needs explicit null, you might need to send data.append('educator_id', '');
     });
 
-    // Ajouter _method pour les requêtes PUT si modification
+
     if (unit?.id) {
       data.append("_method", "PUT");
     }
 
     try {
       if (unit) {
-        // Mettre à jour l'unité existante
         await updateUnit({ id: unit.id, data }).unwrap();
         toast.success("Unité mise à jour avec succès.");
       } else {
-        // Créer une nouvelle unité
         await createUnit(data).unwrap();
         toast.success("Unité créée avec succès.");
       }
-      onClose(); // Fermer le modal en cas de succès
-    } catch (err: any) {
+      onClose();
+    } catch (err: unknown) {
       console.error("Erreur lors de la sauvegarde de l'unité:", err);
-      // Gérer les erreurs de validation de l'API (si le backend renvoie des erreurs de validation)
-      if (err.data && err.data.errors) {
-        setErrors(err.data.errors); // Afficher les erreurs spécifiques du backend
+      if (typeof err === 'object' && err !== null && 'data' in err && typeof (err as { data: unknown }).data === 'object' && (err as { data: { errors?: Record<string, string> } }).data?.errors) {
+        setErrors((err as { data: { errors: Record<string, string> } }).data.errors);
         toast.error("Veuillez corriger les erreurs de validation.");
       } else {
         toast.error("Échec de la sauvegarde de l'unité.");
@@ -196,9 +218,8 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
     }
   };
 
-  // Préparer les options pour les Comboboxes
-  const sitesOptions = (formOptions?.sites || []).map(s => ({ value: String(s.id), label: s.name }));
-  const educatorsOptions = (formOptions?.educators || []).map(e => ({ value: String(e.id), label: e.name }));
+  const sitesOptions = (formOptions?.sites || []).map((s: Site) => ({ value: String(s.id), label: s.name }));
+  const educatorsOptions = (formOptions?.educators || []).map((e: User) => ({ value: String(e.id), label: e.name }));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -244,8 +265,8 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                       ) : (
                         <Combobox
                           options={sitesOptions}
-                          value={String(formData.site_id)} // Ensure value is a string
-                          onChange={(val) => handleSelectChange('site_id', Number(val))} // Corrected prop name and value conversion
+                          value={String(formData.site_id || '')} // Ensure value is a string, handle null
+                          onChange={(val) => handleSelectChange('site_id', val ? Number(val) : null)} // Convert to number or null
                           placeholder="Sélectionnez un site..."
                           className="w-full"
                         />
@@ -278,7 +299,14 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                       <RequiredLabel htmlFor="number_of_classes">
                         <span className="mb-2 block">Nombre de classes</span>
                       </RequiredLabel>
-                      <Input id="number_of_classes" name="number_of_classes" type="number" value={formData.number_of_classes} onChange={handleInputChange} min="0" />
+                      <Input
+                        id="number_of_classes"
+                        name="number_of_classes"
+                        type="number"
+                        value={formData.number_of_classes}
+                        onChange={handleInputChange}
+                        min="0"
+                      />
                       {errors.number_of_classes && <p className="text-sm text-destructive mt-1">{errors.number_of_classes}</p>}
                     </div>
                     <div>
@@ -311,7 +339,7 @@ export const AddEditUnitModal: React.FC<AddEditUnitModalProps> = ({
                         <Combobox
                           options={educatorsOptions}
                           value={String(formData.educator_id || '')} // Ensure value is a string, handle null
-                          onChange={(val) => handleSelectChange('educator_id', val ? Number(val) : null)} // Corrected prop name and value conversion
+                          onChange={(val) => handleSelectChange('educator_id', val ? Number(val) : null)} // Convert to number or null
                           placeholder="Sélectionnez une éducatrice..."
                           className="w-full"
                         />

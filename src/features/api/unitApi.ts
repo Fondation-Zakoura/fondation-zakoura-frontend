@@ -1,9 +1,7 @@
-// src/features/api/unitApi.ts
-
+// features/api/unitApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Interfaces for geographic entities (simplifiées pour l'API des unités)
-interface Site {
+export interface Site {
   id: number;
   name: string;
   commune?: {
@@ -24,12 +22,11 @@ interface Site {
   };
 }
 
-interface User {
+export interface User {
   id: number;
   name: string;
 }
 
-// Interface pour le modèle Unit
 export interface Unit {
   id: number;
   unit_id: string;
@@ -52,50 +49,45 @@ export interface Unit {
   creator?: User;
 }
 
-// Interface pour les données de formulaire d'unité (pour la création/mise à jour)
-export type UnitFormData = Omit<Unit, 'id' | 'unit_id' | 'created_at' | 'updated_at' | 'deleted_at' | 'site' | 'educator' | 'creator'>;
+export type UnitFormData = Omit<
+  Unit,
+  'id' | 'unit_id' | 'created_at' | 'updated_at' | 'deleted_at' | 'site' | 'educator' | 'creator'
+>;
 
-// Interface pour la réponse paginée de l'API
-interface PaginatedUnitsResponse {
+export interface PaginatedUnitsResponse {
+  current_page: number;
   data: Unit[];
-  links: {
-    first: string;
-    last: string;
-    prev: string | null;
-    next: string | null;
-  };
-  meta: {
-    current_page: number;
-    from: number;
-    last_page: number;
-    links: {
-      url: string | null;
-      label: string;
-      active: boolean;
-    }[];
-    path: string;
-    per_page: number; // Important: ensure this is present from your backend
-    to: number;
-    total: number;
-  };
+  first_page_url: string | null;
+  from: number;
+  last_page: number;
+  last_page_url: string | null;
+  links: Array<{
+    url: string | null;
+    label: string;
+    active: boolean;
+  }>;
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
 }
 
-// Interface pour les données de formulaire de création/édition d'unité
-interface UnitFormOptions {
+export interface UnitFormOptions {
   sites: Site[];
   educators: User[];
   unit_types: Unit['type'][];
   unit_statuses: Unit['status'][];
 }
 
-// NEW: Query parameters interface for getUnits
-interface GetUnitsQueryParams {
+export interface GetUnitsQueryParams {
   page?: number;
-  per_page?: number; // Add per_page to query params
-  filters?: Record<string, string | string[]>; // Make filters more specific for potential array values
-  globalSearch?: string; // Add global search parameter
-  sortBy?: string; // Add sort column parameter
-  sortDirection?: 'asc' | 'desc'; // Add sort direction parameter
+  per_page?: number;
+  filters?: Record<string, string | string[]>;
+  globalSearch?: string;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
 }
 
 export const unitApi = createApi({
@@ -112,27 +104,24 @@ export const unitApi = createApi({
   }),
   tagTypes: ['Units'],
   endpoints: (builder) => ({
-    getUnits: builder.query<PaginatedUnitsResponse, GetUnitsQueryParams>({ // Use the new interface
-      query: ({ page = 1, per_page = 10, filters = {}, globalSearch, sortBy, sortDirection }) => {
+    getUnits: builder.query<PaginatedUnitsResponse, GetUnitsQueryParams>({
+      query: ({ page = 1, per_page = 15, filters = {}, globalSearch, sortBy, sortDirection }) => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
-        params.append('per_page', per_page.toString()); // Append per_page
+        params.append('per_page', per_page.toString());
 
-        // Append global search
         if (globalSearch) {
-          params.append('search', globalSearch); // Assuming your backend uses 'search' for global filter
+          params.append('search', globalSearch);
         }
 
-        // Append sort parameters
         if (sortBy && sortDirection) {
-          params.append('sort_by', sortBy); // Assuming your backend uses 'sort_by'
-          params.append('sort_direction', sortDirection); // Assuming your backend uses 'sort_direction'
+          params.append('sort_by', sortBy);
+          params.append('sort_direction', sortDirection);
         }
 
-        // Append column filters
         Object.entries(filters).forEach(([key, value]) => {
           if (Array.isArray(value)) {
-            value.forEach(item => params.append(`${key}[]`, String(item))); // For array filters if applicable
+            value.forEach((item) => params.append(`${key}[]`, String(item)));
           } else if (value !== null && value !== undefined && value !== '') {
             params.append(key, String(value));
           }
@@ -141,16 +130,22 @@ export const unitApi = createApi({
       },
       providesTags: (result) =>
         result
-          ? [...result.data.map(({ id }) => ({ type: 'Units' as const, id })), { type: 'Units', id: 'LIST' }]
+          ? [
+              ...result.data.map(({ id }) => ({ type: 'Units' as const, id })),
+              { type: 'Units', id: 'LIST' },
+            ]
           : [{ type: 'Units', id: 'LIST' }],
     }),
+
     getUnitById: builder.query<Unit, number>({
       query: (id) => `units/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Units', id }],
+      providesTags: (_, __, id) => [{ type: 'Units', id }],
     }),
+
     getUnitFormOptions: builder.query<UnitFormOptions, void>({
       query: () => 'units/create',
     }),
+
     createUnit: builder.mutation<Unit, FormData>({
       query: (newUnitData) => ({
         url: 'units',
@@ -159,14 +154,19 @@ export const unitApi = createApi({
       }),
       invalidatesTags: [{ type: 'Units', id: 'LIST' }],
     }),
+
     updateUnit: builder.mutation<Unit, { id: number; data: FormData }>({
       query: ({ id, data }) => ({
         url: `units/${id}`,
-        method: 'POST',
+        method: 'POST', // Assumes _method workaround for PUT/PATCH
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Units', id }, { type: 'Units', id: 'LIST' }],
+      invalidatesTags: (_, __, { id }) => [
+        { type: 'Units', id },
+        { type: 'Units', id: 'LIST' },
+      ],
     }),
+
     deleteUnits: builder.mutation<void, number[]>({
       query: (ids) => ({
         url: 'units/bulk-delete',

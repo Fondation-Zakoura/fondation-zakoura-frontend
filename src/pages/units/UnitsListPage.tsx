@@ -4,19 +4,17 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import {
   useGetUnitsQuery,
-  useCreateUnitMutation,
-  useUpdateUnitMutation,
   useDeleteUnitsMutation,
-  useGetUnitFormOptionsQuery, // Import query for form options
+  useGetUnitFormOptionsQuery,
 } from '@/features/api/unitApi';
-import type { Unit } from '@/features/api/unitApi';
+import type { Unit, Site, User } from '@/features/api/unitApi'; // Import Site and User now that they are exported
 import { AddEditUnitModal } from '@/components/units/AddEditUnitModal';
 import { UnitDetailsModal } from '@/components/units/UnitDetailsModal';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'; // Assuming ConfirmDialog is your generic dialog
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
-import type { Column, ColumnFilter } from "@/components/ui/data-table";
+import type { Column, ColumnFilter } from "@/components/ui/data-table"; // ColumnFilter no longer generic
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 
 // Options for type and status filters (should match backend Enums)
@@ -38,7 +36,6 @@ const unitStatusOptions = [
 export const UnitsListPage: React.FC = () => {
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [selectedUnitForDetails, setSelectedUnitForDetails] = useState<Unit | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[]>([]);
@@ -58,30 +55,27 @@ export const UnitsListPage: React.FC = () => {
     isLoading,
     isFetching,
     error,
-    refetch, // Use refetch to explicitly trigger data reload
+    refetch, 
   } = useGetUnitsQuery({
-    page: currentPageIndex + 1, // API expects 1-based page number
+    page: currentPageIndex + 1,
     per_page: currentPageSize,
     filters: tableFilters,
-    globalSearch: globalSearchTerm,
-    sortBy: sortConfig?.key,
-    sortDirection: sortConfig?.direction,
   });
 
-  // Use useGetUnitFormOptionsQuery to get all necessary options for forms and filters
+
   const { data: formOptions, isLoading: formOptionsLoading } = useGetUnitFormOptionsQuery();
 
-  const [createUnit] = useCreateUnitMutation();
-  const [updateUnit] = useUpdateUnitMutation();
+
   const [deleteUnits] = useDeleteUnitsMutation();
 
   // Memoized options for site and educator filters, derived from formOptions
+  // Explicitly type `s` and `e` for clarity and to satisfy TS if inference struggles
   const sitesForFilters = useMemo(() =>
-    formOptions?.sites.map(s => ({ value: String(s.id), label: s.name })) || [],
+    (formOptions?.sites || []).map((s: Site) => ({ value: String(s.id), label: s.name })),
     [formOptions?.sites]
   );
   const educatorsForFilters = useMemo(() =>
-    formOptions?.educators.map(e => ({ value: String(e.id), label: e.name })) || [],
+    (formOptions?.educators || []).map((e: User) => ({ value: String(e.id), label: e.name })),
     [formOptions?.educators]
   );
 
@@ -93,12 +87,11 @@ export const UnitsListPage: React.FC = () => {
   }, [error]);
 
   // Options for DataTable column filters
-  const columnFilters = useMemo((): ColumnFilter<Unit>[] => [
+  // FIX: ColumnFilter is no longer generic
+  const columnFilters = useMemo((): ColumnFilter[] => [
     { id: "type", label: "Type", options: unitTypeOptions },
     { id: "status", label: "Statut", options: unitStatusOptions },
-    // Use 'site_id' for filtering if your backend filters by ID
     { id: "site_id", label: "Site", options: sitesForFilters },
-    // Use 'educator_id' for filtering if your backend filters by ID
     { id: "educator_id", label: "Éducatrice", options: educatorsForFilters },
   ], [sitesForFilters, educatorsForFilters]);
 
@@ -107,25 +100,27 @@ export const UnitsListPage: React.FC = () => {
     ({ pageIndex, pageSize }: { pageIndex: number; pageSize: number }) => {
       setCurrentPageIndex(pageIndex);
       setCurrentPageSize(pageSize);
-      // RTK Query will automatically re-fetch due to dependency change
     },
     []
   );
 
-  const handleGlobalFilterChange = useCallback((value: string) => {
+  // Handler for column filter changes from DataTable
+  const handleFilterChange = useCallback((filters: Record<string, string | string[]>) => {
+    setTableFilters(filters);
+    setCurrentPageIndex(0); // Reset to first page when filters change
+  }, []);
+
+  // Handler for global search changes from DataTable
+  const handleGlobalSearchChange = useCallback((value: string) => {
     setGlobalSearchTerm(value);
-    setCurrentPageIndex(0); // Reset to first page on new search
+    setCurrentPageIndex(0); // Reset to first page when global search changes
   }, []);
 
-  const handleColumnFilterChange = useCallback((newFilters: Record<string, string | string[]>) => {
-    setTableFilters(newFilters);
-    setCurrentPageIndex(0); // Reset to first page on new filters
+  // Handler for sort changes from DataTable
+  const handleSortChange = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
   }, []);
 
-  const handleSortChange = useCallback((newSortConfig: { key: string; direction: 'asc' | 'desc' } | null) => {
-    setSortConfig(newSortConfig);
-    setCurrentPageIndex(0); // Reset to first page on new sort
-  }, []);
 
   const handleOpenAddModal = useCallback(() => {
     setEditingUnit(null);
@@ -137,30 +132,6 @@ export const UnitsListPage: React.FC = () => {
     setIsAddEditModalOpen(true);
   }, []);
 
-  const handleSaveUnit = useCallback(async (formData: FormData, id?: number) => {
-    setIsSaving(true);
-    try {
-      if (id) {
-        await updateUnit({ id, data: formData }).unwrap();
-        toast.success("Unité mise à jour avec succès.");
-      } else {
-        await createUnit(formData).unwrap();
-        toast.success("Unité créée avec succès.");
-      }
-      setIsAddEditModalOpen(false);
-      setSelectedRows([]); // Clear selection after save
-      refetch(); // Crucial: Refetch data after successful C/U
-    } catch (err: any) {
-      console.error("Échec de la sauvegarde de l'unité:", err);
-      if (err.data && err.data.errors) {
-        toast.error("Veuillez corriger les erreurs de validation.");
-      } else {
-        toast.error("Échec de la sauvegarde de l'unité.");
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  }, [createUnit, updateUnit, refetch]);
 
   const handleViewDetails = useCallback((unit: Unit) => setSelectedUnitForDetails(unit), []);
 
@@ -190,8 +161,9 @@ export const UnitsListPage: React.FC = () => {
       setPendingDeleteIds([]);
       setSelectedRows([]); // Clear row selection after delete
       refetch(); // Crucial: Refetch data after successful delete
-    } catch (err) {
+    } catch (err: unknown) { // Fix 2: Change `any` to `unknown`
       console.error("Delete failed:", err);
+      // Generic error toast for deletion
       toast.error("Échec de la suppression.");
     } finally {
       setIsBulkDeleting(false);
@@ -204,8 +176,7 @@ export const UnitsListPage: React.FC = () => {
     { key: "name", header: "Nom de l'unité", sortable: true, align: "left" },
     { key: "internal_code", header: "Code Interne", sortable: true, align: "left" },
     {
-      // Use 'site.name' for display; sorting by 'site.name' might require backend support or a custom sort key
-      key: "site.name",
+      key: "site.name", // This key is for display, but filter should use site_id
       header: "Site",
       sortable: true,
       align: "left",
@@ -214,8 +185,7 @@ export const UnitsListPage: React.FC = () => {
     { key: "type", header: "Type", sortable: true, align: "left" },
     { key: "status", header: "Statut", sortable: true, align: "left" },
     {
-      // Use 'educator.name' for display; sorting by 'educator.name' might require backend support or a custom sort key
-      key: "educator.name",
+      key: "educator.name", // This key is for display, but filter should use educator_id
       header: "Éducatrice",
       sortable: true,
       align: "left",
@@ -243,8 +213,9 @@ export const UnitsListPage: React.FC = () => {
 
   // Data for the current page from the API response
   const allUnits = useMemo(() => unitsData?.data || [], [unitsData]);
-  const totalPages = useMemo(() => unitsData?.meta?.last_page || 0, [unitsData]);
-  const currentPageFromAPI = useMemo(() => unitsData?.meta?.current_page || 1, [unitsData]);
+const totalPages = useMemo(() => unitsData?.last_page || 0, [unitsData]); // Expects unitsData.meta.last_page
+const totalItems = useMemo(() => unitsData?.total || 0, [unitsData]);     // Expects unitsData.meta.total
+const currentPageFromAPI = useMemo(() => unitsData?.current_page || 1, [unitsData]);
 
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
@@ -265,7 +236,8 @@ export const UnitsListPage: React.FC = () => {
         {error && (
           <div className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
             <p className="font-bold">Erreur de chargement</p>
-            <p>{String(error)}</p>
+            {/* Provide a more user-friendly error message, or log the full error object */}
+            <p>{JSON.stringify(error)}</p>
           </div>
         )}
 
@@ -273,39 +245,36 @@ export const UnitsListPage: React.FC = () => {
           columns={columns}
           data={allUnits}
           isLoading={isLoading || isFetching || formOptionsLoading}
-          // Server-side pagination props
           serverPagination={true}
           pageCount={totalPages} // Total pages from API
+          totalItems={totalItems} // Pass totalItems if your DataTable pagination component needs it
           pageIndex={currentPageFromAPI - 1} // Convert 1-based API page to 0-based for DataTable
           onPaginationChange={handlePaginationChange}
-          // Filter, search, and sort handlers
           columnFilters={columnFilters}
-          onFilterChange={handleColumnFilterChange}
-          onGlobalFilterChange={handleGlobalFilterChange}
-          onSortChange={handleSortChange}
-          // Bulk operations
+          onFilterChange={handleFilterChange} // Fix 3: Use the dedicated handler
+          globalSearchTerm={globalSearchTerm} // Pass global search term
+          onGlobalSearchChange={handleGlobalSearchChange} // Use the dedicated handler
+          sortConfig={sortConfig} // Pass sort config
+          onSortChange={handleSortChange} // Use the dedicated handler
           selectedRows={selectedRows}
           onSelectedRowsChange={setSelectedRows}
           onBulkDelete={handleBulkDelete}
           enableBulkDelete={true}
-          // Other DataTable props
           emptyText={isLoading || isFetching ? "Chargement des données..." : "Aucune unité trouvée."}
           initialPageSize={currentPageSize}
           headerStyle="primary"
           hoverEffect
           striped
-          globalFilterKey="name" // Assuming global search targets the 'name' field
+          // globalFilterKey="name" // This prop might not be needed if DataTable itself handles the search input and passes it via onGlobalSearchChange
         />
       </div>
 
       {/* Modals */}
       <AddEditUnitModal
-        isOpen={isAddEditModalOpen}
+      isOpen={isAddEditModalOpen}
         onClose={() => setIsAddEditModalOpen(false)}
         unit={editingUnit}
-        onSave={handleSaveUnit}
-        isLoading={isSaving || formOptionsLoading}
-        formOptions={formOptions} // Pass form options to the modal
+        formOptions={formOptions} 
       />
 
       <UnitDetailsModal

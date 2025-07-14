@@ -1,12 +1,33 @@
 // src/components/units/UnitDetailsModal.tsx
 
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Info, Tag, FileText, User, CalendarDays, Code, Hash } from "lucide-react"; // Importation des icônes nécessaires
+import {
+  MapPin,
+  Info,
+  Tag,
+  FileText,
+  User,
+  CalendarDays,
+  Code,
+  Hash,
+} from "lucide-react";
 
-import type{ Unit } from '@/features/api/unitApi'; 
+import type { Unit } from "@/features/api/unitApi";
+
+// Define User type if not available elsewhere
+type UserType = {
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+};
 
 interface UnitDetailsModalProps {
   isOpen: boolean;
@@ -14,32 +35,28 @@ interface UnitDetailsModalProps {
   unit: Unit | null;
 }
 
-export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ isOpen, onClose, unit }) => {
+export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({
+  isOpen,
+  onClose,
+  unit,
+}) => {
   if (!isOpen || !unit) return null;
 
-  // Helper function to format dates
   const formatDate = (dateString: string | undefined | null) => {
     if (!dateString) return "N/A";
-    try {
-      return new Date(dateString).toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    } catch (e) {
-      return dateString; // Fallback to original string if parsing fails
-    }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
-  // Helper function to get user's name
-  const getUserName = (user: any) => {
+  const getUserName = (user: UserType | null | undefined): string => {
     if (!user) return "N/A";
     if (user.name) return user.name;
     if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`;
     return "N/A";
   };
-  console.log(unit);
-  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px] p-0">
@@ -47,13 +64,13 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ isOpen, onCl
           <div className="p-8 bg-gradient-to-br from-slate-50 to-white">
             <DialogHeader className="pb-6 border-b border-gray-200 mb-6">
               <DialogTitle className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-                <Tag className="h-8 w-8 text-primary" /> {/* Using Tag icon for Unit */}
+                <Tag className="h-8 w-8 text-primary" />
                 {unit.name}
               </DialogTitle>
               <div className="mt-2 flex items-center gap-3 text-gray-600 text-sm">
                 <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
                   <Code className="h-3 w-3 mr-1" />
-                  {unit.unit_id || 'ID non défini'}
+                  {unit.unit_id || "ID non défini"}
                 </Badge>
                 <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
                   <Info className="h-3 w-3 mr-1" />
@@ -75,15 +92,15 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ isOpen, onCl
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-gray-700">
                   <div className="flex items-center gap-2">
                     <Code className="h-4 w-4 text-gray-500" />
-                    <strong>Code interne:</strong> {unit.internal_code || 'N/A'}
+                    <strong>Code interne:</strong> {unit.internal_code || "N/A"}
                   </div>
                   <div className="flex items-center gap-2">
                     <Tag className="h-4 w-4 text-gray-500" />
-                    <strong>Code partenaire:</strong> {unit.partner_reference_code || 'N/A'}
+                    <strong>Code partenaire:</strong> {unit.partner_reference_code || "N/A"}
                   </div>
                   <div className="flex items-center gap-2">
                     <Hash className="h-4 w-4 text-gray-500" />
-                    <strong>Nombre de classes:</strong> {unit.number_of_classes ?? 'N/A'}
+                    <strong>Nombre de classes:</strong> {unit.number_of_classes ?? "N/A"}
                   </div>
                 </div>
               </section>
@@ -96,23 +113,23 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ isOpen, onCl
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-gray-700">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
-                    <strong>Nom du site:</strong> {unit.site?.name || 'N/A'}
+                    <strong>Nom du site:</strong> {unit.site?.name || "N/A"}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
-                    <strong>Région:</strong> {unit.site?.commune?.cercle?.province?.region?.name || 'N/A'}
+                    <strong>Région:</strong> {unit.site?.commune?.cercle?.province?.region?.name || "N/A"}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
-                    <strong>Province:</strong> {unit.site?.commune?.cercle?.province?.name || 'N/A'}
+                    <strong>Province:</strong> {unit.site?.commune?.cercle?.province?.name || "N/A"}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
-                    <strong>Cercle:</strong> {unit.site?.commune?.cercle?.name || 'N/A'}
+                    <strong>Cercle:</strong> {unit.site?.commune?.cercle?.name || "N/A"}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
-                    <strong>Commune:</strong> {unit.site?.commune?.name || 'N/A'}
+                    <strong>Commune:</strong> {unit.site?.commune?.name || "N/A"}
                   </div>
                 </div>
               </section>
