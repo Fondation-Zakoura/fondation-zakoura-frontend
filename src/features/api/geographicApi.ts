@@ -25,7 +25,7 @@ export const geographicApi = createApi({
       query: () => '/regions',
       providesTags: ['Region'],
     }),
-    // IMPORTANT: Changed parameter type to 'number | null' and added conditional logic
+    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getProvinces: builder.query<GeoOption[], number | null>({
       query: (regionId) => {
         if (regionId === null) {
@@ -33,9 +33,11 @@ export const geographicApi = createApi({
         }
         return `/provinces/${regionId}`;
       },
-      providesTags: (result, error, regionId) => [{ type: 'Province', id: regionId }],
+      providesTags: (_result, _error, regionId) => [
+        { type: 'Province', id: regionId ?? undefined } // Convert null to undefined
+      ],
     }),
-    // IMPORTANT: Changed parameter type to 'number | null' and added conditional logic
+    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getCercles: builder.query<GeoOption[], number | null>({
       query: (provinceId) => {
         if (provinceId === null) {
@@ -43,9 +45,11 @@ export const geographicApi = createApi({
         }
         return `/cercles/${provinceId}`;
       },
-      providesTags: (result, error, provinceId) => [{ type: 'Cercle', id: provinceId }],
+      providesTags: (_result, _error, provinceId) => [
+        { type: 'Cercle', id: provinceId ?? undefined } // Convert null to undefined
+      ],
     }),
-    // IMPORTANT: Conditional logic added to handle 'null' cercleId
+    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getCommunes: builder.query<GeoOption[], number | null>({
       query: (cercleId) => {
         if (cercleId === null) {
@@ -57,9 +61,11 @@ export const geographicApi = createApi({
         }
         return `/communes/${cercleId}`;
       },
-      providesTags: (result, error, cercleId) => [{ type: 'Commune', id: cercleId }],
+      providesTags: (_result, _error, cercleId) => [
+        { type: 'Commune', id: cercleId ?? undefined } // Convert null to undefined
+      ],
     }),
-    // IMPORTANT: Changed parameter type to 'number | null' and added conditional logic
+    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getDouars: builder.query<GeoOption[], number | null>({
       query: (communeId) => {
         if (communeId === null) {
@@ -67,7 +73,9 @@ export const geographicApi = createApi({
         }
         return `/douars/${communeId}`;
       },
-      providesTags: (result, error, communeId) => [{ type: 'Douar', id: communeId }],
+      providesTags: (_result, _error, communeId) => [
+        { type: 'Douar', id: communeId ?? undefined } // Convert null to undefined
+      ],
     }),
     getUsers: builder.query<{ id: number; name: string; email: string }[], void>({
       query: () => '/users',
