@@ -7,18 +7,13 @@ import {
 } from "@/features/api/projectsApi";
 import type { ProjectStatus } from "@/features/types/project";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Pen, Eye, Trash, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import { AddProjectStatusModal } from "@/components/projectStatuses/AddProjectStatusModal";
+import { EditProjectStatusModal } from "@/components/projectStatuses/EditProjectStatusModal";
+import { ShowProjectStatusModal } from "@/components/projectStatuses/ShowProjectStatusModal";
+import { DeleteProjectStatusModal } from "@/components/projectStatuses/DeleteProjectStatusModal";
+import { Eye, Pen, Plus, Trash } from "lucide-react";
 
 const emptyStatus: ProjectStatus = { id: 0, name: "" };
 
@@ -193,138 +188,38 @@ const ProjectStatusesPage: React.FC = () => {
         )}
       </div>
       {/* Add Modal */}
-      <Dialog open={modal === "add"} onOpenChange={closeModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ajouter un statut de projet</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4">
-            <Input
-              name="name"
-              placeholder="Nom du statut"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
-
-            {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
-            )}
-            <DialogFooter>
-              <Button
-                type="submit"
-                className=" text-white"
-                disabled={addLoading}
-              >
-                {addLoading ? (
-                  <Loader2 className="animate-spin w-4 h-4 mr-2 inline" />
-                ) : null}
-                {addLoading ? "Ajout..." : "Ajouter"}
-              </Button>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Annuler
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddProjectStatusModal
+        open={modal === "add"}
+        onClose={closeModal}
+        onSubmit={handleAdd}
+        form={form}
+        onChange={handleChange}
+        error={error}
+        loading={addLoading}
+      />
       {/* Edit Modal */}
-      <Dialog open={modal === "edit"} onOpenChange={closeModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Modifier le statut de projet</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEdit} className="space-y-4">
-            <Input
-              name="name"
-              placeholder="Nom du statut"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
-
-            {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
-            )}
-            <DialogFooter>
-              <Button
-                type="submit"
-                className="bg-[#576CBC] hover:bg-[#19376D] text-white"
-                disabled={editLoading}
-              >
-                {editLoading ? (
-                  <Loader2 className="animate-spin w-4 h-4 mr-2 inline" />
-                ) : null}
-                {editLoading ? "Enregistrement..." : "Enregistrer"}
-              </Button>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Annuler
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditProjectStatusModal
+        open={modal === "edit"}
+        onClose={closeModal}
+        onSubmit={handleEdit}
+        form={form}
+        onChange={handleChange}
+        error={error}
+        loading={editLoading}
+      />
       {/* Show Modal */}
-      <Dialog open={modal === "show"} onOpenChange={closeModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Détail du statut de projet</DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-4">
-              <div>
-                <span className="block text-xs text-gray-500">Nom</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {selected.name}
-                </span>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Fermer
-              </Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      {/* Confirm Delete Modal */}
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            Êtes-vous sûr de vouloir supprimer ce statut de projet&nbsp;?
-            <div className="mt-2 text-sm text-gray-500">
-              Cette action est irréversible.
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Annuler
-              </Button>
-            </DialogClose>
-            <Button
-              type="button"
-              className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={handleDelete}
-              disabled={deleteLoading}
-            >
-              {deleteLoading ? (
-                <Loader2 className="animate-spin w-4 h-4 mr-2 inline" />
-              ) : null}
-              {deleteLoading ? "Suppression..." : "Supprimer"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ShowProjectStatusModal
+        open={modal === "show"}
+        onClose={closeModal}
+        selected={selected}
+      />
+      {/* Delete Modal */}
+      <DeleteProjectStatusModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onDelete={handleDelete}
+        loading={deleteLoading}
+      />
     </div>
   );
 };

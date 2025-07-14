@@ -8,28 +8,23 @@ import {
 } from '@/features/api/budgetCategoryApi';
 import type { BudgetCategory } from '@/features/types/budgetCategory';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Pen, Eye, Trash, X } from 'lucide-react';
+import { Plus, Pen, Eye, Trash} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
   DialogDescription,
 } from '@/components/ui/dialog';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 import type { Column, ColumnFilter } from '@/components/ui/data-table';
 import { DataTable } from '@/components/ui/data-table';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select';
+
+import { AddBudgetCategoryModal } from "@/components/budgetLine/AddBudgetCategoryModal";
+import { EditBudgetCategoryModal } from "@/components/budgetLine/EditBudgetCategoryModal";
+import { ShowBudgetCategoryModal } from "@/components/budgetLine/ShowBudgetCategoryModal";
+import { DeleteBudgetCategoryModal } from "@/components/budgetLine/DeleteBudgetCategoryModal";
 
 const TYPE_OPTIONS = [
   { value: 'Fonctionnement', label: 'Fonctionnement' },
@@ -51,8 +46,14 @@ const emptyCategory: BudgetCategory = {
 type FormType = typeof emptyCategory;
 
 const BudgetCategoryPage: React.FC = () => {
-  const { data: apiData, isLoading, refetch } = useGetBudgetCategoriesQuery();
-  const categories: (BudgetCategory & { id?: number })[] = Array.isArray(apiData) ? apiData : apiData?.data || [];
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { data: apiData, isLoading, refetch } = useGetBudgetCategoriesQuery({ page, per_page: pageSize });
+  const pagination = apiData || {};
+  const categories: (BudgetCategory & { id?: number })[] = pagination.data || [];
+  const total = pagination.total || 0;
+  const perPage = pagination.per_page || pageSize;
+  const currentPage = pagination.current_page || page;
   const [addCategory] = useAddBudgetCategoryMutation();
   const [updateCategory] = useUpdateBudgetCategoryMutation();
   const [deleteCategory] = useDeleteBudgetCategoryMutation();
@@ -122,7 +123,7 @@ const BudgetCategoryPage: React.FC = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setFieldErrors(validateForm({ ...form, [e.target.name]: e.target.value }));
   };
-  const handleSelectChange = (name: keyof FormType, value: any) => {
+  const handleSelectChange = (name: string, value: any) => {
     if (name === 'is_active') {
       setForm({ ...form, [name]: value === 'true' });
       setFieldErrors(validateForm({ ...form, [name]: value === 'true' }));
@@ -231,7 +232,7 @@ const BudgetCategoryPage: React.FC = () => {
     }
   };
 
-  const columnFilters = useMemo((): ColumnFilter<BudgetCategory & { id?: number }>[] => {
+  const columnFilters = useMemo((): ColumnFilter[] => {
     const uniqueTypes = Array.from(new Set(categories.map((c) => c.type)));
     // Aplatir tous les domaines budgétaires pour obtenir la liste unique
     const allAreas = categories.flatMap((c) => Array.isArray(c.budgetary_area) ? c.budgetary_area : [c.budgetary_area]);
@@ -358,277 +359,69 @@ const BudgetCategoryPage: React.FC = () => {
             emptyText={isLoading ? 'Chargement des données...' : 'Aucune rubrique trouvée'}
             headerStyle={'primary'}
             striped
-            initialPageSize={10}
-            columnFilters={columnFilters as ColumnFilter<any>[]}
+            initialPageSize={pageSize}
+            columnFilters={columnFilters as ColumnFilter[]}
             enableBulkDelete={true}
             onBulkDelete={handleBulkDeleteRequest}
+            serverPagination={true}
+            pageCount={Math.ceil(total / perPage)}
+            pageIndex={currentPage - 1}
+            onPaginationChange={({ pageIndex, pageSize }) => {
+              setPage(pageIndex + 1);
+              if (pageSize) setPageSize(pageSize);
+            }}
           />
         )}
       </div>
       {/* Add Modal */}
-      <Dialog open={modal === 'add'} onOpenChange={closeModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ajouter une rubrique budgétaire</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="code">Code <span className="text-red-500">*</span></Label>
-                <Input id="code" name="code" placeholder="Code" value={form.code} onChange={handleChange} required />
-                {fieldErrors.code && <span className="text-xs text-red-500">{fieldErrors.code}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="label">Libellé <span className="text-red-500">*</span></Label>
-                <Input id="label" name="label" placeholder="Libellé" value={form.label} onChange={handleChange} required />
-                {fieldErrors.label && <span className="text-xs text-red-500">{fieldErrors.label}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="type">Type <span className="text-red-500">*</span></Label>
-                <Select value={form.type} onValueChange={val => handleSelectChange('type', val)}>
-                  <SelectTrigger className="w-full" id="type" name="type">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPE_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.type && <span className="text-xs text-red-500">{fieldErrors.type}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="budgetary_area">Domaine budgétaire <span className="text-red-500">*</span></Label>
-                <div className="relative">
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {form.budgetary_area.map((area) => (
-                      <span key={area} className="flex items-center bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-xs mr-1 mb-1">
-                        {area}
-                        <button
-                          type="button"
-                          className="ml-1 text-blue-500 hover:text-red-500"
-                          onClick={() => {
-                            const newAreas = form.budgetary_area.filter((a) => a !== area);
-                            handleSelectChange('budgetary_area', newAreas);
-                          }}
-                          aria-label={`Retirer ${area}`}
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="border rounded px-2 py-1 flex flex-wrap gap-2 bg-white">
-                    {DOMAINE_BUDGETAIRES.filter(opt => !form.budgetary_area.includes(opt.value)).length === 0 ? (
-                      <span className="text-gray-400 text-xs">Tous les domaines sont sélectionnés</span>
-                    ) : (
-                      DOMAINE_BUDGETAIRES.filter(opt => !form.budgetary_area.includes(opt.value)).map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className="bg-gray-100 hover:bg-blue-100 text-gray-700 rounded px-2 py-0.5 text-xs"
-                          onClick={() => handleSelectChange('budgetary_area', [...form.budgetary_area, opt.value])}
-                        >
-                          {opt.label}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-                {fieldErrors.budgetary_area && <span className="text-xs text-red-500">{fieldErrors.budgetary_area}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="is_active">Statut <span className="text-red-500">*</span></Label>
-                <Select value={form.is_active ? 'true' : 'false'} onValueChange={val => handleSelectChange('is_active', val)}>
-                  <SelectTrigger className="w-full" id="is_active" name="is_active">
-                    <SelectValue placeholder="Statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACTIVE_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-            <DialogFooter>
-              <Button type="submit" className=" text-white" disabled={addLoading}>
-                {addLoading ? <span className="loader mr-2"></span> : null} Ajouter
-              </Button>
-              <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddBudgetCategoryModal
+        open={modal === 'add'}
+        onClose={closeModal}
+        onSubmit={handleAdd}
+        form={form}
+        onChange={handleChange}
+        onSelectChange={handleSelectChange}
+        fieldErrors={fieldErrors}
+        error={error}
+        loading={addLoading}
+        domaineBudgetaires={DOMAINE_BUDGETAIRES}
+        typeOptions={TYPE_OPTIONS}
+        activeOptions={ACTIVE_OPTIONS}
+      />
       {/* Edit Modal */}
-      <Dialog open={modal === 'edit'} onOpenChange={closeModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Modifier la rubrique budgétaire</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEdit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="code">Code <span className="text-red-500">*</span></Label>
-                <Input id="code" name="code" placeholder="Code" value={form.code} onChange={handleChange} required />
-                {fieldErrors.code && <span className="text-xs text-red-500">{fieldErrors.code}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="label">Libellé <span className="text-red-500">*</span></Label>
-                <Input id="label" name="label" placeholder="Libellé" value={form.label} onChange={handleChange} required />
-                {fieldErrors.label && <span className="text-xs text-red-500">{fieldErrors.label}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="type">Type <span className="text-red-500">*</span></Label>
-                <Select value={form.type} onValueChange={val => handleSelectChange('type', val)}>
-                  <SelectTrigger className="w-full" id="type" name="type">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPE_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.type && <span className="text-xs text-red-500">{fieldErrors.type}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="budgetary_area">Domaine budgétaire <span className="text-red-500">*</span></Label>
-                <div className="relative">
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {form.budgetary_area.map((area) => (
-                      <span key={area} className="flex items-center bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-xs mr-1 mb-1">
-                        {area}
-                        <button
-                          type="button"
-                          className="ml-1 text-blue-500 hover:text-red-500"
-                          onClick={() => {
-                            const newAreas = form.budgetary_area.filter((a) => a !== area);
-                            handleSelectChange('budgetary_area', newAreas);
-                          }}
-                          aria-label={`Retirer ${area}`}
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="border rounded px-2 py-1 flex flex-wrap gap-2 bg-white">
-                    {DOMAINE_BUDGETAIRES.filter(opt => !form.budgetary_area.includes(opt.value)).length === 0 ? (
-                      <span className="text-gray-400 text-xs">Tous les domaines sont sélectionnés</span>
-                    ) : (
-                      DOMAINE_BUDGETAIRES.filter(opt => !form.budgetary_area.includes(opt.value)).map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className="bg-gray-100 hover:bg-blue-100 text-gray-700 rounded px-2 py-0.5 text-xs"
-                          onClick={() => handleSelectChange('budgetary_area', [...form.budgetary_area, opt.value])}
-                        >
-                          {opt.label}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-                {fieldErrors.budgetary_area && <span className="text-xs text-red-500">{fieldErrors.budgetary_area}</span>}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="is_active">Statut <span className="text-red-500">*</span></Label>
-                <Select value={form.is_active ? 'true' : 'false'} onValueChange={val => handleSelectChange('is_active', val)}>
-                  <SelectTrigger className="w-full" id="is_active" name="is_active">
-                    <SelectValue placeholder="Statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACTIVE_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-            <DialogFooter>
-              <Button type="submit" className="bg-[#576CBC] hover:bg-[#19376D] text-white" disabled={editLoading}>
-                {editLoading ? <span className="loader mr-2"></span> : null} Enregistrer
-              </Button>
-              <DialogClose asChild><Button type="button" variant="outline">Annuler</Button></DialogClose>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditBudgetCategoryModal
+        open={modal === 'edit'}
+        onClose={closeModal}
+        onSubmit={handleEdit}
+        form={form}
+        onChange={handleChange}
+        onSelectChange={handleSelectChange}
+        fieldErrors={fieldErrors}
+        error={error}
+        loading={editLoading}
+        domaineBudgetaires={DOMAINE_BUDGETAIRES}
+        typeOptions={TYPE_OPTIONS}
+        activeOptions={ACTIVE_OPTIONS}
+      />
       {/* Show Modal */}
-      <Dialog open={modal === 'show'} onOpenChange={closeModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Détail de la rubrique budgétaire</DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <span className="block text-xs text-gray-500">Code</span>
-                <span className="font-semibold text-gray-800 text-sm">{selected.code}</span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">Libellé</span>
-                <span className="font-semibold text-gray-800 text-sm">{selected.label}</span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">Type</span>
-                <span className="font-semibold text-gray-800 text-sm">{selected.type}</span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">Domaine budgétaire</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {Array.isArray(selected.budgetary_area)
-                    ? selected.budgetary_area.map((area, idx) => (
-                        <span key={area} className="inline-block bg-gray-100 rounded px-2 py-0.5 mr-1 mb-1">
-                          {area}
-                        </span>
-                      ))
-                    : selected.budgetary_area}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">Statut</span>
-                <span className="font-semibold text-gray-800 text-sm">{selected.is_active ? 'Actif' : 'Inactif'}</span>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Fermer</Button></DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ShowBudgetCategoryModal
+        open={modal === 'show'}
+        onClose={closeModal}
+        selected={selected}
+      />
       {/* Delete Confirmation Modal */}
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-            <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette rubrique budgétaire ? Cette action est irréversible.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
-              Annuler
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteLoading}
-              onClick={async () => {
-                if (categoryToDelete) {
-                  await handleDelete(categoryToDelete);
-                  setConfirmDeleteOpen(false);
-                  setCategoryToDelete(null);
-                }
-              }}
-            >
-              {deleteLoading ? <span className="loader mr-2"></span> : null} Supprimer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteBudgetCategoryModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onDelete={async () => {
+          if (categoryToDelete) {
+            await handleDelete(categoryToDelete);
+            setConfirmDeleteOpen(false);
+            setCategoryToDelete(null);
+          }
+        }}
+        loading={deleteLoading}
+      />
       {/* Bulk Delete Confirmation Modal */}
       <Dialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
