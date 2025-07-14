@@ -19,7 +19,7 @@ interface HeaderProps{
 //test
 
 const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
-    const [notificationCount, setNotificationCount] = useState<number>(0);
+    const [notificationCount, _setNotificationCount] = useState<number>(0);
     const [isDropdownToggled, setIsDropdownToggled] = useState<boolean >(false);
     const [isAppLauncherToggled, setIsAppLauncherToggled] = useState<boolean>(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
