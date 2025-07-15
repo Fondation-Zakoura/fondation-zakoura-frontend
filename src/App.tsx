@@ -88,6 +88,8 @@ function App() {
         <Route
           path="/rh/collaborateurs/add"
           element={<AddCollaborateurs/>}
+        />
+        <Route
           path="/budget-line"
           element={<BudgetLinePage />}
         />
