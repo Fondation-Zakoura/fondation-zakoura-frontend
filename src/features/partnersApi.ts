@@ -4,7 +4,7 @@ import type { Partner, FilterOption, ApiResponse } from '../types/partners';
 export const partnersApi = createApi({
   reducerPath: 'partnersApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:8000/api',
+    baseUrl: `${import.meta.env.VITE_API_URL}`,
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('token');
       if (token) headers.set('Authorization', `Bearer ${token}`);

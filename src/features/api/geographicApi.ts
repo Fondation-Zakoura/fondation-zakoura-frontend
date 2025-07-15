@@ -11,7 +11,7 @@ interface GeoOption {
 export const geographicApi = createApi({
   reducerPath: 'geographicApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:8000/api/geographic', // Base URL for geographic endpoints
+    baseUrl: `${import.meta.env.VITE_API_URL}/geographic`, // Base URL for geographic endpoints
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('token');
       if (token) headers.set('Authorization', `Bearer ${token}`);
