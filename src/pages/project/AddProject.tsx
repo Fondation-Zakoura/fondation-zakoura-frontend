@@ -29,9 +29,11 @@ import {
   DialogHeader,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Trash, Trash2Icon } from "lucide-react";
+import {  Trash2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const initialForm = {
   project_name: "",
@@ -56,13 +58,13 @@ const AddProject: React.FC = () => {
     { partner_id: "", partner_role: "", partner_contribution: "" },
   ]);
   const [error, setError] = useState("");
-  const [dateErrors, setDateErrors] = useState<{ [key: string]: string }>({});
+  const [_dateErrors, setDateErrors] = useState<{ [key: string]: string }>({});
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [partnerErrors, setPartnerErrors] = useState<{
     [idx: number]: { [key: string]: string };
   }>({});
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
-  const [partnerTouched, setPartnerTouched] = useState<{
+  const [partnerTouched, _setPartnerTouched] = useState<{
     [idx: number]: { [key: string]: boolean };
   }>({ 0: {} });
   const [showModal, setShowModal] = useState(false);
@@ -70,8 +72,8 @@ const AddProject: React.FC = () => {
   const [pendingSubmit, setPendingSubmit] = useState<null | React.FormEvent>(
     null
   );
-  const [diffPercent, setDiffPercent] = useState(0);
-  const [overBudget, setOverBudget] = useState(false);
+  const [_diffPercent, setDiffPercent] = useState(0);
+  const [_overBudget, setOverBudget] = useState(false);
   const navigate = useNavigate();
 
   const { data: formOptions, isLoading: optionsLoading } =
@@ -132,14 +134,7 @@ const AddProject: React.FC = () => {
     setPartnerErrors(pErrs);
   };
 
-  const handlePartnerBlur = (idx: number, name: string) => {
-    setPartnerTouched((prev) => ({
-      ...prev,
-      [idx]: { ...prev[idx], [name]: true },
-    }));
-    const pErrs = validatePartners(partners);
-    setPartnerErrors(pErrs);
-  };
+  
 
   const addPartner = () => {
     setPartners([
@@ -231,7 +226,7 @@ const AddProject: React.FC = () => {
   };
 
   const checkPercentSum = () => {
-    const { zakoura, partnersSum, sum } = getTotalPercent();
+    const {  sum } = getTotalPercent();
     if (sum < 100) {
       return {
         valid: false,
@@ -317,7 +312,9 @@ const AddProject: React.FC = () => {
           delete (payload as any)[key];
         }
       });
-      const response = await addProject(payload).unwrap();
+      console.log('Submitting payload:', JSON.stringify(payload, null, 2));
+      await addProject(payload).unwrap();
+      toast.success('Projet créé avec succès !');
       navigate("/projects");
     } catch (err: any) {
       let errorMessage = "Erreur inconnue";
@@ -332,6 +329,7 @@ const AddProject: React.FC = () => {
         errorMessage = err.data.error;
       }
       setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -374,7 +372,9 @@ const AddProject: React.FC = () => {
             delete (payload as any)[key];
           }
         });
-        const response = await addProject(payload).unwrap();
+        console.log('Submitting payload:', JSON.stringify(payload, null, 2));
+        await addProject(payload).unwrap();
+        toast.success('Projet créé avec succès !');
         navigate("/projects");
       } catch (err: any) {
         let errorMessage = "Erreur inconnue";
@@ -389,6 +389,7 @@ const AddProject: React.FC = () => {
           errorMessage = err.data.error;
         }
         setError(errorMessage);
+        toast.error(errorMessage);
       }
     }
   };
@@ -398,7 +399,7 @@ const AddProject: React.FC = () => {
     setPendingSubmit(null);
   };
 
-  const { zakoura, partnersSum, sum: percentSum } = getTotalPercent();
+  const {  sum: percentSum } = getTotalPercent();
 
   return (
     <div className="p-8 font-nunito">
@@ -708,8 +709,8 @@ const AddProject: React.FC = () => {
                             options={
                               formOptions?.partner_roles
                                 ? Object.entries(formOptions.partner_roles).map(
-                                    ([key, label]) => ({
-                                      value: String(key),
+                                    ([_, label]) => ({
+                                      value: String(label),
                                       label:
                                         (label as string)
                                           .charAt(0)
@@ -960,6 +961,7 @@ const AddProject: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
     </div>
   );
 };

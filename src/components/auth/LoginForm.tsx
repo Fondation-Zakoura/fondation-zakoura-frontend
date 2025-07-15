@@ -17,7 +17,7 @@ const LoginForm = () => {
     e.preventDefault();
     try {
       const result = await loginUser({ email, password }).unwrap();
-      dispatch(login({ token: result.token }));
+      dispatch(login({ name: result.name, token: result.token }));
       console.log("user logged in successfully");
       navigate("/");
     } catch (err) {

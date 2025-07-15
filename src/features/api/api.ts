@@ -10,9 +10,10 @@ export const baseApi = createApi({
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
       }
+      headers.set("Accept", 'Application/json');
       return headers;
     },
   }),
-  tagTypes: ["Category", "User"],
+  tagTypes: ["Category", "User",'BudgetLine','BudgetCategory'],
   endpoints: () => ({}),
 });

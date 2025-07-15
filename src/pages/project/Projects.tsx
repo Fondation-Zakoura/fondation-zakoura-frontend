@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Plus, Trash, Pen, Eye } from "lucide-react";
+import { Plus, Trash, Pen, Eye } from "lucide-react";
 import {
   DataTable,
   type Column,
@@ -14,14 +14,11 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-  DialogClose,
 } from "@/components/ui/dialog";
 
 import {
   useGetProjectsQuery,
   useBulkDeleteProjectsMutation,
-  useGetProjectStatusesQuery,
-  useGetProjectTypesQuery,
   useGetProjectFormOptionsQuery,
 } from "@/features/api/projectsApi";
 import type {
@@ -34,12 +31,10 @@ import { PageHeaderLayout } from "@/layouts/MainLayout";
 
 function Projects() {
   const navigate = useNavigate();
-  const [sorting, setSorting] = useState<any>([]);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
-  const [globalFilter, setGlobalFilter] = useState("");
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -54,13 +49,9 @@ function Projects() {
 
   const { data, isLoading, isError, refetch } = useGetProjectsQuery({
     page: pagination.pageIndex + 1,
-    per_page: pagination.pageSize,
-    filter: globalFilter,
-    sort:
-      sorting.length > 0
-        ? `${sorting[0].id}:${sorting[0].desc ? "desc" : "asc"}`
-        : undefined,
+    per_page: pagination.pageSize
   });
+
 
   const [bulkDeleteProjects] = useBulkDeleteProjectsMutation();
 
@@ -168,7 +159,7 @@ function Projects() {
   ];
 
   const { data: options } = useGetProjectFormOptionsQuery();
-  const columnFilters = useMemo((): ColumnFilter<Project>[] => {
+  const columnFilters = useMemo((): ColumnFilter[] => {
     return [
       {
         id: "project_type_id",

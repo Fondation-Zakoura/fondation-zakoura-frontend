@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import type { ProjectInputRefKeys } from "@/features/types/project";
 import { Combobox } from "@/components/ui/combobox";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const initialForm = {
   project_name: "",
@@ -82,8 +84,8 @@ const EditProject: React.FC = () => {
   const [pendingSubmit, setPendingSubmit] = useState<null | React.FormEvent>(
     null
   );
-  const [diffPercent, setDiffPercent] = useState(0);
-  const [overBudget, setOverBudget] = useState(false);
+  const [_diffPercent, setDiffPercent] = useState(0);
+  const [_overBudget, setOverBudget] = useState(false);
   const [dateErrors, setDateErrors] = useState<{ [key: string]: string }>({});
 
   const inputRefs: Record<ProjectInputRefKeys, React.RefObject<any>> = {
@@ -255,7 +257,7 @@ const EditProject: React.FC = () => {
   };
 
   const checkPercentSum = () => {
-    const { zakoura, partnersSum, sum } = getTotalPercent();
+    const {  sum } = getTotalPercent();
     if (sum < 100) {
       return {
         valid: false,
@@ -346,6 +348,7 @@ const EditProject: React.FC = () => {
         }
       });
       await updateProject(payload as any).unwrap();
+      toast.success('Projet modifié avec succès !');
       navigate("/projects");
     } catch (err: any) {
       let errorMessage = "Erreur inconnue";
@@ -360,6 +363,7 @@ const EditProject: React.FC = () => {
         errorMessage = err.data.error;
       }
       setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -408,6 +412,7 @@ const EditProject: React.FC = () => {
           }
         });
         await updateProject(payload as any).unwrap();
+        toast.success('Projet modifié avec succès !');
         navigate("/projects");
       } catch (err: any) {
         let errorMessage = "Erreur inconnue";
@@ -422,6 +427,7 @@ const EditProject: React.FC = () => {
           errorMessage = err.data.error;
         }
         setError(errorMessage);
+        toast.error(errorMessage);
       }
     }
   };
@@ -707,7 +713,7 @@ const EditProject: React.FC = () => {
                           options={
                             formOptions?.partner_roles
                               ? Object.entries(formOptions.partner_roles).map(
-                                  ([key, label]) => ({
+                                  ([_, label]) => ({
                                     value: String(label),
                                     label: label as string,
                                   })
@@ -849,6 +855,7 @@ const EditProject: React.FC = () => {
           Total contributions: {getTotalPercent().sum.toFixed(2)}%
         </div>
       </Card>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
     </div>
   );
 };

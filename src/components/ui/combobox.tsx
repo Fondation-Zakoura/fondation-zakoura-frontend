@@ -25,8 +25,8 @@ export interface ComboboxOption {
 
 interface ComboboxProps {
   options: ComboboxOption[];
-  value: string;
-  onChange: (value: string) => void; // This is correct for Combobox
+  value?: string;
+  onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;

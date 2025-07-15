@@ -97,7 +97,7 @@ export const projectsApi = baseApi
       }),
       getProjectType: builder.query<ProjectType, number>({
         query: (id) => `/project-types/${id}`,
-        providesTags: (result, error, id) => [{ type: "ProjectTypes", id }],
+        providesTags: (_result, _error, id) => [{ type: "ProjectTypes", id }],
       }),
       createProjectType: builder.mutation<ProjectType, Partial<ProjectType>>({
         query: (body) => ({
@@ -131,7 +131,7 @@ export const projectsApi = baseApi
       }),
       getProjectStatus: builder.query<ProjectStatus, number>({
         query: (id) => `/project-statuses/${id}`,
-        providesTags: (result, error, id) => [{ type: "ProjectStatuses", id }],
+        providesTags: (_result, _error, id) => [{ type: "ProjectStatuses", id }],
       }),
       createProjectStatus: builder.mutation<
         ProjectStatus,
@@ -168,7 +168,7 @@ export const projectsApi = baseApi
       }),
       getProjectBankAccount: builder.query<ProjectBankAccount, number>({
         query: (id) => `/project-bank-accounts/${id}`,
-        providesTags: (result, error, id) => [
+        providesTags: (_result, _error, id) => [
           { type: "ProjectBankAccounts", id },
         ],
       }),
