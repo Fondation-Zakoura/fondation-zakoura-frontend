@@ -1,0 +1,91 @@
+name: Deploy Frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Choisir l’environnement
+        required: true
+        default: preProd
+        type: choice
+        options:
+          - preProd
+          - Prod
+      action:
+        description: Action à réaliser
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - rollback
+      rollback_version:
+        description: Version à rollbacker (si action=rollback)
+        required: false
+        type: string
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set SSH Agent
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: '${{ secrets.DEPLOY_SSH_KEY }}'
+
+      - name: Deploy or Rollback Frontend
+        env:
+          ENV: '${{ github.event.inputs.environment }}'
+          ACTION: '${{ github.event.inputs.action }}'
+          ROLLBACK_VERSION: '${{ github.event.inputs.rollback_version }}'
+        run: |
+          TIMESTAMP="$(date +'%Y%m%d_%H%M%S')_${GITHUB_SHA::7}"
+          DEPLOY_DIR="/home/FZAZURE/deployment/fondation-zakoura-frontend"
+          RELEASES_DIR="$DEPLOY_DIR/releases"
+          SHARED_DIR="$DEPLOY_DIR/shared"
+          CURRENT_LINK="$DEPLOY_DIR/current"
+          PREVIOUS_DIR="$DEPLOY_DIR/previous"
+
+          echo "🚀 Déploiement ou rollback frontend lancé"
+
+          ssh -o StrictHostKeyChecking=no FZAZURE@20.115.92.27 bash -c "\
+            set -e; \
+            ENV='$ENV'; ACTION='$ACTION'; ROLLBACK_VERSION='$ROLLBACK_VERSION'; TIMESTAMP='$TIMESTAMP'; \
+            DEPLOY_DIR='$DEPLOY_DIR'; RELEASES_DIR='$RELEASES_DIR'; SHARED_DIR='$SHARED_DIR'; CURRENT_LINK='$CURRENT_LINK'; PREVIOUS_DIR='$PREVIOUS_DIR'; \
+            echo \"ENV=\$ENV\"; echo \"ACTION=\$ACTION\"; echo \"ROLLBACK_VERSION=\$ROLLBACK_VERSION\"; \
+            mkdir -p \"\$RELEASES_DIR\" \"\$SHARED_DIR\" \"\$PREVIOUS_DIR\"; \
+            if [ \"\$ACTION\" = \"deploy\" ]; then \
+              echo \"🔄 Déploiement frontend...\"; \
+              cd \"\$RELEASES_DIR\"; \
+              git clone --branch develop --depth 1 git@github.com:Fondation-Zakoura/fondation-zakoura-frontend.git \"\$TIMESTAMP\"; \
+              cd \"\$TIMESTAMP\"; \
+              git config --global --add safe.directory \"\$RELEASES_DIR/\$TIMESTAMP\"; \
+              npm install --legacy-peer-deps --no-progress; \
+              npm run build; \
+              if [ -L \"\$CURRENT_LINK\" ]; then \
+                CURRENT_VERSION=\$(readlink -f \"\$CURRENT_LINK\"); \
+                echo \"🔁 Sauvegarde de la version actuelle vers previous...\"; \
+                rm -rf \"\$PREVIOUS_DIR\"/*; \
+                cp -rT \"\$CURRENT_VERSION\" \"\$PREVIOUS_DIR\"; \
+              fi; \
+              ln -sfn \"\$RELEASES_DIR/\$TIMESTAMP\" \"\$CURRENT_LINK\"; \
+              sudo chown -R www-data:www-data \"\$RELEASES_DIR/\$TIMESTAMP\"; \
+              sudo chmod -R 775 \"\$RELEASES_DIR/\$TIMESTAMP\"; \
+              echo \"✅ Déploiement frontend terminé\"; \
+            elif [ \"\$ACTION\" = \"rollback\" ]; then \
+              if [ -z \"\$ROLLBACK_VERSION\" ]; then echo \"❌ rollback_version manquant\"; exit 1; fi; \
+              if [ ! -d \"\$RELEASES_DIR/\$ROLLBACK_VERSION\" ]; then echo \"❌ Version \$ROLLBACK_VERSION introuvable\"; exit 1; fi; \
+              echo \"♻️ Rollback vers \$ROLLBACK_VERSION...\"; \
+              if [ -L \"\$CURRENT_LINK\" ]; then \
+                CURRENT_VERSION=\$(readlink -f \"\$CURRENT_LINK\"); \
+                echo \"Sauvegarde de la version courante dans previous...\"; \
+                rm -rf \"\$PREVIOUS_DIR\"/*; \
+                cp -rT \"\$CURRENT_VERSION\" \"\$PREVIOUS_DIR\"; \
+              fi; \
+              ln -sfn \"\$RELEASES_DIR/\$ROLLBACK_VERSION\" \"\$CURRENT_LINK\"; \
+              sudo chown -R www-data:www-data \"\$CURRENT_LINK\"; \
+              sudo chmod -R 775 \"\$CURRENT_LINK\"; \
+              echo \"✅ Rollback frontend effectué vers \$ROLLBACK_VERSION\"; \
+            else \
+              echo \"❌ Action inconnue : \$ACTION\"; exit 1; \
+            fi"
