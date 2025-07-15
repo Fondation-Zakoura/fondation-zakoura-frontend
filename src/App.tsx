@@ -19,6 +19,10 @@ import ProjectStatusesPage from './pages/project/ProjectStatusesPage';
 import LoginForm from './components/auth/LoginForm';
 import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
 import BudgetCategoryPage from './pages/budget-category/BudgetCategoryPage';
+import Collaborateurs from "./pages/collaborateurs/Collaborateurs";
+import ShowCollaborateur from "./pages/collaborateurs/ShowCollaborateur";
+import EditCollaborateur from "./pages/collaborateurs/EditCollaborateurModal";
+import AddCollaborateurs from "./pages/collaborateurs/AddCollaborateur";
 import BudgetLinePage from "./pages/budget-line/BudgetLinePage";
 import { UnitsListPage } from "./pages/units/UnitsListPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -70,6 +74,20 @@ function App() {
           element={<BudgetCategoryPage />}
         />
         <Route
+          path="/rh/collaborateurs"
+          element={<Collaborateurs />}
+        />
+        <Route
+          path="/rh/collaborateurs/:id"
+          element={<ShowCollaborateur />}
+        />
+        <Route
+          path="/rh/collaborateurs/:id/edit"
+          element={<EditCollaborateur />}
+        />
+        <Route
+          path="/rh/collaborateurs/add"
+          element={<AddCollaborateurs/>}
           path="/budget-line"
           element={<BudgetLinePage />}
         />

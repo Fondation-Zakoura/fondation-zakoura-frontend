@@ -26,30 +26,27 @@ import {
   RotateCw,
   Trash2,
 } from "lucide-react";
-import { type Dispatch, type SetStateAction } from "react";
-
-
+ 
+// --- TYPE DEFINITIONS ---
 export interface Column<T> {
-  key: keyof T | string; // key can be a direct property of T or a string for nested access
+  key: keyof T | string;
   header: React.ReactNode;
   render?: (row: T) => React.ReactNode;
   sortable?: boolean;
   width?: string | number;
   align?: "left" | "center" | "right";
 }
-
-// FIX: Removed unused generic TData from ColumnFilter
-export interface ColumnFilter {
-  id: string; // The filter key (e.g., "region", "status")
+ 
+export interface ColumnFilter<T> {
+  id: keyof T;
   label: string;
   options: { value: string | number; label: string }[];
 }
-
-// T must extend an object with an 'id' property of type string or number
+ 
 interface DataTableProps<T extends { id: string | number }> {
   columns: Column<T>[];
   data: T[];
-  columnFilters?: ColumnFilter[]; // FIX 1: No longer needs <T> here
+  columnFilters?: ColumnFilter<T>[];
   emptyText?: string;
   striped?: boolean;
   hoverEffect?: boolean;
@@ -60,27 +57,15 @@ interface DataTableProps<T extends { id: string | number }> {
   initialPageSize?: number;
   onBulkDelete?: (selectedIds: T["id"][]) => void;
   enableBulkDelete?: boolean;
-  globalFilterKey?: keyof T; // globalFilterKey should directly refer to a key of T
+  globalFilterKey?: keyof T;
   serverPagination?: boolean;
-  pageCount?: number; // Total number of pages from server
-  pageIndex?: number; // Current page index (0-based) from server
-  totalItems?: number; // FIX 9: Add totalItems prop for server-side pagination display
+  pageCount?: number;
+  pageIndex?: number;
   onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
-  // FIX 2: onFilterChange should match the signature of the handler in UnitsListPage
-  onFilterChange?: (filters: Record<string, string | string[]>) => void;
-  // FIX 3: Add onGlobalSearchChange and onSortChange props
-  onGlobalSearchChange?: (value: string) => void;
-  onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
-  // FIX 4: Add sortConfig and globalSearchTerm as controlled props
-  sortConfig?: { key: string; direction: "asc" | "desc" } | null;
-  globalSearchTerm?: string;
-  selectedRows?: T[];
-  onSelectedRowsChange?: Dispatch<SetStateAction<T[]>>;
-  isLoading?: boolean;
 }
-
+ 
 // --- REUSABLE DATA TABLE COMPONENT ---
-export function DataTable<T extends { id: string | number }>({
+export function DataTable<T extends { id:string | number }>({
   columns,
   data,
   columnFilters = [],
@@ -99,13 +84,10 @@ export function DataTable<T extends { id: string | number }>({
   pageCount,
   pageIndex,
   onPaginationChange,
-  onFilterChange,
-  selectedRows: controlledSelectedRows,
-  onSelectedRowsChange: setControlledSelectedRows,
 }: DataTableProps<T>) {
   // --- STATE MANAGEMENT ---
   const [sortConfig, setSortConfig] = React.useState<{
-    key: keyof T | string; // Can be a direct key or a string for nested (though your current Site is flat)
+    key: keyof T | string;
     direction: "asc" | "desc";
   } | null>(null);
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -114,121 +96,89 @@ export function DataTable<T extends { id: string | number }>({
   );
   const [currentPage, setCurrentPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(initialPageSize);
-
-  // Use controlled state if provided, otherwise internal state
-  const [internalSelectedRowIds, setInternalSelectedRowIds] = React.useState<T["id"][]>([]);
-
-  // Determine which selectedRows to use: controlled (from props) or internal
-  const selectedRowIds = controlledSelectedRows ? controlledSelectedRows.map(row => row.id) : internalSelectedRowIds;
-
-  const setSelectedRowIds = (idsOrUpdater: T["id"][] | ((prevIds: T["id"][]) => T["id"][])) => {
-      const newIds = typeof idsOrUpdater === "function" ? idsOrUpdater(selectedRowIds) : idsOrUpdater;
-      if (setControlledSelectedRows && controlledSelectedRows !== undefined) {
-          // Convert ids back to T[] based on the data prop (important if data might change)
-          const newSelectedRowsData = data.filter(row => newIds.includes(row.id));
-          setControlledSelectedRows(newSelectedRowsData);
-      } else {
-          setInternalSelectedRowIds(newIds);
-      }
-  };
-
-
+  const [selectedRows, setSelectedRows] = React.useState<T["id"][]>([]);
+ 
   // --- DATA PROCESSING & FILTERING ---
-
-  // Helper to safely get nested values (e.g., "commune.cercle.name")
-  // This helper will still be useful if you later reintroduce nested objects.
-  // For the current Site interface, it will act like direct property access.
-  const getDeepValue = <U extends object>(obj: U, path: string): unknown => { // Changed return type to unknown
-    // It's challenging to make this fully type-safe for arbitrary paths without
-    // very advanced type-level programming or accepting some 'any'.
-    // 'unknown' is safer than 'any' as it forces you to narrow the type later.
-    return path.split('.').reduce((acc: unknown, part: string) => {
-      if (acc && typeof acc === "object" && part in acc) {
-        return (acc as Record<string, unknown>)[part];
-      }
-      return undefined;
-    }, obj);
-  };
-
   const processedData = React.useMemo(() => {
     let filteredData = [...data];
-
+ 
+    // ✨ UPDATED: Logic now depends on whether globalFilterKey is provided
     if (globalFilter) {
       const lowercasedFilter = globalFilter.toLowerCase();
-
+ 
+      // If a specific key is provided, search only that column
       if (globalFilterKey) {
         filteredData = filteredData.filter((row) =>
-          String(getDeepValue(row, String(globalFilterKey)) ?? "") // Use getDeepValue for globalFilterKey as well
+          String(row[globalFilterKey] ?? "")
             .toLowerCase()
             .includes(lowercasedFilter)
         );
       } else {
+        // Otherwise, perform the default search across all columns
         filteredData = filteredData.filter((row) => {
           return columns.some(col => {
-            const cellValue = getDeepValue(row, String(col.key)); // Always use getDeepValue
+            const cellValue = row[col.key as keyof T];
             return String(cellValue ?? "").toLowerCase().includes(lowercasedFilter);
           });
         });
       }
     }
+ 
+    // Other filters and sorting remain the same...
+   Object.entries(filterValues).forEach(([key, value]) => {
+    if (value) {
+      filteredData = filteredData.filter((row) => {
+        const nestedValue = key.split('.').reduce((acc: any, k) => acc?.[k], row);
+        return String(nestedValue ?? '').toLowerCase().includes(value.toLowerCase());
+      });
+    }
+  });
 
-    Object.entries(filterValues).forEach(([key, value]) => {
-      if (value) {
-        filteredData = filteredData.filter(
-          (row) => String(getDeepValue(row, key) ?? "") === value // Use getDeepValue for filter values
-        );
-      }
-    });
-
+ 
     if (sortConfig) {
       filteredData.sort((a, b) => {
-        const aValue = getDeepValue(a, String(sortConfig.key)); // Use getDeepValue for sort key
-        const bValue = getDeepValue(b, String(sortConfig.key)); // Use getDeepValue for sort key
-
+        const aValue = a[sortConfig.key as keyof T];
+        const bValue = b[sortConfig.key as keyof T];
         if (aValue === bValue) return 0;
-        const comparison = String(aValue ?? "").localeCompare(String(bValue ?? "")); // Handle null/undefined during comparison
+        const comparison = String(aValue).localeCompare(String(bValue));
         return sortConfig.direction === "asc" ? comparison : -comparison;
       });
     }
     return filteredData;
   }, [data, globalFilter, globalFilterKey, filterValues, sortConfig, columns]);
-
+ 
   const paginatedData = React.useMemo(() => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     return processedData.slice(startIndex, startIndex + rowsPerPage);
   }, [processedData, currentPage, rowsPerPage]);
-
+ 
   const totalPages = Math.ceil(processedData.length / rowsPerPage);
-
+ 
   // --- SELECTION HANDLERS ---
   const onSelectAll = (checked: boolean) => {
     if (checked) {
       const allIds = processedData.map((row) => row.id);
-      setSelectedRowIds(allIds);
+      setSelectedRows(allIds);
     } else {
-      setSelectedRowIds([]);
+      setSelectedRows([]);
     }
   };
-
+ 
   const onSelectRow = (row: T, checked: boolean) => {
     if (checked) {
-      setSelectedRowIds(
-        (prevIds: T["id"][]) => [...prevIds, row.id] as T["id"][] // Explicitly cast the result
-      );
+      setSelectedRows((prev) => [...prev, row.id]);
     } else {
-      setSelectedRowIds(
-        (prevIds: T["id"][]) => prevIds.filter((id: T["id"]) => id !== row.id) as T["id"][] // Explicitly cast the result
-      );
+      setSelectedRows((prev) => prev.filter((id) => id !== row.id));
     }
   };
-
+ 
   const handleBulkDelete = () => {
     if (onBulkDelete) {
-      onBulkDelete(selectedRowIds);
+      onBulkDelete(selectedRows);
     }
-    setSelectedRowIds([]); // Clear selection after initiating bulk delete
+    setSelectedRows([]);
   };
-
+ 
   // --- EVENT HANDLERS ---
   const requestSort = (key: keyof T | string) => {
     let direction: "asc" | "desc" = "asc";
@@ -237,32 +187,25 @@ export function DataTable<T extends { id: string | number }>({
     }
     setSortConfig({ key, direction });
   };
-
+ 
   const handleGlobalFilterChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setGlobalFilter(event.target.value);
     setCurrentPage(1);
   };
-
+ 
   const handleFilterValueChange = (id: string, value: string) => {
-    const newFilterValues = { ...filterValues, [id]: value === "all" ? "" : value };
-    setFilterValues(newFilterValues);
+    setFilterValues((prev) => ({ ...prev, [id]: value === "all" ? "" : value }));
     setCurrentPage(1);
-    if (onFilterChange) {
-        onFilterChange(newFilterValues);
-    }
   };
-
+ 
   const handleResetFilters = () => {
     setGlobalFilter("");
     setFilterValues({});
     setCurrentPage(1);
-    if (onFilterChange) {
-        onFilterChange({});
-    }
   };
-
+ 
   // --- STYLE HELPERS ---
   const getRowHeightClass = () =>
     ({ sm: "h-10", md: "h-12", lg: "h-14" }[rowHeight] || "h-12");
@@ -271,15 +214,15 @@ export function DataTable<T extends { id: string | number }>({
       {
         light: "bg-gray-50 text-gray-700",
         dark: "bg-gray-800 text-white",
-        primary: "bg-gray-300 text-white", // Changed from original (bg-[#576CBC]) to something more generic
+        primary: "bg-gray-300 text-white",
       } as const
     )[headerStyle] || "bg-gray-50 text-gray-700";
-
+ 
   // If serverPagination, use props; else use internal state
   const effectivePage = serverPagination && typeof pageIndex === 'number' ? pageIndex + 1 : currentPage;
   const effectiveTotalPages = serverPagination && typeof pageCount === 'number' ? pageCount : totalPages;
   const effectiveRowsPerPage = serverPagination && typeof initialPageSize === 'number' ? initialPageSize : rowsPerPage;
-
+ 
   // --- RENDER ---
   return (
     <div className={`space-y-4 ${className}`}>
@@ -299,7 +242,7 @@ export function DataTable<T extends { id: string | number }>({
               />
             </div>
           </div>
-
+ 
           {/* Mapped Dropdown Filters */}
           {columnFilters.map((filter) => (
             <div key={String(filter.id)} className="w-full md:w-auto md:min-w-[180px]">
@@ -309,27 +252,20 @@ export function DataTable<T extends { id: string | number }>({
               >
                 {filter.label}
               </label>
-              <Select
-                value={filterValues[String(filter.id)] || "all"}
-                onValueChange={(value) => handleFilterValueChange(String(filter.id), value)}
-              >
-                <SelectTrigger id={`filter-${String(filter.id)}`} className="w-full">
-                  <SelectValue placeholder={`Tout...`} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{`Tout ${filter.label
-                    .split(" ")[0]
-                    .toLowerCase()}`}</SelectItem>
-                  {filter.options.map((opt) => (
-                    <SelectItem key={String(opt.value)} value={String(opt.value)}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <input
+                type="text"
+                id={`filter-${String(filter.id)}`}
+                placeholder={`Filtrer par ${filter.label.toLowerCase()}...`}
+                value={filterValues[String(filter.id)] || ''}
+                onChange={(e) =>
+                  handleFilterValueChange(String(filter.id), e.target.value)
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
           ))}
 
+ 
           {/* Reset Button */}
           <div className="w-full md:w-auto md:ml-auto pt-0 md:pt-5">
             <Button
@@ -342,7 +278,7 @@ export function DataTable<T extends { id: string | number }>({
           </div>
         </div>
       </div>
-
+ 
       {/* TABLE */}
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
         <Table className="min-w-full">
@@ -353,7 +289,7 @@ export function DataTable<T extends { id: string | number }>({
                   <input
                     type="checkbox"
                     checked={
-                      selectedRowIds.length === processedData.length &&
+                      selectedRows.length === processedData.length &&
                       processedData.length > 0
                     }
                     onChange={(e) => onSelectAll(e.target.checked)}
@@ -433,50 +369,46 @@ export function DataTable<T extends { id: string | number }>({
                     <TableCell className="px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selectedRowIds.includes(row.id)}
+                        checked={selectedRows.includes(row.id)}
                         onChange={(e) => onSelectRow(row, e.target.checked)}
                         onClick={(e) => e.stopPropagation()}
                       />
                     </TableCell>
                   )}
-                  {columns.map((col) => {
-                    const cellValue = getDeepValue(row, String(col.key)); // Always use getDeepValue for cell rendering
-
-                    return (
-                        <TableCell
-                            key={String(col.key)}
-                            className={`px-4 py-3 text-sm font-medium text-gray-800 ${
-                                col.align === "center"
-                                    ? "text-center"
-                                    : col.align === "right"
-                                    ? "text-right"
-                                    : "text-left"
-                            }`}
-                        >
-                            {col.render ? col.render(row) : String(cellValue ?? "")}
-                        </TableCell>
-                    );
-                  })}
+                  {columns.map((col) => (
+                    <TableCell
+                      key={String(col.key)}
+                      className={`px-4 py-3 text-sm font-medium text-gray-800 ${
+                        col.align === "center"
+                          ? "text-center"
+                          : col.align === "right"
+                          ? "text-right"
+                          : "text-left"
+                      }`}
+                    >
+                      {col.render ? col.render(row) : String(row[col.key as keyof T] ?? "")}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
-
+ 
       {/* BULK DELETE BUTTON */}
-      {enableBulkDelete && selectedRowIds.length > 0 && (
+      {enableBulkDelete && selectedRows.length > 0 && (
         <div className="flex justify-end my-2">
           <Button
             variant="destructive"
             onClick={handleBulkDelete}
             className="flex items-center gap-2"
           >
-            <Trash2 size={16} /> Supprimer la sélection ({selectedRowIds.length})
+            <Trash2 size={16} /> Supprimer la sélection ({selectedRows.length})
           </Button>
         </div>
       )}
-
+ 
       {/* PAGINATION CONTROLS */}
       <div className="flex items-center justify-between text-sm font-medium text-gray-600">
         <div className="flex items-center space-x-2">
@@ -543,3 +475,4 @@ export function DataTable<T extends { id: string | number }>({
     </div>
   );
 }
+ 
