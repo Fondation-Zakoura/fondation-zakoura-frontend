@@ -20,6 +20,7 @@ import LoginForm from './components/auth/LoginForm';
 import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
 import BudgetCategoryPage from './pages/budget-category/BudgetCategoryPage';
 import BudgetLinePage from "./pages/budget-line/BudgetLinePage";
+import { UnitsListPage } from "./pages/units/UnitsListPage";
 
 
 function App() {
@@ -62,6 +63,10 @@ function App() {
         <Route
           path="/budget-line"
           element={<BudgetLinePage />}
+        />
+        <Route
+          path="/parametres/operations/unites"
+          element={<UnitsListPage />}
         />
       </Route>
       <Route path="/login" element={<LoginForm />} />

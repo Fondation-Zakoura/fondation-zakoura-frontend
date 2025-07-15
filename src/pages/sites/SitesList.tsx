@@ -8,21 +8,15 @@ import {
 } from "@/features/api/sitesApi";
 import {
   useGetRegionsQuery,
-  // Removed unused imports if provinces and communes are not directly used for options
-  // useGetProvincesQuery,
-  // useGetCommunesQuery,
 } from "@/features/api/geographicApi";
 import { DataTable } from "@/components/ui/data-table";
-import type { Column, ColumnFilter } from "@/components/ui/data-table"; // Import types from DataTable
+import type { Column, ColumnFilter } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { AddEditSiteModal } from "@/components/sites/AddEditSiteModal";
 import { SiteDetailsModal } from "@/components/sites/SiteDetailsModal";
 import { DeleteSiteDialog } from "@/components/sites/DeleteSiteDialog";
-
-// Assuming countries.json is just for display, not part of API data structure for Site
-// import countries from "@/data/countries.json";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
-import type{ Site } from "@/types/site"; // Import Site interface
+import type { Site } from "@/types/site"; // Import Site interface
 
 const SitesListPage: React.FC = () => {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
@@ -31,7 +25,6 @@ const SitesListPage: React.FC = () => {
   const [selectedSiteForDetails, setSelectedSiteForDetails] = useState<Site | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  // Use a more specific type for tableFilters
   const [tableFilters, setTableFilters] = useState<Record<string, string | string[]>>({});
   const [selectedRows, setSelectedRows] = useState<Site[]>([]);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[]>([]);
@@ -43,47 +36,43 @@ const SitesListPage: React.FC = () => {
   const [deleteSites] = useDeleteSitesMutation();
 
   const { data: regions = [] } = useGetRegionsQuery();
-  // Removed unused province and commune queries
-  // const { data: provinces = [] } = useGetProvincesQuery(null, { skip: false });
-  // const { data: communes = [] } = useGetCommunesQuery(null, { skip: false });
-
 
   const typeOptions = useMemo(() => [
-    { value: "Rural", label: "Rural" },
-    { value: "Urbain", label: "Urbain" },
-    { value: "Semi-urbain", label: "Semi-urbain" },
+    { value: "Regroupement", label: "Regroupement" },
+    { value: "Centre", label: "Centre" },
+    { value: "Communautaire", label: "Communautaire" },
+    { value: "Préscolaire", label: "Préscolaire" },
+    // Add other types from your data if any
   ], []);
 
   const statusOptions = useMemo(() => [
-    { value: "Actif", label: "Actif" },
-    { value: "Fermé", label: "Fermé" },
     { value: "En pause", label: "En pause" },
-    { value: "Archivé", label: "Archivé" },
+    { value: "Archivée", label: "Archivée" },
+    { value: "Active", label: "Active" },
+    // Add other statuses from your data if any
   ], []);
 
-  // Ensure regionOptions are properly memoized
+  const educatorOptions = useMemo(() => [
+    { value: "nasar fatin", label: "nasar fatin" },
+    { value: "Mouchcine attif", label: "Mouchcine attif" },
+    { value: "Non assignée", label: "Non assignée" },
+    // Add other educators from your data
+  ], []);
+
   const regionOptions = useMemo(() => regions.map(r => ({ value: r.name, label: r.name })), [regions]);
-  // Removed unused provinceOptions and communeOptions
-  // const provinceOptions = useMemo(() => provinces.map(p => ({ value: p.name, label: p.name })), [provinces]);
-  // const communeOptions = useMemo(() => communes.map(c => ({ value: c.name, label: c.name })), [communes]);
 
-  // Removed unused getCountryName function as it's not used in the component's render or logic
-  // const getCountryName = useCallback((countryCode: string | undefined) => {
-  //   if (!countryCode) return "N/A";
-  //   const country = countries.find(c => c.code === countryCode);
-  //   return country ? country.name : countryCode;
-  // }, []);
-
-  // The 'id' for region filter should match what your DataTable's getDeepValue expects
-  // and what you plan to send to the backend.
-  // If your backend expects `region_name`, change the `id` here and in `sitesApi.ts`.
-  // If `region.name` is for client-side filtering only, and backend uses `region_id`, then
-  // you need a more complex mapping in `onFilterChange` or `sitesApi`.
   const columnFilters = useMemo((): ColumnFilter[] => [
+    // This filter for 'Type' corresponds to the 'TYPE' column in the image
     { id: "type", label: "Type", options: typeOptions },
+    // This filter for 'Statut' corresponds to the 'STATUT' column in the image
     { id: "status", label: "Statut", options: statusOptions },
-    { id: "commune.cercle.province.region.name", label: "Région", options: regionOptions }, // Use the full path for filtering
-  ], [typeOptions, statusOptions, regionOptions]);
+    // This filter for 'Educatrice' corresponds to the 'ÉDUCATRICE' column in the image
+    { id: "educator", label: "Éducatrice", options: educatorOptions }, // Assuming 'educator' key in your Site type
+    // If 'Site' filter is for the site's name or partner reference code:
+    { id: "partner_reference_code", label: "Site", options: [] }, // You might need to populate this dynamically or remove if not a dropdown
+    // If you still need a Region filter:
+    { id: "commune.cercle.province.region.name", label: "Région", options: regionOptions },
+  ], [typeOptions, statusOptions, educatorOptions, regionOptions]); // Added educatorOptions dependency
 
   const handleOpenAddModal = useCallback(() => {
     setEditingSite(null);
@@ -142,20 +131,16 @@ const SitesListPage: React.FC = () => {
   }, [deleteSites, pendingDeleteIds, refetch]);
 
   const columns: Column<Site>[] = useMemo(() => [
-    { key: "site_id", header: "ID Site", sortable: true },
-    { key: "name", header: "Nom du site", sortable: true },
-    { key: "internal_code", header: "Code interne", sortable: true },
-    { key: "partner_reference_code", header: "Code partenaire", sortable: true },
-    {
-      // Use the full path for display as well
-      key: "commune.cercle.province.region.name",
-      header: "Région",
-      sortable: true,
-      render: (row) => row.commune?.cercle?.province?.region?.name || 'N/A',
-    },
+    { key: "id", header: "ID UNITÉ", sortable: true }, // Assuming 'id' is the primary key for ID UNITÉ
+    { key: "name", header: "NOM DE L'UNITÉ", sortable: true },
+    { key: "internal_code", header: "CODE INTERNE", sortable: true },
+    { key: "partner_reference_code", header: "SITE", sortable: true }, // Changed to 'SITE' header
+    { key: "type", header: "TYPE", sortable: true }, // Added 'TYPE' column
+    { key: "status", header: "STATUT", sortable: true }, // Added 'STATUT' column
+    { key: "educator", header: "ÉDUCATRICE", sortable: true }, // Added 'ÉDUCATRICE' column, assuming 'educator' key
     {
       key: "actions",
-      header: "Actions",
+      header: "ACTIONS",
       align: "right",
       render: (row) => (
         <div className="flex gap-1 justify-end">
@@ -198,11 +183,11 @@ const SitesListPage: React.FC = () => {
           </div>
         )}
 
-        <DataTable<Site> // Explicitly type DataTable with Site
+        <DataTable<Site>
           columns={columns}
           data={allSites}
           columnFilters={columnFilters}
-          onFilterChange={setTableFilters} // This will pass filters to the API query
+          onFilterChange={setTableFilters}
           selectedRows={selectedRows}
           onSelectedRowsChange={setSelectedRows}
           emptyText={isLoading ? "Chargement des données..." : "Aucun site trouvé"}
@@ -210,7 +195,7 @@ const SitesListPage: React.FC = () => {
           headerStyle="primary"
           hoverEffect
           striped
-          globalFilterKey="name" // Changed to a direct key from Site
+          globalFilterKey="name"
           onBulkDelete={handleBulkDelete}
         />
       </div>
