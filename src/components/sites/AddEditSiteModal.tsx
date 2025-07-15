@@ -158,7 +158,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   // Use the explicitly typed data from the users API
   const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
   // Ensure users is correctly typed as an array of User objects
-  const users: User[] = usersData?.users || [];
+  const users: User[] = usersData  || [];
 
   useEffect(() => {
     if (isOpen) {

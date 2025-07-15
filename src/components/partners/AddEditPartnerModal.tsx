@@ -1,4 +1,28 @@
-import React, { useState, useEffect } from "react";
+interface ContactErrors {
+  [field: string]: string;
+}
+
+// Define the structure for nested contact errors
+interface ContactPeopleErrors {
+  [index: number]: ContactErrors;
+}
+
+// Define the main error state shape
+interface PartnerFormErrors {
+  partner_name?: string;
+  abbreviation?: string;
+  country?: string;
+  email?: string;
+  nature_partner_id?: string;
+  structure_partner_id?: string;
+  status_id?: string;
+  partner_logo?: string;
+  contacts?: string; // For the overall contacts validation error
+  contact_people?: ContactPeopleErrors; // Nested errors for contact individuals
+  [key: string]: string | ContactPeopleErrors | undefined; // Allow for other top-level string errors
+}
+
+import React, { useState, useEffect, useMemo } from "react";
 import type { Partner, FilterOption, ContactPerson } from "../../types/partners"; // Make sure to define ContactPerson in your types
 import { Loader2, Save, Check, ChevronsUpDown, PlusCircle, XCircle } from "lucide-react";
 
@@ -113,7 +137,7 @@ interface AddEditPartnerModalProps {
   onSave: (data: FormData, id?: number) => void;
   partner: Partner | null;
   options: Record<string, FilterOption[]>;
-  serverErrors: Record<string, string[]>;
+  serverErrors: Record<string, string[]>; // This prop seems unused, but keeping it for context
   isLoading: boolean;
 }
 
@@ -130,21 +154,21 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   onSave,
   partner,
   options,
-  serverErrors, // Note: serverErrors might need adjustments for arrays
   isLoading,
 }) => {
-  const emptyContact: Partial<ContactPerson> = {
-    first_name: "",
-    last_name: "",
-    position: "",
-    email: "",
-    phone: "",
-    address: "",
-  };
+  const emptyContact = useMemo(() => ({
+  first_name: "",
+  last_name: "",
+  position: "",
+  email: "",
+  phone: "",
+  address: "",
+}), []);
 
   const [formData, setFormData] = useState<PartnerFormData>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [errors, setErrors] = useState<Record<string, any>>({}); // Can now hold nested errors for contacts
+  // Use the specific type for errors
+  const [errors, setErrors] = useState<PartnerFormErrors>({}); 
 
   useEffect(() => {
     if (isOpen) {
@@ -165,26 +189,36 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
       setLogoFile(null);
       setErrors({});
     }
-  }, [partner, isOpen]);
+  }, [partner, isOpen , emptyContact]);
 
   const clearError = (name: string, index?: number) => {
-    if (index !== undefined && errors.contact_people?.[index]?.[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.contact_people[index][name];
-        if (Object.keys(newErrors.contact_people[index]).length === 0) {
-          delete newErrors.contact_people[index];
+    setErrors((prev) => {
+      const newErrors: PartnerFormErrors = { ...prev };
+
+      // Handle nested contact_people errors
+      if (index !== undefined && newErrors.contact_people?.[index]) {
+        const contactSpecificErrors = newErrors.contact_people[index];
+        if (contactSpecificErrors[name]) {
+          delete contactSpecificErrors[name];
         }
-        return newErrors;
-      });
-    } else if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
+        // If all errors for this contact are cleared, remove the contact's error entry
+        if (Object.keys(contactSpecificErrors).length === 0) {
+          // If the contact_people object is empty for this index, delete it
+          // Casting to any for the delete operation as direct manipulation of indexed properties can be tricky with strict types
+          // After setting to undefined, filter out undefined entries to keep it clean
+          if (newErrors.contact_people && !Object.values(newErrors.contact_people).some(val => val !== undefined)) {
+            delete newErrors.contact_people; // If all contacts errors are cleared, remove the contact_people key
+          }
+        }
+      } 
+      // Handle top-level errors
+      else if (newErrors[name]) {
         delete newErrors[name];
-        return newErrors;
-      });
-    }
+      }
+      return newErrors;
+    });
   };
+
 
   // --- Handlers for regular form fields ---
   const handleChange = (
@@ -224,17 +258,41 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
       ...prev,
       contact_people: [...(prev.contact_people || []), emptyContact],
     }));
+    // Clear any general 'contacts' error when adding a new one
+    clearError("contacts"); 
   };
 
   const removeContact = (index: number) => {
     const updatedContacts = [...(formData.contact_people || [])];
     updatedContacts.splice(index, 1);
     setFormData((prev) => ({ ...prev, contact_people: updatedContacts }));
+    // Also remove any specific errors for the deleted contact
+    setErrors(prevErrors => {
+      const newErrors = { ...prevErrors };
+      if (newErrors.contact_people) {
+        // Shift remaining contact errors if an earlier one was removed
+        const newContactPeopleErrors: ContactPeopleErrors = {};
+        Object.keys(newErrors.contact_people).forEach(key => {
+            const numKey = Number(key);
+            if (numKey > index) {
+                newContactPeopleErrors[numKey - 1] = newErrors.contact_people![numKey];
+            } else if (numKey < index) {
+                newContactPeopleErrors[numKey] = newErrors.contact_people![numKey];
+            }
+        });
+        newErrors.contact_people = newContactPeopleErrors;
+        if (Object.keys(newContactPeopleErrors).length === 0) {
+            delete newErrors.contact_people;
+        }
+      }
+      return newErrors;
+    });
   };
 
   // --- Validation and Submission ---
   const validate = (): boolean => {
-    const newErrors: Record<string, any> = {};
+    const newErrors: PartnerFormErrors = {}; // Use the specific type
+
     // Partner validation
     if (!formData.partner_name?.trim())
       newErrors.partner_name = "Le nom du partenaire est obligatoire.";
@@ -253,12 +311,12 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     if (!formData.status_id) newErrors.status_id = "La phase est obligatoire.";
 
     // Contact Person validation
-    const contactErrors: Record<number, Record<string, string>> = {};
+    const contactErrors: ContactPeopleErrors = {}; // Use the specific type
     if (!formData.contact_people || formData.contact_people.length === 0) {
       newErrors.contacts = "Au moins une personne de contact est requise.";
     } else {
       formData.contact_people.forEach((contact, index) => {
-        const errorsForContact: Record<string, string> = {};
+        const errorsForContact: ContactErrors = {}; // Use the specific type
         if (!contact.first_name?.trim())
           errorsForContact.first_name = "Le prénom est obligatoire.";
         if (!contact.last_name?.trim())
@@ -286,7 +344,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
       newErrors.partner_logo = "Le logo ne doit pas dépasser 2 Mo.";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 0 && (!newErrors.contact_people || Object.keys(newErrors.contact_people).length === 0);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -477,6 +535,7 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
                       Ajouter un contact
                     </Button>
                   </div>
+                  {errors.contacts && <p className="text-sm text-destructive mb-4">{errors.contacts}</p>}
                   <div className="space-y-6">
                     {(formData.contact_people || []).map((contact, index) => (
                       <div
