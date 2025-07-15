@@ -382,7 +382,7 @@ function Projects() {
                       Apport au projet:
                     </span>
                     <span className="ml-2 text-gray-900">
-                      {selectedPartner.pivot.partner_contribution} DH
+                      {selectedPartner.pivot.partner_contribution} %
                     </span>
                   </div>
                 )}

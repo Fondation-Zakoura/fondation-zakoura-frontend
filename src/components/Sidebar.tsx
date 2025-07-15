@@ -29,9 +29,8 @@ const Sidebar = ({ isSidebarToggled }: { isSidebarToggled: boolean }) => {
             </li>
            ))}
     </ul>
-    {toggleSubSidebar&&<SubSidebar itemId={activeMainMenuItemId} />
+    {toggleSubSidebar && <SubSidebar itemId={activeMainMenuItemId ?? ''} />}
 
-    }
    </div>
   )
 }

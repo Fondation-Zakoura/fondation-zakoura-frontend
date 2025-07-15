@@ -32,28 +32,28 @@ function App() {
         <Route path="projects/:id" element={<ShowProject />} />
         <Route path="projects/:id/edit" element={<EditProject />} />
         <Route
-          path="settings/finance/types/projects"
+          path="project-types"
           element={<ProjectTypesPage />}
         />
         <Route
-          path="settings/finance/statuses/projects"
+          path="project-statuses"
           element={<ProjectStatusesPage />}
         />
         <Route
-          path="settings/projects/bank-accounts"
+          path="/bank-accounts"
           element={<ProjectBankAccountsPage />}
         />
-        <Route path="partenariat/partenaires" element={<PartnersListPage />} />
+        <Route path="partners" element={<PartnersListPage />} />
         <Route
-          path="parametres/finance/types/natures-partenaires"
+          path="partner-natures"
           element={<NaturePartnersListPage />}
         />
         <Route
-          path="parametres/finance/types/structures-partenaires"
+          path="partner-structures"
           element={<StructurePartnersListPage />}
         />
         <Route
-          path="/parametres/operations/sites"
+          path="/sites"
           element={<SitesListPage />}
         />
         <Route
