@@ -21,12 +21,21 @@ import ProjectBankAccountsPage from './pages/project/ProjectBankAccountsPage';
 import BudgetCategoryPage from './pages/budget-category/BudgetCategoryPage';
 import BudgetLinePage from "./pages/budget-line/BudgetLinePage";
 import { UnitsListPage } from "./pages/units/UnitsListPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 
 function App() {
   return (
+    
     <Routes>
-      <Route path="/" element={<MainLayout />}>
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="projects" element={<Projects />} />
         <Route path="projects/add" element={<AddProject />} />
         <Route path="projects/:id" element={<ShowProject />} />

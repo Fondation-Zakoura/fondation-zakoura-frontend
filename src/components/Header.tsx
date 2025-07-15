@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CiMenuBurger } from "react-icons/ci";
 import userImage from "../../src/assets/images/candidates/0.jpg";
-import logo from "../assets/images/zakoura-logo.svg";
+import logo from "/zakoura-logo.svg";
 import { IoGridOutline } from "react-icons/io5";
 import { IoNotificationsOutline } from "react-icons/io5";
 import { PiToggleLeftFill } from "react-icons/pi";

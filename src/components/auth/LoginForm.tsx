@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { login } from "../../features/user/userSlice";
 import { useNavigate } from "react-router-dom";
 import girl from "../../../src/assets/images/login/girl.png"; // Assuming this path is correct
-import logo from "../../../src/assets/images/zakoura-logo.svg"; // Import the logo
+import logo from "/zakoura-logo.svg"; // Import the logo
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -105,7 +105,7 @@ const LoginForm = () => {
                 disabled={isLoading}
                 className=" py-3 text-sm lg:px-11 px-8 bg-[#00365a] hover:bg-[#001E31] cursor-pointer text-white font-semibold rounded-full transition-colors shadow-lg duration-200 disabled:opacity-60"
               >
-                Connextion
+                Connexion
               </button>
             </div>
             {error && (
