@@ -38,7 +38,8 @@ export interface Column<T> {
   align?: "left" | "center" | "right";
 }
 
-export interface ColumnFilter { // No need for generic T here, id is always a string for filter keys
+// FIX: Removed unused generic TData from ColumnFilter
+export interface ColumnFilter {
   id: string; // The filter key (e.g., "region", "status")
   label: string;
   options: { value: string | number; label: string }[];
@@ -48,7 +49,7 @@ export interface ColumnFilter { // No need for generic T here, id is always a st
 interface DataTableProps<T extends { id: string | number }> {
   columns: Column<T>[];
   data: T[];
-  columnFilters?: ColumnFilter[]; // Use the updated ColumnFilter type
+  columnFilters?: ColumnFilter[]; // FIX 1: No longer needs <T> here
   emptyText?: string;
   striped?: boolean;
   hoverEffect?: boolean;
@@ -61,12 +62,21 @@ interface DataTableProps<T extends { id: string | number }> {
   enableBulkDelete?: boolean;
   globalFilterKey?: keyof T; // globalFilterKey should directly refer to a key of T
   serverPagination?: boolean;
-  pageCount?: number;
-  pageIndex?: number;
+  pageCount?: number; // Total number of pages from server
+  pageIndex?: number; // Current page index (0-based) from server
+  totalItems?: number; // FIX 9: Add totalItems prop for server-side pagination display
   onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
-  onFilterChange?: Dispatch<SetStateAction<Record<string, string | string[]>>>;
+  // FIX 2: onFilterChange should match the signature of the handler in UnitsListPage
+  onFilterChange?: (filters: Record<string, string | string[]>) => void;
+  // FIX 3: Add onGlobalSearchChange and onSortChange props
+  onGlobalSearchChange?: (value: string) => void;
+  onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
+  // FIX 4: Add sortConfig and globalSearchTerm as controlled props
+  sortConfig?: { key: string; direction: "asc" | "desc" } | null;
+  globalSearchTerm?: string;
   selectedRows?: T[];
   onSelectedRowsChange?: Dispatch<SetStateAction<T[]>>;
+  isLoading?: boolean;
 }
 
 // --- REUSABLE DATA TABLE COMPONENT ---

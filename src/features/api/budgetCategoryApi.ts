@@ -2,8 +2,8 @@ import { baseApi } from "./api";
 
 export const budgetCategoryApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getBudgetCategories: builder.query<any, void>({
-            query: () => "/budget-categories",
+        getBudgetCategories: builder.query<any, { page?: number; per_page?: number }>({
+            query: ({ page = 1, per_page = 10 } = {}) => `/budget-categories?page=${page}&per_page=${per_page}`,
             providesTags: ["BudgetCategory"],
         }),
         addBudgetCategory: builder.mutation<any, any>({

@@ -23,6 +23,8 @@ import Collaborateurs from "./pages/collaborateurs/Collaborateurs";
 import ShowCollaborateur from "./pages/collaborateurs/ShowCollaborateur";
 import EditCollaborateur from "./pages/collaborateurs/EditCollaborateurModal";
 import AddCollaborateurs from "./pages/collaborateurs/AddCollaborateur";
+import BudgetLinePage from "./pages/budget-line/BudgetLinePage";
+import { UnitsListPage } from "./pages/units/UnitsListPage";
 
 
 function App() {
@@ -34,28 +36,28 @@ function App() {
         <Route path="projects/:id" element={<ShowProject />} />
         <Route path="projects/:id/edit" element={<EditProject />} />
         <Route
-          path="settings/finance/types/projects"
+          path="project-types"
           element={<ProjectTypesPage />}
         />
         <Route
-          path="settings/finance/statuses/projects"
+          path="project-statuses"
           element={<ProjectStatusesPage />}
         />
         <Route
-          path="settings/projects/bank-accounts"
+          path="/bank-accounts"
           element={<ProjectBankAccountsPage />}
         />
-        <Route path="partenariat/partenaires" element={<PartnersListPage />} />
+        <Route path="partners" element={<PartnersListPage />} />
         <Route
-          path="parametres/finance/types/natures-partenaires"
+          path="partner-natures"
           element={<NaturePartnersListPage />}
         />
         <Route
-          path="parametres/finance/types/structures-partenaires"
+          path="partner-structures"
           element={<StructurePartnersListPage />}
         />
         <Route
-          path="/parametres/operations/sites"
+          path="/sites"
           element={<SitesListPage />}
         />
         <Route
@@ -77,6 +79,12 @@ function App() {
         <Route
           path="/rh/collaborateurs/add"
           element={<AddCollaborateurs/>}
+          path="/budget-line"
+          element={<BudgetLinePage />}
+        />
+        <Route
+          path="/parametres/operations/unites"
+          element={<UnitsListPage />}
         />
       </Route>
       <Route path="/login" element={<LoginForm />} />

@@ -99,6 +99,11 @@ interface Site {
   local_operational_manager?: { id: number; name: string } | null;
 }
 
+
+
+
+
+// Options for Type select
 const typeOptions = [
   { value: "Rural", label: "Rural" },
   { value: "Urbain", label: "Urbain" },
@@ -153,7 +158,7 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   // Use the explicitly typed data from the users API
   const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
   // Ensure users is correctly typed as an array of User objects
-  const users: User[] = usersData?.users || [];
+  const users: User[] = usersData  || [];
 
   useEffect(() => {
     if (isOpen) {
@@ -205,33 +210,33 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   const handleRegionChange = useCallback((value: string) => {
     const id = value ? Number(value) : null;
     setSelectedRegionId(id);
-    setErrors((prev) => ({ ...prev, region: undefined, province: undefined, cercle: undefined, commune: undefined, douar: undefined }));
+    setErrors((prev) => ({ ...prev, region: '', province: '', cercle: '', commune: '', douar: '' }));
   }, []);
 
   const handleProvinceChange = useCallback((value: string) => {
     const id = value ? Number(value) : null;
     setSelectedProvinceId(id);
-    setErrors((prev) => ({ ...prev, province: undefined, cercle: undefined, commune: undefined, douar: undefined }));
+    setErrors((prev) => ({ ...prev, province: '', cercle: '', commune: '', douar: '' }));
   }, []);
 
   const handleCercleChange = useCallback((value: string) => {
     const id = value ? Number(value) : null;
     setSelectedCercleId(id);
-    setErrors((prev) => ({ ...prev, cercle: undefined, commune: undefined, douar: undefined }));
+    setErrors((prev) => ({ ...prev, cercle: '', commune: '', douar: '' }));
   }, []);
 
   const handleCommuneChange = useCallback((value: string) => {
     const id = value ? Number(value) : null;
     setSelectedCommuneId(id);
-    setFormData((prev) => ({ ...prev, commune_id: id }));
-    setErrors((prev) => ({ ...prev, commune: undefined, douar: undefined }));
+    setFormData((prev) => ({ ...prev, commune_id: id })); // Update formData for submission
+    setErrors((prev) => ({ ...prev, commune: '', douar: '' }));
   }, []);
 
   const handleDouarChange = useCallback((value: string) => {
     const id = value ? Number(value) : null;
     setSelectedDouarId(id);
-    setFormData((prev) => ({ ...prev, douar_id: id }));
-    setErrors((prev) => ({ ...prev, douar: undefined }));
+    setFormData((prev) => ({ ...prev, douar_id: id })); // Update formData for submission
+    setErrors((prev) => ({ ...prev, douar: '' }));
   }, []);
 
   const handleInputChange = useCallback(
@@ -244,10 +249,10 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
         if (newValue !== null && (isNaN(newValue) || newValue < -90 || newValue > 90)) {
           setErrors((prev) => ({ ...prev, [name]: `Veuillez entrer une valeur valide pour ${name}.` }));
         } else {
-          setErrors((prev) => ({ ...prev, [name]: undefined }));
+          setErrors((prev) => ({ ...prev, [name]: '' }));
         }
       } else {
-        setErrors((prev) => ({ ...prev, [name]: undefined }));
+        setErrors((prev) => ({ ...prev, [name]: '' })); // Clear error for this field
       }
 
       setFormData((prev) => ({ ...prev, [name]: newValue }));
@@ -257,18 +262,18 @@ export const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
 
   const handleGeneralSelectChange = useCallback((name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
   }, []);
 
   const handleManagerComboboxChange = useCallback((value: string) => {
     const id = value ? Number(value) : null;
     setFormData((prev) => ({ ...prev, local_operational_manager_id: id }));
-    setErrors((prev) => ({ ...prev, local_operational_manager_id: undefined }));
+    setErrors((prev) => ({ ...prev, local_operational_manager_id: '' }));
   }, []);
 
   const handleCountryComboboxChange = useCallback((selectedCode: string | null) => {
     setFormData((prev) => ({ ...prev, country: selectedCode || "" }));
-    setErrors((prev) => ({ ...prev, country: undefined }));
+    setErrors((prev) => ({ ...prev, country: '' }));
   }, []);
 
   const validate = (): boolean => {

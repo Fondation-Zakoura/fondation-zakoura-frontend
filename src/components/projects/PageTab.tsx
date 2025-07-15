@@ -1,4 +1,5 @@
 import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
 
 export const PageTab = ({ projectTitle, activeTab, setActiveTab }: { projectTitle: string; activeTab: string; setActiveTab: (tab: string) => void; }) => (
     <div className="mb-6">

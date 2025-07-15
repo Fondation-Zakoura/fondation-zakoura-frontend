@@ -24,19 +24,12 @@ import {
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 
-// Define the type for an individual option item (what's inside the 'data' array)
-// This is now effectively the same as FilterOption in partners.ts, but let's keep it
-// here for clarity of the RTK Query response structure.
 interface OptionItem {
   id: string | number;
   name: string;
+  data?: unknown;
 }
 
-// Define the type for the response from useGetOptionsQuery
-// This matches your ApiResponse<T> structure from partners.ts, with T being OptionItem
-interface GetOptionsResponse {
-  data: OptionItem[];
-}
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -73,32 +66,27 @@ const PartnersListPage: React.FC = () => {
 
   // RTK Query: Fetch filter options
   // Use GetOptionsResponse as the generic type for useGetOptionsQuery
-  const { data: naturesResponse } = useGetOptionsQuery<GetOptionsResponse>("nature-partners");
-  const { data: structuresResponse } = useGetOptionsQuery<GetOptionsResponse>("structure-partners");
-  const { data: statutsResponse } = useGetOptionsQuery<GetOptionsResponse>("status-partners");
-
+  const { data: natures } = useGetOptionsQuery("nature-partners");
+  const { data: structures } = useGetOptionsQuery("structure-partners");
+  const { data: statuts } = useGetOptionsQuery("status-partners");
   // Memoize partners list and derived filter options to prevent re-renders
   const allPartners = useMemo(() => partnersData?.data || [], [partnersData]);
 
   // Derive filter options inside useMemo and explicitly type them
   const filterOptions = useMemo(() => {
-    // Access the 'data' property from the RTK Query response, defaulting to an empty array
-    // This is correct based on GetOptionsResponse and ApiResponse<T>
-    const natures: OptionItem[] = naturesResponse?.data || [];
-    const structures: OptionItem[] = structuresResponse?.data || [];
-    const statuts: OptionItem[] = statutsResponse?.data || [];
+  const typeOptions: OptionItem[] = [
+    { id: "National", name: "National" },
+    { id: "International", name: "International" },
+  ];
 
-    const typeOptions: OptionItem[] = [
-      { id: "National", name: "National" },
-      { id: "International", name: "International" },
-    ];
-    return {
-      natures,
-      structures,
-      statuts,
-      types: typeOptions,
-    };
-  }, [naturesResponse, structuresResponse, statutsResponse]); // Depend on the raw data objects
+  return {
+    natures: natures || [],
+    structures: structures || [],
+    statuts: statuts || [],
+    types: typeOptions,
+  };
+}, [natures, structures, statuts]);
+
 
   // Prepare the filter configuration for the DataTable
   // Correct: ColumnFilter is NOT generic
@@ -364,7 +352,9 @@ const PartnersListPage: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {partnerToAction?.deleted_at ? "Confirmer la réactivation" : "Confirmer la désactivation"}
+              {partnerToAction?.deleted_at
+                ? "Confirmer la réactivation"
+                : "Confirmer la désactivation"}
             </DialogTitle>
             <DialogDescription>
               {partnerToAction?.deleted_at

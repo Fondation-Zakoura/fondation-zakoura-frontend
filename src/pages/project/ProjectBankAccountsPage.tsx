@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const emptyAccount: Omit<ProjectBankAccount, "supporting_document"> & {
   supporting_document: string | File;
@@ -68,12 +70,12 @@ const CURRENCIES = ["MAD", "EUR", "USD"];
 type FormType = typeof emptyAccount & { supporting_document: string | File };
 
 const ProjectBankAccountsPage: React.FC = () => {
-  const {
-    data: apiData,
-    isLoading,
-    refetch,
-  } = useGetProjectBankAccountsQuery();
-  const accounts = Array.isArray(apiData) ? apiData : apiData?.data || [];
+  const { data: apiData, isLoading, refetch } = useGetProjectBankAccountsQuery();
+  const accounts: ProjectBankAccount[] = Array.isArray(apiData)
+    ? apiData as ProjectBankAccount[]
+    : apiData && "data" in (apiData as { data: ProjectBankAccount[] })
+      ? (apiData as { data: ProjectBankAccount[] }).data
+      : [];
   console.log(accounts);
   const [createAccount] = useCreateProjectBankAccountMutation();
   const [updateAccount] = useUpdateProjectBankAccountMutation();
@@ -262,10 +264,12 @@ const ProjectBankAccountsPage: React.FC = () => {
       }
 
       await createAccount(payload).unwrap();
+      toast.success('Compte bancaire créé avec succès !');
       closeModal();
       refetch();
     } catch (err: any) {
       setError(err.data?.message || "Erreur lors de la création");
+      toast.error(err.data?.message || 'Erreur lors de la création');
     } finally {
       setAddLoading(false);
     }
@@ -317,10 +321,12 @@ const ProjectBankAccountsPage: React.FC = () => {
           formData,
         }).unwrap();
       }
+      toast.success('Compte bancaire modifié avec succès !');
       closeModal();
       refetch();
     } catch (err: any) {
       setError(err.data?.message || "Erreur lors de la modification");
+      toast.error(err.data?.message || 'Erreur lors de la modification');
     } finally {
       setEditLoading(false);
     }
@@ -330,16 +336,17 @@ const ProjectBankAccountsPage: React.FC = () => {
     if (!window.confirm("Supprimer ce compte bancaire ?")) return;
     setDeleteLoading(true);
     try {
-      await deleteAccount(account.id).unwrap();
+      await deleteAccount(account.id!).unwrap();
+      toast.success('Compte bancaire supprimé avec succès !');
       refetch();
     } catch (err: any) {
-      alert(err.data?.message || "Erreur lors de la suppression");
+      toast.error(err.data?.message || 'Erreur lors de la suppression');
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  const columnFilters = useMemo((): ColumnFilter<ProjectBankAccount>[] => {
+  const columnFilters = useMemo((): ColumnFilter[] => {
     const uniqueRibs = Array.from(
       new Set(accounts.map((a: { rib_iban: any }) => a.rib_iban))
     );
@@ -354,20 +361,17 @@ const ProjectBankAccountsPage: React.FC = () => {
       {
         id: "rib_iban",
         label: "RIB / IBAN",
-        options: uniqueRibs.map((rib) => ({ value: rib, label: rib })),
+        options: uniqueRibs.map((rib) => ({ value: String(rib), label: String(rib) })),
       },
       {
         id: "agency",
         label: "Agence",
-        options: uniqueAgencies.map((agency) => ({
-          value: agency,
-          label: agency,
-        })),
+        options: uniqueAgencies.map((agency) => ({ value: String(agency), label: String(agency) })),
       },
       {
         id: "bank",
         label: "Banque",
-        options: uniqueBanks.map((bank) => ({ value: bank, label: bank })),
+        options: uniqueBanks.map((bank) => ({ value: String(bank), label: String(bank) })),
       },
     ];
   }, [accounts]);
@@ -1269,6 +1273,7 @@ const ProjectBankAccountsPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
       <style>{`
 .loader {
   border: 2px solid #f3f3f3;

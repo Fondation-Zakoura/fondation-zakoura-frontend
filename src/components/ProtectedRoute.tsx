@@ -1,8 +1,9 @@
 // src/components/ProtectedRoute.tsx
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { RootState } from "../store"; // adjust path if needed
+import type { store } from "@/app/store";
+export type RootState = ReturnType<typeof store.getState>;
 
 interface Props {
   children: ReactNode;
