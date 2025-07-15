@@ -74,6 +74,11 @@ jobs:
               cd \"\$TIMESTAMP\"
               git config --local --add safe.directory \"\$RELEASES_DIR/\$TIMESTAMP\"
 
+              # Création du lien symbolique .env vers le fichier partagé
+              ln -s \"\$SHARED_DIR/.env\" .env
+              echo '.env est un lien symbolique vers :'
+              readlink -f .env
+
               # Nettoyage pour éviter conflits natives
               rm -rf node_modules package-lock.json
 
