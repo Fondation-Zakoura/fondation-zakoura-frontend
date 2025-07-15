@@ -21,7 +21,7 @@ export const partnersApi = createApi({
       }),
       providesTags: ['Partners'],
     }),
-    getOptions: builder.query<FilterOption[], string>({
+    getOptions: builder.query<ApiResponse<FilterOption>, string>({
       // Pass endpoints like 'nature-partners', 'structure-partners', 'status-partners'
       query: (endpoint) => `/${endpoint}`,
     }),
