@@ -1,5 +1,5 @@
 import type { Collaborateur, CollaborateurFormOptions, CollaborateursResponse } from '@/features/types/collaborateurs';
-import { baseApi } from './api';
+import { baseApi } from '@/features/api/api';
 
 type CollaborateursQueryParams = {
   page?: number;
@@ -54,7 +54,6 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
       }),
       invalidatesTags: ['Collaborateurs'],
     }),
-
     // Mise à jour
     updateCollaborateur: builder.mutation<any, { code: string; body: any }>({
           query: ({ code, body }) => ({

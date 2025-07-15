@@ -76,7 +76,7 @@ function App() {
         />
         <Route
           path="/rh/collaborateurs/add"
-          element={<AddCollaborateurs />}
+          element={<AddCollaborateurs/>}
         />
       </Route>
       <Route path="/login" element={<LoginForm />} />

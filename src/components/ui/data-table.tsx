@@ -28,8 +28,7 @@ import {
 } from "lucide-react";
 import { type Dispatch, type SetStateAction } from "react";
 
-// --- TYPE DEFINITIONS ---
-// Ensure Column and ColumnFilter are correctly typed
+
 export interface Column<T> {
   key: keyof T | string; // key can be a direct property of T or a string for nested access
   header: React.ReactNode;

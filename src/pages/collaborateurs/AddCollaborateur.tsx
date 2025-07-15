@@ -6,7 +6,6 @@ import {
 } from '@/layouts/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -250,18 +249,8 @@ const AddCollaborateurs: React.FC = () => {
         <Card className="p-8 space-y-6">
           {/* Civilité, Nom, Prénom, Nom arabe, Prénom arabe */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">Civilité</label>
-              <Select value={form.civilite} onValueChange={val => handleChange('civilite', val)} required>
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                    {civiliteOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div> 
+              <SelectField label='Civilité' value={form.civilite} options={civiliteOptions} onChange={val => handleChange('civilite', val)} />
             </div>
             <div>
               <label className="block text-gray-700 font-semibold mb-2">Nom</label>
@@ -308,15 +297,7 @@ const AddCollaborateurs: React.FC = () => {
           {/* Banque, R.I.B */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Banque</label>
-              <Select value={form.banque} onValueChange={val => handleChange('banque', val)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {banqueOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SelectField  label='Banque' value={form.banque} options={banqueOptions} onChange={val => handleChange('banque', val)} />
             </div>
             <InputField label="R.I.B" value={form.rib} onChange={val => handleChange('rib', val)} />
           </div>
@@ -460,3 +441,5 @@ const AddCollaborateurs: React.FC = () => {
 };
 
 export default AddCollaborateurs;
+
+ 

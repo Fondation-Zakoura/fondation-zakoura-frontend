@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
-import { DataTable, type Column, type ColumnFilter } from '@/components/ui/data-table';
+import { type Column, type ColumnFilter } from '@/components/ui/data-table';
+import {DataTable} from '@/components/ui/data-table';
 
 import {
   useGetCollaborateursQuery,
@@ -66,15 +67,18 @@ const Collaborateurs = () => {
   };
   
   const handleBulkDelete = async (ids: number[]) => {
-    try {
-      console.log('Suppression multiple pour les IDs:', ids);
-      await bulkDeleteCollaborateurs(ids).unwrap();
+  console.log('Suppression multiple pour les IDs:', ids);
+  bulkDeleteCollaborateurs(ids)
+    .unwrap()
+    .then(() => {
       console.log('Suppression multiple réussie pour les IDs:', ids);
-      setConfirmDeleteOpen(false); 
-    } catch (error) {
+      setConfirmDeleteOpen(false);
+    })
+    .catch((error) => {
       console.error('Erreur lors de la suppression multiple:', error);
-    }
-  };
+    });
+};
+
 
   const columns: Column<any>[] = [
     { key: 'civilite', header: 'Civilité', sortable: true },
