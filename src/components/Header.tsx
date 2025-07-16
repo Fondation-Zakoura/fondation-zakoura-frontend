@@ -112,7 +112,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     </button>
                     <AppLauncherDropdown isAppLauncherToggled={isAppLauncherToggled} />
                 </div>
-                <div className="relative">
+                <div className="relative  hidden lg:block">
                     <button
                         aria-label={`You have ${notificationCount} notifications`}
                         className="focus:outline-none align-middle"
@@ -141,7 +141,11 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                         aria-hidden="true"
                     />
                 </button>
+                <div
+                    className="relative cursor-pointer"
+                    onClick={handledropdownToggle}
                     ref={dropdownRef}
+                >
                     <img
                         src={userImage}
                         className="min-w-10 h-10 rounded-full "
