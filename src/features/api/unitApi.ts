@@ -93,7 +93,7 @@ export interface GetUnitsQueryParams {
 export const unitApi = createApi({
   reducerPath: 'unitApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:8000/api/',
+    baseUrl: `${import.meta.env.VITE_API_URL}/`,
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('token');
       if (token) {

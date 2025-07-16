@@ -4,7 +4,7 @@ import type{ Site, ApiResponse } from "@/types/site"; // Import from your types 
 export const sitesApi = createApi({
   reducerPath: 'sitesApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:8000/api',
+    baseUrl: `${import.meta.env.VITE_API_URL}`,
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('token');
       if (token) headers.set('Authorization', `Bearer ${token}`);

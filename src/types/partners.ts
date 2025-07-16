@@ -57,6 +57,11 @@ export interface FilterOption {
   name: string;
   data?: unknown;
 }
+export interface OptionItem {
+  id: number | string;
+  name: string;
+  data?: unknown;
+}
 
 export interface ApiResponse<T> {
   data: T[];

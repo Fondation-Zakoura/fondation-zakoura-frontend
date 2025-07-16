@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Plus, Trash2, Eye, Pencil, RotateCw } from "lucide-react";
 import { AddEditPartnerModal } from "../components/partners/AddEditPartnerModal";
 import { PartnerDetailsModal } from "../components/partners/PartnersTable";
-import type { Partner } from "../types/partners"; // Assuming 'Partner' is defined here
+import type { Partner  , OptionItem} from "../types/partners"; // Assuming 'Partner' is defined here
 import {
   useGetPartnersQuery,
   useAddPartnerMutation,
@@ -23,13 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
-
-interface OptionItem {
-  id: string | number;
-  name: string;
-  data?: unknown;
-}
-
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -71,21 +64,27 @@ const PartnersListPage: React.FC = () => {
   const { data: statuts } = useGetOptionsQuery("status-partners");
   // Memoize partners list and derived filter options to prevent re-renders
   const allPartners = useMemo(() => partnersData?.data || [], [partnersData]);
+  // Inside PartnersListPage, before the filterOptions useMemo
+console.log("Natures data:", natures);
+console.log("Structures data:", structures);
+console.log("Statuts data:", statuts);
 
   // Derive filter options inside useMemo and explicitly type them
-  const filterOptions = useMemo(() => {
-  const typeOptions: OptionItem[] = [
-    { id: "National", name: "National" },
-    { id: "International", name: "International" },
-  ];
+// Derive filter options inside useMemo and explicitly type them
+const filterOptions = useMemo(() => {
+    const typeOptions: OptionItem[] = [
+        { id: "National", name: "National" },
+        { id: "International", name: "International" },
+    ];
 
-  return {
-    natures: natures || [],
-    structures: structures || [],
-    statuts: statuts || [],
-    types: typeOptions,
-  };
-}, [natures, structures, statuts]);
+    return {
+
+        natures: natures?.data || [],
+        structures: structures?.data || [],
+        statuts: statuts?.data || [],
+        types: typeOptions,
+    };
+}, [natures, structures, statuts]); // This dependency array is correct
 
 
   // Prepare the filter configuration for the DataTable
