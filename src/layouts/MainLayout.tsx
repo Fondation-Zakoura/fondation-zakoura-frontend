@@ -1,8 +1,8 @@
 // MainLayout.tsx
-import React, { useState, useRef, useEffect } from "react";
-import Header from "../components/Header"; // Assuming Header.tsx
-import { Link, Outlet } from "react-router-dom";
-import Sidebar from "../components/Sidebar"; // Assuming Sidebar.tsx
+import React, { useState, useRef, useEffect } from 'react';
+import Header from '../components/Header'; // Assuming Header.tsx
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../components/Sidebar'; // Assuming Sidebar.tsx
 
 /**
  * MainLayout component provides the primary layout structure for the application,
@@ -33,7 +33,7 @@ const MainLayout: React.FC = () => {
   // Ref for the menu button DOM node
   // Assuming the menu button is a <button> element, type as HTMLButtonElement
   // If it's a <div> or another element acting as a button, adjust the type accordingly (e.g., HTMLDivElement)
-  const menuButtonRef = useRef<HTMLButtonElement>(null); // Typed useRef to HTMLButtonElement
+  const menuButtonRef = useRef<HTMLButtonElement>(null) ; // Typed useRef to HTMLButtonElement
 
   // Function to toggle the sidebar open/closed
   const handleSidebarToggle = () => {
@@ -66,8 +66,9 @@ const MainLayout: React.FC = () => {
   }, [isSidebarToggled]);
 
   return (
-    <div className="h-full">
-      <header className="fixed w-full z-50 ">
+    <div className='h-full'>
+
+      <header className='fixed w-full z-50 '>
         {/* Pass typed props to Header component */}
         <Header
           handleSidebarToggle={handleSidebarToggle}
@@ -77,15 +78,13 @@ const MainLayout: React.FC = () => {
       {/* Sidebar with transition and toggle functionality */}
       <aside
         ref={sidebarRef}
-        className={`h-full fixed pt-17 z-20 ${
-          isSidebarToggled ? "translate-x-0" : "-translate-x-84 "
-        } transition-all ease-in-out duration-400`}
+        className={`h-full fixed pt-17 ${isSidebarToggled ? "translate-x-0" : "-translate-x-84 "} transition-all ease-in-out duration-400`}
       >
         {/* Pass typed props to Sidebar component */}
         <Sidebar isSidebarToggled={isSidebarToggled} />
       </aside>
       {/* Main content area where routed components are rendered */}
-      <main className="relative top-24 lg:mx-3">
+      <main className=''>
         <Outlet />
       </main>
     </div>
@@ -93,47 +92,3 @@ const MainLayout: React.FC = () => {
 };
 
 export default MainLayout;
-
-// PageHeaderLayout: A reusable header for pages with breadcrumbs
-export interface Breadcrumb {
-  label: string;
-  active?: boolean;
-  url?: string;
-}
-
-interface PageHeaderLayoutProps {
-  title: string;
-  breadcrumbs: Breadcrumb[];
-  className?: string;
-  children?: React.ReactNode;
-}
-
-export const PageHeaderLayout: React.FC<PageHeaderLayoutProps> = ({
-  title,
-  breadcrumbs,
-  className = "",
-  children,
-}) => (
-  <div className={`mb-8 ${className}`}>
-    <h2 className="text-2xl font-bold text-[#0B2447] mb-1">{title}</h2>
-    <div className="text-sm text-gray-400 flex flex-wrap items-center gap-1">
-      {breadcrumbs.map((bc, idx) => (
-        <React.Fragment key={idx}>
-          {idx > 0 && <span className="mx-1">|</span>}
-          {bc.url ? (
-            <Link to={bc.url}>
-              <span className={bc.active ? "text-[#19376D] font-semibold" : ""}>
-                {bc.label}
-              </span>
-            </Link>
-          ) : (
-            <span className={bc.active ? "text-[#19376D] font-semibold" : ""}>
-              {bc.label}
-            </span>
-          )}
-        </React.Fragment>
-      ))}
-    </div>
-    {children}
-  </div>
-);
