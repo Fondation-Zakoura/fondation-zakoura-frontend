@@ -1,6 +1,6 @@
 // features/api/api.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
- 
+
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
@@ -10,10 +10,30 @@ export const baseApi = createApi({
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
       }
-      headers.set("Accept", 'Application/json');
+      headers.set("Accept", "Application/json");
       return headers;
     },
   }),
-  tagTypes: ["Category", "User",'BudgetLine','BudgetCategory'],
+  tagTypes: [
+    "Category",
+    "User",
+    "BudgetLine",
+    "BudgetCategory",
+    "Partners",
+    "Units",
+    "StatusPartners",
+    "StructurePartners",
+    "NaturePartners",
+    "Sites",
+    "Regions",
+    "Provinces",
+    "Communes",
+    "Douar",
+    "Region",
+    "Province",
+    "Cercle",
+    "Commune",
+    "Douar",
+  ] as const,
   endpoints: () => ({}),
 });

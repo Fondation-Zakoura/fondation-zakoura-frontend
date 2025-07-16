@@ -1,26 +1,11 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { baseApi } from './api'; 
+import type { NaturePartner, NaturePartnersApiResponse } from '@/types/naturePartners'; // Import the new type definition
 
-export interface NaturePartner {
-  id: number;
-  name: string;
-}
-
-export const naturePartnersApi = createApi({
-  reducerPath: 'naturePartnersApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${import.meta.env.VITE_API_URL}`,
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      headers.set('Accept', 'application/json');
-      return headers;
-    },
-  }),
-  tagTypes: ['NaturePartners'],
+export const naturePartnersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getNaturePartners: builder.query<NaturePartner[], void>({
+    getNaturePartners: builder.query<NaturePartnersApiResponse, void>({
       query: () => '/nature-partners',
-      transformResponse: (response: { data: NaturePartner[] }) => response.data,
+      transformResponse: (response: NaturePartnersApiResponse) => response, 
       providesTags: ['NaturePartners'],
     }),
     addNaturePartner: builder.mutation<NaturePartner, { name: string }>({

@@ -1,17 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { baseApi } from './api'; // Adjust the path as per your project structure
 import type{  UserApiResponse } from '@/types/users';
 
-export const usersApi = createApi({
-  reducerPath: 'usersApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${import.meta.env.VITE_API_URL}`,
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      headers.set('Accept', 'application/json');
-      return headers;
-    },
-  }),
+export const usersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query<UserApiResponse, void>({
       query: () => '/users',

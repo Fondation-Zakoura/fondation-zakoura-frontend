@@ -1,42 +1,31 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type{ Site, ApiResponse } from "@/types/site"; // Import from your types file
+// src/features/api/sitesApi.ts
+import { baseApi } from './api';
+import type { Site, ApiResponse } from "@/types/site";
 
-export const sitesApi = createApi({
-  reducerPath: 'sitesApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${import.meta.env.VITE_API_URL}`,
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      headers.set('Accept', 'application/json');
-      return headers;
-    },
-  }),
-  tagTypes: ['Sites'],
+export const sitesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getSites: builder.query<ApiResponse<Site>, { filters: Record<string, string | string[]>; page?: number }>({
       query: ({ filters, page = 1 }) => {
-        const params: Record<string, string | number | string[]> = { page };
+        const params: Record<string, string | number | string[]> = { page: String(page) };
 
-        // Process filters for backend compatibility
         for (const key in filters) {
           if (Object.prototype.hasOwnProperty.call(filters, key)) {
             const value = filters[key];
-            if (value !== null && value !== undefined && value !== '') { // Ensure value is not empty
-              // Example: If 'region.name' filter is sent from frontend
-              // Your backend might expect 'region_name' or 'region_id'
-              // Adjust this logic based on your actual backend API's filter parameter names
-              if (key === 'region.name') {
-                // If your backend expects a specific parameter for region name
-                // For example, if your backend uses 'region_name' for filtering by name:
-                params['region_name'] = value;
-                // Or if it expects 'region_id' and you need to look up the ID:
-                // This would require fetching regions and mapping name to ID,
-                // which is often better handled on the backend or in a pre-processing step.
-                // For now, assuming your backend can handle 'region_name' or similar if not 'region.name' directly.
+            if (value !== null && value !== undefined && value !== '') {
+              // --- FIX START ---
+              // Map frontend filter keys to backend parameter names
+              if (key === 'commune.cercle.province.region.name') {
+                params['region_name'] = value; // Your backend likely expects 'region_name' or similar
+              } else if (key === 'commune.cercle.province.name') {
+                params['province_name'] = value; // Assuming filter by province name
+              } else if (key === 'commune.cercle.name') {
+                params['cercle_name'] = value; // Assuming filter by cercle name
+              } else if (key === 'commune.name') {
+                params['commune_name'] = value; // Assuming filter by commune name
               } else {
-                params[key] = value;
+                params[key] = value; // Use the key as-is for other filters like 'type', 'status', 'educator'
               }
+              // --- FIX END ---
             }
           }
         }
@@ -45,7 +34,11 @@ export const sitesApi = createApi({
           params: params,
         };
       },
-      providesTags: ['Sites'],
+      transformResponse: (response: ApiResponse<Site>) => response,
+      providesTags: (result) =>
+        result
+          ? [...result.data.map(({ id }) => ({ type: 'Sites' as const, id })), 'Sites']
+          : ['Sites'],
     }),
     addSite: builder.mutation<Site, FormData>({
       query: (data) => ({
@@ -58,19 +51,20 @@ export const sitesApi = createApi({
     updateSite: builder.mutation<Site, { id: number; data: FormData }>({
       query: ({ id, data }) => ({
         url: `/sites/${id}`,
-        method: 'POST', // Use POST for FormData with _method=PUT
+        method: 'POST',
         body: (() => {
-          data.append('_method', 'PUT'); // Laravel expects this for PUT with FormData
+          data.append('_method', 'PUT');
           return data;
         })(),
       }),
-      invalidatesTags: ['Sites'],
+      // FIX: Prefix 'result' and 'error' with an underscore
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Sites' as const, id }],
     }),
     deleteSites: builder.mutation<void, number[]>({
       query: (ids) => ({
         url: '/sites/bulk-delete',
         method: 'POST',
-        body: { ids }, // Send an array of IDs
+        body: { ids },
       }),
       invalidatesTags: ['Sites'],
     }),

@@ -1,5 +1,4 @@
-// features/api/unitApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { baseApi } from './api';
 
 export interface Site {
   id: number;
@@ -54,6 +53,7 @@ export type UnitFormData = Omit<
   'id' | 'unit_id' | 'created_at' | 'updated_at' | 'deleted_at' | 'site' | 'educator' | 'creator'
 >;
 
+
 export interface PaginatedUnitsResponse {
   current_page: number;
   data: Unit[];
@@ -90,19 +90,8 @@ export interface GetUnitsQueryParams {
   sortDirection?: 'asc' | 'desc';
 }
 
-export const unitApi = createApi({
-  reducerPath: 'unitApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${import.meta.env.VITE_API_URL}/`,
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
-  tagTypes: ['Units'],
+export const unitApi = baseApi.injectEndpoints({
+
   endpoints: (builder) => ({
     getUnits: builder.query<PaginatedUnitsResponse, GetUnitsQueryParams>({
       query: ({ page = 1, per_page = 15, filters = {}, globalSearch, sortBy, sortDirection }) => {
@@ -128,6 +117,7 @@ export const unitApi = createApi({
         });
         return `units?${params.toString()}`;
       },
+      // Ensure 'Units' tag is defined in the global baseApi's tagTypes
       providesTags: (result) =>
         result
           ? [
@@ -139,6 +129,7 @@ export const unitApi = createApi({
 
     getUnitById: builder.query<Unit, number>({
       query: (id) => `units/${id}`,
+      // Ensure 'Units' tag is defined in the global baseApi's tagTypes
       providesTags: (_, __, id) => [{ type: 'Units', id }],
     }),
 
@@ -152,6 +143,7 @@ export const unitApi = createApi({
         method: 'POST',
         body: newUnitData,
       }),
+      // Ensure 'Units' tag is defined in the global baseApi's tagTypes
       invalidatesTags: [{ type: 'Units', id: 'LIST' }],
     }),
 
@@ -161,7 +153,8 @@ export const unitApi = createApi({
         method: 'POST', // Assumes _method workaround for PUT/PATCH
         body: data,
       }),
-      invalidatesTags: (_, __, { id }) => [
+      // Ensure 'Units' tag is defined in the global baseApi's tagTypes
+      invalidatesTags: (_result, _error, { id }) => [
         { type: 'Units', id },
         { type: 'Units', id: 'LIST' },
       ],
@@ -173,6 +166,7 @@ export const unitApi = createApi({
         method: 'POST',
         body: { unit_ids: ids },
       }),
+      // Ensure 'Units' tag is defined in the global baseApi's tagTypes
       invalidatesTags: [{ type: 'Units', id: 'LIST' }],
     }),
   }),
