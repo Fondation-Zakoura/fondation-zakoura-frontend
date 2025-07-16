@@ -8,7 +8,7 @@ import {
 } from '@/features/api/budgetCategoryApi';
 import type { BudgetCategory } from '@/features/types/budgetCategory';
 import { Button } from '@/components/ui/button';
-import { Plus, Pen, Eye, Trash} from 'lucide-react';
+import { Plus, Pen, Trash} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -92,17 +92,7 @@ const BudgetCategoryPage: React.FC = () => {
     setSelected(category);
     setModal('edit');
   };
-  const openShow = (category: BudgetCategory & { id?: number }) => {
-    setSelected({
-      ...category,
-      budgetary_area: typeof category.budgetary_area === 'string'
-        ? (category.budgetary_area as string).split(',').map((s: string) => s.trim()).filter(Boolean)
-        : Array.isArray(category.budgetary_area)
-          ? category.budgetary_area
-          : [],
-    });
-    setModal('show');
-  };
+ 
   const closeModal = () => {
     setModal(null);
     setSelected(null);

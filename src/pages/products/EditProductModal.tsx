@@ -24,13 +24,13 @@ import {
   useShowProductQuery,
   useUpdateProductMutation,
 } from "@/features/api/products";
-import { useGetCategoriesQuery } from "@/features/api/categories";
 import { useGetProductTypesQuery } from "@/features/api/product_types";
+import { useGetCategoriesQuery } from "@/features/api/categoriesApi";
 
 type EditProductModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  productId: string;
+  productId: number;
 };
 
 const EditProductModal = ({
@@ -40,7 +40,7 @@ const EditProductModal = ({
 }: EditProductModalProps) => {
   const { data: productData, isLoading: isFetchingDetails } = useShowProductQuery(productId);
   const { data: categoriesData } = useGetCategoriesQuery({ page: 1, perPage: 100 });
-  const { data: productTypesData } = useGetProductTypesQuery();
+  const { data: productTypesData } = useGetProductTypesQuery({ page: 1, perPage: 100 });
 
   const [updateProduct, { isLoading: isUpdating, isError }] = useUpdateProductMutation();
 
@@ -53,15 +53,14 @@ const EditProductModal = ({
   });
 
   useEffect(() => {
-    const details = productData?.data || productData;
+    const details = productData && 'data' in productData ? productData.data : productData;
     if (details) {
       setFormData({
         name: details.name || "",
         description: details.description || "",
         status: String(details.status ?? "1"),
         category_id: details.category_id ? String(details.category_id) : "",
-  product_type_id: details.product_type_id ? String(details.product_type_id) : "",
-
+        product_type_id: details.product_type_id ? String(details.product_type_id) : "",
       });
     }
   }, [productData]);
@@ -81,11 +80,11 @@ const EditProductModal = ({
     }
 
     const payload = {
-      product_id: productId,
+      product_id: Number(productId),
       name: formData.name,
       description: formData.description,
       status: Number(formData.status),
-      category_id: formData.category_id,
+      category_id: Number(formData.category_id),
       product_type_id: Number(formData.product_type_id),
     };
 
@@ -136,7 +135,7 @@ const EditProductModal = ({
             <div className="space-y-2">
               <Label>Catégorie</Label>
               <Combobox
-                options={categoriesData?.data?.map((cat) => ({
+                options={categoriesData?.data?.map((cat: { name: string; category_id: number }) => ({
                   label: cat.name,
                   value: String(cat.category_id),
                 }))}

@@ -7,32 +7,44 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useShowCategoryQuery } from "../../features/api/categories";
-
-const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
+import { useShowCategoryQuery } from "@/features/api/categoriesApi";
+ 
+interface ViewCategoryModalProps {
+  categoryId: number;
+  isOpen: boolean;
+  onClose: () => void;
+}
+ 
+const ViewCategoryModal: React.FC<ViewCategoryModalProps> = ({
+  categoryId,
+  isOpen,
+  onClose,
+}) => {
   const { data, error, isLoading } = useShowCategoryQuery(categoryId, {
     skip: !categoryId,
   });
-
+ 
   if (!isOpen) return null;
-
-  // Your original logic to handle nested or direct data
-  const categoryDetails = data ? (data.data || data) : null;
-
+ 
+  const categoryDetails = data?.data ?? null;
+  const status = categoryDetails?.deleted_at === null ? "Actif" : "Inactif";
+  const statusColor =
+    categoryDetails?.deleted_at === null ? "text-green-600" : "text-red-600";
+ 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Détails de la catégorie</DialogTitle>
         </DialogHeader>
-
+ 
         {isLoading && (
           <p className="text-sm text-muted-foreground">Chargement...</p>
         )}
         {error && (
           <p className="text-sm text-red-500">Erreur lors du chargement.</p>
         )}
-
+ 
         {!isLoading && !error && categoryDetails && (
           <div className="space-y-4 mt-4 text-sm">
             <div className="border rounded-lg p-4 bg-gray-50">
@@ -50,13 +62,7 @@ const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
               </div>
               <div className="flex justify-between mt-2">
                 <span className="font-medium text-gray-700">Statut</span>
-                <span
-                  className={`font-semibold ${
-                    categoryDetails.status === 1 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {categoryDetails.status === 1 ? "Actif" : "Inactif"}
-                </span>
+                <span className={`font-semibold ${statusColor}`}>{status}</span>
               </div>
               <div className="flex justify-between mt-2">
                 <span className="font-medium text-gray-700">Créé le</span>
@@ -69,7 +75,7 @@ const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
             </div>
           </div>
         )}
-
+ 
         <DialogFooter className="mt-6">
           <Button variant="outline" onClick={onClose}>
             Fermer
@@ -79,5 +85,6 @@ const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
     </Dialog>
   );
 };
-
+ 
 export default ViewCategoryModal;
+ 

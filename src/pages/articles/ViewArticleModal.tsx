@@ -1,4 +1,3 @@
-import React, { useEffect } from 'react'
 import { DialogTitle,DialogContent,DialogFooter,DialogHeader,Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button';
 import { useShowArticleQuery } from '@/features/api/articles';
@@ -8,7 +7,7 @@ type viewArticleModalProps = {
   articleId: number;
 };
 const ViewArticleModal = ({isOpen,articleId,onClose}:viewArticleModalProps) => {
-  const {data:articleData,isLoading,error,isError}=useShowArticleQuery(articleId);
+  const {data:articleData,isLoading,error}=useShowArticleQuery(articleId);
 
     const details=articleData?(articleData.data || articleData):null;
     

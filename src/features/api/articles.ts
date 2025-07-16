@@ -49,7 +49,7 @@ export const articlesApi = baseApi.injectEndpoints({
    updateArticle: builder.mutation<
   any,
   {
-    id: string;
+    id?: string;
     product_id: number;
     name: string;
     specifications?: string;

@@ -19,13 +19,13 @@ export default function ProductsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, _setCurrentPage] = useState(1);
+  const [rowsPerPage, _setRowsPerPage] = useState(10);
 
   // Data fetching
   const { data: productData, isLoading, isError, refetch } = useGetProductsQuery({
@@ -36,16 +36,15 @@ export default function ProductsPage() {
   const [deleteProducts] = useDeleteProductsMutation();
   const [deleteProduct] = useDeleteProductMutation();
 
-  const handleAddOpen = () => setIsAddModalOpen(true);
-  const handleEdit = (row) => {
+  const handleEdit = (row: { product_id: number }) => {
     setSelectedProductId(row.product_id);
     setIsEditModalOpen(true);
   };
-  const handleView = (row) => {
+  const handleView = (row: { product_id: number }) => {
     setSelectedProductId(row.product_id);
     setIsViewModalOpen(true);
   };
-  const handleDeleteClick = useCallback((row) => {
+  const handleDeleteClick = useCallback((row: { product_id: number }) => {
   setDeleteId(row.product_id);
 }, []);
 const handleCloseModal = () => {
@@ -65,11 +64,11 @@ const handleCloseModal = () => {
 };
 
 
-  const handleBulkDelete = async (ids) => {
+  const handleBulkDelete = async (ids: number[]) => {
     if (ids.length === 0) return;
     if (!window.confirm(`Supprimer ${ids.length} produits sélectionnés?`)) return;
     try {
-      await deleteProducts({ ids }).unwrap();
+      await deleteProducts({ ids: ids.map(String) }).unwrap();
       refetch();
     } catch (err) {
       console.error("Erreur suppression multiple:", err);
@@ -102,7 +101,7 @@ const handleCloseModal = () => {
       key: "status",
       header: "Statut",
       sortable: true,
-      render: (row) => (
+      render: (row: { id: number; product_id: number; name: string; description: string; category: string; type: string; status?: number }) => (
         <span
           className={`px-2 py-1 text-xs rounded-full ${
             row.status === 1
@@ -117,7 +116,7 @@ const handleCloseModal = () => {
     {
       key: "actions",
       header: "Actions",
-      render: (row) => (
+      render: (row: { product_id: number }) => (
         <div className="flex gap-2">
           <button
             className="text-gray-600 hover:text-blue-600"
@@ -175,6 +174,7 @@ const handleCloseModal = () => {
 
   ];
 
+  if (isLoading) return <div className="text-center py-8 text-lg text-gray-500">Chargement des produits...</div>;
   if (isError) return <p>Erreur lors du chargement des produits.</p>;
 
   return (
@@ -204,19 +204,8 @@ const handleCloseModal = () => {
         hoverEffect
         globalFilterKey="name"
         initialPageSize={5}
-        onBulkDelete={(selectedIds) => handleBulkDelete(selectedIds)}
-        onRowClick={(row) => handleView(row)}
-        pagination={{
-        server: true,
-        totalRows: productData?.pagination?.total ?? 0,
-        currentPage,
-        rowsPerPage,
-        onPageChange: setCurrentPage,
-        onRowsPerPageChange: (perPage) => {
-          setRowsPerPage(perPage);
-          setCurrentPage(1);
-        },
-      }}
+        onBulkDelete={(selectedIds: number[]) => handleBulkDelete(selectedIds)}
+        onRowClick={(row: { product_id: number }) => handleView(row)}
       />
 
       {isAddModalOpen && (
@@ -226,19 +215,19 @@ const handleCloseModal = () => {
           title="Ajouter un produit "
         />
       )}
-      {isEditModalOpen && selectedProductId && (
+      {isEditModalOpen && selectedProductId !== null && (
         <EditProductModal
           key={selectedProductId}
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          productId={selectedProductId}
+          productId={selectedProductId as number}
         />
       )}
       {isViewModalOpen && (
         <ViewProductModal
           isOpen={isViewModalOpen}
           onClose={() => setIsViewModalOpen(false)}
-          productId={selectedProductId}
+          productId={selectedProductId as number}
         />
       )}
       <DeleteConfirmationModal

@@ -34,6 +34,9 @@ export const baseApi = createApi({
     "Cercle",
     "Commune",
     "Douar",
+    "Product",
+    "Articles",
+    "ProductType"
   ] as const,
   endpoints: () => ({}),
 });

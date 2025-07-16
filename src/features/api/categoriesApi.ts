@@ -1,16 +1,10 @@
-// src/features/api/categoriesApi.ts
-
+import type { Category, CategoryDeleteParams, CategoryMutationParams, CategoryQueryParams, CategoryResponse } from "../types/categories";
 import { baseApi } from "./api";
-import type {
-  Category,
-  CategoryDeleteParams,
-  CategoryMutationParams,
-  CategoryQueryParams,
-  CategoryResponse,
-} from "@/types/categories";
 
+ 
 export const categoriesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // 🔹 Get paginated category list
     getCategories: builder.query<CategoryResponse, CategoryQueryParams>({
       query: ({ page, perPage, search, withTrashed }) => {
         const params = new URLSearchParams({
@@ -19,7 +13,7 @@ export const categoriesApi = baseApi.injectEndpoints({
         });
         if (search) params.append("search", search);
         if (withTrashed) params.append("with_trashed", "true");
-
+ 
         return `categories?${params.toString()}`;
       },
       providesTags: (result) =>
@@ -33,64 +27,60 @@ export const categoriesApi = baseApi.injectEndpoints({
             ]
           : [{ type: "Category", id: "LIST" }],
     }),
-
-    showCategory: builder.query<Category, { id: number; withTrashed?: boolean }>({
-      query: ({ id, withTrashed }) => {
-        const params = new URLSearchParams();
-        if (withTrashed) params.append("with_trashed", "true");
-
-        return `/categories/${id}?${params.toString()}`;
-      },
-      providesTags: (result) =>
-        result ? [{ type: "Category", id: result.category_id }] : [],
+ 
+    // 🔹 Get single category by ID
+    showCategory: builder.query<{ data: Category }, number>({
+      query: (id) => `categories/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Category", id }],
     }),
-
-    addCategory: builder.mutation<Category, Omit<CategoryMutationParams, "category_id">>({
+ 
+    // 🔹 Create new category
+    addCategory: builder.mutation<Category, Partial<Category>>({
       query: (newCategory) => ({
-        url: "/categories",
+        url: "categories",
         method: "POST",
         body: newCategory,
       }),
       invalidatesTags: [{ type: "Category", id: "LIST" }],
     }),
-
+ 
+    // 🔹 Update category with separated mutation params
     updateCategory: builder.mutation<Category, CategoryMutationParams>({
       query: ({ category_id, ...body }) => ({
-        url: `/categories/${category_id}`,
+        url: `categories/${category_id}`,
         method: "PUT",
         body,
       }),
       invalidatesTags: (_result, _error, { category_id }) => [
-  { type: "Category", id: category_id },
-  { type: "Category", id: "LIST" },
-],
+        { type: "Category", id: category_id },
+        { type: "Category", id: "LIST" },
+      ],
     }),
-
-    deleteCategories: builder.mutation<void, CategoryDeleteParams>({
+ 
+    // 🔹 Bulk delete categories
+    deleteCategories: builder.mutation<{ success: boolean; ids: number[] }, CategoryDeleteParams>({
       query: ({ ids }) => ({
-        url: "/categories/bulk-delete",
+        url: "categories/bulk-delete",
         method: "POST",
         body: { ids },
       }),
       invalidatesTags: [{ type: "Category", id: "LIST" }],
     }),
-
-    deleteCategory: builder.mutation<void, number>({
+ 
+    // 🔹 Delete single category
+    deleteCategory: builder.mutation<{ success: boolean; id: number }, number>({
       query: (id) => ({
-        url: `/categories/${id}`,
+        url: `categories/${id}`,
         method: "DELETE",
       }),
-     invalidatesTags: (_result, _error, id: number | undefined) =>
-  id !== undefined
-    ? [
+      invalidatesTags: (_result, _error, id) => [
         { type: "Category", id },
         { type: "Category", id: "LIST" },
-      ]
-    : [],
+      ],
     }),
   }),
 });
-
+ 
 export const {
   useGetCategoriesQuery,
   useShowCategoryQuery,
@@ -99,3 +89,4 @@ export const {
   useDeleteCategoriesMutation,
   useDeleteCategoryMutation,
 } = categoriesApi;
+ 

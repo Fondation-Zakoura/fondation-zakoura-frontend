@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetProductTypeByIdQuery, useUpdateProductTypeMutation } from "../../features/api/product_types";
 
-export default function EditProductTypeModal({ isOpen, onClose, productTypeId }) {
+type EditProductTypeModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  productTypeId: number;
+};
+
+export default function EditProductTypeModal({ isOpen, onClose, productTypeId }: EditProductTypeModalProps) {
   const { data:productData, isLoading: isLoadingData } = useGetProductTypeByIdQuery(productTypeId, { skip: !productTypeId });
   const [name, setName] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [updateProductType, { isLoading: isUpdating }] = useUpdateProductTypeMutation();
 
 useEffect(() => {
@@ -26,7 +32,7 @@ useEffect(() => {
   }
 }, [productData]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!name.trim()) {
@@ -34,7 +40,7 @@ useEffect(() => {
       return;
     }
     try {
-      await updateProductType({ id: productTypeId, name }).unwrap();
+      await updateProductType({ product_type_id: productTypeId, name }).unwrap();
       onClose();
     } catch (err) {
         

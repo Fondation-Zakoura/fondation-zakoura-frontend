@@ -1,95 +1,97 @@
 import { baseApi } from "./api";
-
-// 1. Updated interface to match your exact table columns
-interface Product {
-  id: number;
-  product_id: number;
-  name: string;
-  description: string;
-  status: number;
-  created_at: string;
-  updated_at: string;
-
-
-  category_id: number;
-  category_name: string;    
-  product_type_id: number;    
-  product_type_name: string;  
-}
-
+import type {
+  Product,
+  ProductQueryParams,
+  ProductResponse,
+  ProductMutationParams,
+  ProductDeleteParams,
+} from "@/types/products";
+ 
 export const productsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProducts: builder.query<any, { page: number; perPage: number; search?: string }>({
-      query: ({ page, perPage, search }) => {
+    // 🔹 Fetch paginated product list
+    getProducts: builder.query<ProductResponse, ProductQueryParams>({
+      query: ({ page, perPage, search, withTrashed }) => {
         const params = new URLSearchParams({
           page: page.toString(),
-          limit: perPage.toString(),
+          per_page: perPage.toString(),
         });
-        if (search) {
-          params.append('search', search);
-        }
+        if (search) params.append("search", search);
+        if (withTrashed) params.append("with_trashed", "true");
+ 
         return `products?${params.toString()}`;
       },
-      // 2. Updated to use `product_id` for tagging the cache
       providesTags: (result) =>
         result?.data
           ? [
-              ...result.data.map(({ product_id }) => ({ type: 'Product' as const, id: product_id })),
-              { type: 'Product', id: 'LIST' },
+              ...result.data.map(({ product_id }) => ({
+                type: "Product" as const,
+                id: product_id,
+              })),
+              { type: "Product", id: "LIST" },
             ]
-          : [{ type: 'Product', id: 'LIST' }],
+          : [{ type: "Product", id: "LIST" }],
     }),
-
-    showProduct: builder.query<any, string>({
-      query: (productId) => `products/${productId}`,
-      providesTags: (result, error, productId) => [{ type: 'Product', id: productId }],
+ 
+    // 🔹 Fetch single product
+    showProduct: builder.query<{ data: Product }, number>({
+      query: (product_id) => `products/${product_id}`,
+      providesTags: (_result, _error, product_id) => [{ type: "Product", id: product_id }],
     }),
-
+ 
+    // 🔹 Add new product
     addProduct: builder.mutation<Product, Partial<Product>>({
       query: (newProduct) => ({
-        url: '/products',
-        method: 'POST',
+        url: "products",
+        method: "POST",
         body: newProduct,
       }),
-      invalidatesTags: [{ type: 'Product', id: 'LIST' }],
+      invalidatesTags: [{ type: "Product", id: "LIST" }],
     }),
-
-    // 3. Updated mutation to use `product_id` for the URL
-    updateProduct: builder.mutation<Product, Partial<Product> & { product_id: string }>({
+ 
+    // 🔹 Update product
+    updateProduct: builder.mutation<Product, ProductMutationParams>({
       query: ({ product_id, ...body }) => ({
-        url: `/products/${product_id}`,
-        method: 'PUT',
+        url: `products/${product_id}`,
+        method: "PUT",
         body,
       }),
-      invalidatesTags: (result, error, { product_id }) => [{ type: 'Product', id: product_id }],
+      invalidatesTags: (_result, _error, { product_id }) => [
+        { type: "Product", id: product_id },
+        { type: "Product", id: "LIST" },
+      ],
     }),
-
-    deleteProducts: builder.mutation<{ success: boolean; ids: string[] }, { ids: string[] }>({
+ 
+    // 🔹 Delete multiple products
+    deleteProducts: builder.mutation<{ success: boolean; ids: number[] }, ProductDeleteParams>({
       query: ({ ids }) => ({
-        url: '/products/bulk-delete',
-        method: 'POST',
+        url: "products/bulk-delete",
+        method: "POST",
         body: { ids },
       }),
-      invalidatesTags: [{ type: 'Product', id: 'LIST' }],
+      invalidatesTags: [{ type: "Product", id: "LIST" }],
     }),
-
-    deleteProduct: builder.mutation<{ success: boolean; id: string }, string>({
-      query: (productId) => ({
-        url: `/products/${productId}`,
-        method: 'DELETE',
+ 
+    // 🔹 Delete single product
+    deleteProduct: builder.mutation<{ success: boolean; id: number }, number>({
+      query: (product_id) => ({
+        url: `products/${product_id}`,
+        method: "DELETE",
       }),
-      invalidatesTags: (result, error, productId) => [{ type: 'Product', id: productId }],
+      invalidatesTags: (_result, _error, product_id) => [
+        { type: "Product", id: product_id },
+        { type: "Product", id: "LIST" },
+      ],
     }),
   }),
 });
-
-// Export the new product-related hooks
+ 
 export const {
   useGetProductsQuery,
   useShowProductQuery,
-  useLazyShowProductQuery,
   useAddProductMutation,
   useUpdateProductMutation,
   useDeleteProductsMutation,
   useDeleteProductMutation,
 } = productsApi;
+ 

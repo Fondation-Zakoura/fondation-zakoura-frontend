@@ -26,7 +26,7 @@ const ProductTypesPage = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Fetch all product types without server pagination/filtering (handled in reusable table)
-  const { data: productTypesData, isError, refetch } = useGetProductTypesQuery();
+  const { data: productTypesData, isError, refetch } = useGetProductTypesQuery({ page: 1, perPage: 100 });
 
   // Delete mutations
   const [deleteProductType] = useDeleteProductTypeMutation();
@@ -147,7 +147,6 @@ const ProductTypesPage = () => {
           setIsViewModalOpen(true);
         }}
         onBulkDelete={handleBulkDelete}
-        selectableRows
         striped
         hoverEffect
         initialPageSize={10}

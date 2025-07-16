@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { useGetProductTypeByIdQuery } from "../../features/api/product_types";
 
-export default function ViewProductTypeModal({ isOpen, onClose, productTypeId }) {
+type ViewProductTypeModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  productTypeId: number;
+};
+
+export default function ViewProductTypeModal({ isOpen, onClose, productTypeId }: ViewProductTypeModalProps) {
   const {
     data: productData,
     isLoading,
