@@ -17,7 +17,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
 export interface ComboboxOption {
   value: string;
   label: string;
@@ -31,7 +30,6 @@ interface ComboboxProps {
   disabled?: boolean;
   className?: string;
 }
-
 export const Combobox: React.FC<ComboboxProps> = ({
   options,
   value,
@@ -42,7 +40,6 @@ export const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const selected = options.find((o) => o.value === value);
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>

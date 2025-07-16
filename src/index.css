@@ -20,7 +20,7 @@ html {
   scrollbar-width: none; /* Hide for Firefox */
   -ms-overflow-style: none; /* Hide for IE and Edge */
 }
-
+ 
 /* For Webkit browsers (Chrome, Safari, newer Edge) */
 .custom-sidebar-scroll {
   scrollbar-width: thin;
