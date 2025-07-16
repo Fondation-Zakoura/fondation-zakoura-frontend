@@ -26,18 +26,15 @@ import {
 } from "@/features/api/products";
 import { useGetProductTypesQuery } from "@/features/api/product_types";
 import { useGetCategoriesQuery } from "@/features/api/categoriesApi";
+import type { Product } from "@/types/products";
 
-type EditProductModalProps = {
+interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   productId: number;
-};
+}
 
-const EditProductModal = ({
-  isOpen,
-  onClose,
-  productId,
-}: EditProductModalProps) => {
+const EditProductModal = ({ isOpen, onClose, productId }: EditProductModalProps) => {
   const { data: productData, isLoading: isFetchingDetails } = useShowProductQuery(productId);
   const { data: categoriesData } = useGetCategoriesQuery({ page: 1, perPage: 100 });
   const { data: productTypesData } = useGetProductTypesQuery({ page: 1, perPage: 100 });
@@ -52,18 +49,20 @@ const EditProductModal = ({
     product_type_id: "",
   });
 
-  useEffect(() => {
-    const details = productData && 'data' in productData ? productData.data : productData;
-    if (details) {
-      setFormData({
-        name: details.name || "",
-        description: details.description || "",
-        status: String(details.status ?? "1"),
-        category_id: details.category_id ? String(details.category_id) : "",
-        product_type_id: details.product_type_id ? String(details.product_type_id) : "",
-      });
-    }
-  }, [productData]);
+ useEffect(() => {
+  if (!productData) return;
+
+  const details: Product =
+    "data" in productData ? productData.data : productData;
+
+  setFormData({
+    name: details.name ?? "",
+    description: details.description ?? "",
+    status: details.deleted_at === null ? "1" : "0",
+    category_id: String(details.category_id ?? ""),
+    product_type_id: String(details.product_type_id ?? ""),
+  });
+}, [productData]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -74,25 +73,27 @@ const EditProductModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.category_id || !formData.product_type_id) {
+    const { name, category_id, product_type_id } = formData;
+
+    if (!name.trim() || !category_id || !product_type_id) {
       alert("Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
     const payload = {
-      product_id: Number(productId),
-      name: formData.name,
-      description: formData.description,
-      status: Number(formData.status),
-      category_id: Number(formData.category_id),
-      product_type_id: Number(formData.product_type_id),
+      product_id: productId,
+      name: name.trim(),
+      description: formData.description.trim() || undefined,
+      deleted_at: formData.status === "1" ? false : true,
+      category_id: Number(category_id),
+      product_type_id: Number(product_type_id),
     };
 
     try {
       await updateProduct(payload).unwrap();
       onClose();
     } catch (err) {
-      console.error("Failed to update product:", err);
+      console.error("Échec de mise à jour du produit:", err);
     }
   };
 
@@ -106,7 +107,7 @@ const EditProductModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        {isFetchingDetails || !categoriesData || !productTypesData ? (
+        {isFetchingDetails || !categoriesData?.data || !productTypesData?.data ? (
           <p className="text-sm text-muted-foreground">Chargement des détails...</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -118,6 +119,7 @@ const EditProductModal = ({
                 value={formData.name}
                 onChange={handleInputChange}
                 required
+                disabled={isUpdating}
               />
             </div>
 
@@ -129,49 +131,48 @@ const EditProductModal = ({
                 value={formData.description}
                 onChange={handleInputChange}
                 rows={3}
+                disabled={isUpdating}
               />
             </div>
 
             <div className="space-y-2">
               <Label>Catégorie</Label>
               <Combobox
-                options={categoriesData?.data?.map((cat: { name: string; category_id: number }) => ({
+                options={categoriesData.data.map((cat) => ({
                   label: cat.name,
                   value: String(cat.category_id),
                 }))}
-                value={formData.category_id || ""}
-                onChange={(v) => {
-                  console.log("Selected category_id:", v);
-                  setFormData((prev) => ({ ...prev, category_id: v }));
-                }}
+                value={formData.category_id}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, category_id: value }))
+                }
                 placeholder="Sélectionner une catégorie"
               />
             </div>
-                <div className="space-y-2">
-              <Label>type</Label>
+
+            <div className="space-y-2">
+              <Label>Type</Label>
               <Combobox
-                options={productTypesData?.data?.map((prod) => ({
-                  label: prod.name,
-                  value: String(prod.id),
+                options={productTypesData.data.map((type) => ({
+                  label: type.name,
+                  value: String(type.id),
                 }))}
-                value={formData.product_type_id || ""}
-                onChange={(v) => {
-                  console.log("Selected category_id:", v);
-                  setFormData((prev) => ({ ...prev, product_type_id: v }));
-                }}
+                value={formData.product_type_id}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, product_type_id: value }))
+                }
                 placeholder="Sélectionner un type"
               />
             </div>
-
-           
 
             <div className="space-y-2">
               <Label>Statut</Label>
               <Select
                 value={formData.status}
-                onValueChange={(v) =>
-                  setFormData((prev) => ({ ...prev, status: v }))
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, status: value }))
                 }
+                disabled={isUpdating}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un statut" />
@@ -188,7 +189,7 @@ const EditProductModal = ({
             )}
 
             <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isUpdating}>
                 Annuler
               </Button>
               <Button type="submit" disabled={isUpdating}>
