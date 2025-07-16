@@ -23,13 +23,17 @@ export default function ArticlesPage() {
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [currentPage, _setCurrentPage] = useState(1);
-  const [rowsPerPage, _setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const { data: articleData, isLoading, isError, refetch } = useGetArticlesQuery({
     page: currentPage,
     perPage: rowsPerPage,
   });
+
+  // Debug: Log the API response
+  console.log('Articles API response:', articleData);
+  console.log('Current page:', currentPage, 'Rows per page:', rowsPerPage);
 
   const [deleteArticle] = useDeleteArticleMutation();
   const [deleteArticles] = useDeleteArticlesMutation();
@@ -75,6 +79,11 @@ export default function ArticlesPage() {
     } catch (err) {
       console.error("Erreur suppression multiple:", err);
     }
+  };
+
+  const handlePaginationChange = ({ pageIndex, pageSize }: { pageIndex: number; pageSize: number }) => {
+    setCurrentPage(pageIndex + 1); // Convert 0-based to 1-based
+    setRowsPerPage(pageSize);
   };
 
   const transformedData = useMemo(
@@ -204,6 +213,10 @@ export default function ArticlesPage() {
         hoverEffect
         onBulkDelete={handleBulkDelete}
         onRowClick={handleView}
+        serverPagination={true}
+        pageCount={Math.ceil((articleData?.pagination?.total || 0) / rowsPerPage)}
+        pageIndex={currentPage - 1}
+        onPaginationChange={handlePaginationChange}
       />
 
       {isAddModalOpen && (

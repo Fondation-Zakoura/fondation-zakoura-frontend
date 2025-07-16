@@ -157,10 +157,11 @@ function AddBudgetLineModal({ onClose, refetch }: Props) {
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let newForm = { ...form, [name]: value };
-    if (name === 'total_amount' || name === 'consumed_amount') {
-      const total = parseFloat(name === 'total_amount' ? value : form.total_amount) || 0;
-      const consumed = parseFloat(name === 'consumed_amount' ? value : form.consumed_amount) || 0;
-      newForm.remaining_amount = (total - consumed).toString();
+    if (name === 'total_amount') {
+      newForm.consumed_amount = value;
+      newForm.remaining_amount = value;
+    } else if (name === 'consumed_amount') {
+      newForm.remaining_amount = (parseFloat(newForm.total_amount || '0') - parseFloat(value)).toString();
     }
     setForm(newForm);
     validateField(name, value);
@@ -215,36 +216,17 @@ function AddBudgetLineModal({ onClose, refetch }: Props) {
                 <span className="text-red-500 text-sm">{errors.total_amount}</span>
               )}
             </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="label">
-                Motant Consomée <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="consumed_amount"
-                name="consumed_amount"
-                placeholder="Montant Consomée"
-                value={form.consumed_amount}
-                onChange={handleAmountChange}
-                className={errors.consumed_amount ? 'border-red-500' : ''}
-                required
-              />
-              {errors.consumed_amount && (
-                <span className="text-red-500 text-sm">{errors.consumed_amount}</span>
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="label">
-                Montant Disponible
-              </Label>
-              <Input
-                id="remaining_amount"
-                name="remaining_amount"
-                placeholder="Montant Disponible"
-                value={form.remaining_amount}
-                disabled
-                readOnly
-              />
-            </div>
+            {/* Hidden consumed_amount and remaining_amount fields */}
+            <input
+              type="hidden"
+              name="consumed_amount"
+              value={form.consumed_amount}
+            />
+            <input
+              type="hidden"
+              name="remaining_amount"
+              value={form.remaining_amount}
+            />
             <div className="flex flex-col gap-1">
               <Label htmlFor="label">
                 Le Projet Concerne <span className="text-red-500">*</span>

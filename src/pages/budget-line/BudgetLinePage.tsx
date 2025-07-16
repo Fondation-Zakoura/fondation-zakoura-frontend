@@ -18,8 +18,25 @@ function BudgetLinePage() {
     const [selectedBudgetLine, setSelectedBudgetLine] = useState<BudgetLine | null>(null);
     const [showViewModal, setShowViewModal] = useState(false);
     const [budgetLineToView, setBudgetLineToView] = useState<BudgetLine | null>(null);
-    const { data: apiData, isLoading, refetch } = useGetBudgetLinesQuery();
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    
+    const { data: apiData, isLoading, refetch } = useGetBudgetLinesQuery({ 
+        page: currentPage, 
+        perPage: pageSize 
+    });
+    
+    // Extract pagination data from the response
+    const budgetLines = apiData?.data || [];
+    const total = apiData?.total || 0;
+    const perPage = apiData?.per_page || 10;
+    const totalPages = apiData?.last_page || 1;
+    const currentPageFromApi = apiData?.current_page || 1;
+    
     console.log(apiData);
+    
     const openAdd = () => {
         setShowAddModal(true);
     }
@@ -36,6 +53,15 @@ function BudgetLinePage() {
         setSelectedBudgetLine(row);
         setShowPartnersModal(true);
     }
+    
+    const handlePaginationChange = ({ pageIndex, pageSize }: { pageIndex: number; pageSize?: number }) => {
+        const newPage = pageIndex + 1;
+        setCurrentPage(newPage);
+        if (pageSize) {
+            setPageSize(pageSize);
+        }
+    };
+    
      const columns: Column<BudgetLine & { id?: number }>[] = [
         { key: 'code', header: 'Code', sortable: true },
         { key: 'total_amount', header: 'Montant Total', sortable: true },
@@ -106,13 +132,17 @@ function BudgetLinePage() {
                       ) : (
                         <DataTable
                           columns={columns as Column<any>[]}
-                          data={apiData?.data}
+                          data={budgetLines}
                           hoverEffect
-                          emptyText={isLoading ? 'Chargement des données...' : 'Aucune rubrique trouvée'}
+                          emptyText={isLoading ? 'Chargement des données...' : 'Aucune ligne budgétaire trouvée'}
                           headerStyle={'primary'}
                           striped
-                          initialPageSize={10}
+                          initialPageSize={perPage}
                           enableBulkDelete={true}
+                          serverPagination={true}
+                          pageCount={totalPages}
+                          pageIndex={currentPageFromApi - 1}
+                          onPaginationChange={handlePaginationChange}
                         />
                       )}
               </div>
