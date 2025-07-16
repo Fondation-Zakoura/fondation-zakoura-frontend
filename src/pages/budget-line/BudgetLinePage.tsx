@@ -90,11 +90,10 @@ function BudgetLinePage() {
         <div className="p-8">
               <div className="flex justify-between items-center mb-8">
                 <PageHeaderLayout
-                  title="Rubriques budgétaires"
+                  title="Lignes budgétaires"
                   breadcrumbs={[
-                    { label: 'Paramètres' },
                     { label: 'Finance', url: '/projets/finance/ressources' },
-                    { label: 'Ligne budgétaires', active: true },
+                    { label: 'Lignes budgétaires', active: true },
                   ]}
                 />
                 <Button onClick={openAdd} className="ml-auto flex items-center gap-2 bg-[#19376D] hover:bg-[#19386df9] text-white font-bold px-6 py-2 cursor-pointer rounded-lg shadow">

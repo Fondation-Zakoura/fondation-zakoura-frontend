@@ -97,6 +97,7 @@ export default MainLayout;
 export interface Breadcrumb {
   label: string;
   active?: boolean;
+  url?:string;
 }
 
 interface PageHeaderLayoutProps {
@@ -107,13 +108,19 @@ interface PageHeaderLayoutProps {
 }
 
 export const PageHeaderLayout: React.FC<PageHeaderLayoutProps> = ({ title, breadcrumbs, className = '', children }) => (
-  <div className={`mb-8 ${className}`}>
-    <h2 className="text-2xl font-bold text-[#0B2447] mb-1">{title}</h2>
+  <div className={` ${className}`}> 
+    <h2 className="text-2xl font-bold text-[#0B2447] mb-1 text-left">{title}</h2>
     <div className="text-sm text-gray-400 flex flex-wrap items-center gap-1">
       {breadcrumbs.map((bc, idx) => (
         <React.Fragment key={idx}>
           {idx > 0 && <span className="mx-1">|</span>}
-          <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+          {bc.url && !bc.active ? (
+            <a href={bc.url} className="hover:underline">
+              <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+            </a>
+          ) : (
+            <span className={bc.active ? 'text-[#19376D] font-semibold' : ''}>{bc.label}</span>
+          )}
         </React.Fragment>
       ))}
     </div>

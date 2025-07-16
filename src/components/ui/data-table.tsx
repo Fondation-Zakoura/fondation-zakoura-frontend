@@ -34,8 +34,9 @@ export interface Column<T> {
   header: string | React.ReactNode;
   render?: (row: T) => React.ReactNode;
   sortable?: boolean;
-  width?: string;
-  align?: 'left' | 'center' | 'right';
+  width?: string | number;
+  align?: "left" | "center" | "right";
+  maxWidth?: number;
 }
 
 // FIX: Removed unused generic TData from ColumnFilter
@@ -78,6 +79,7 @@ interface DataTableProps<T extends { id: string | number }> {
   selectedRows?: T[];
   onSelectedRowsChange?: Dispatch<SetStateAction<T[]>>;
   isLoading?: boolean;
+  searchColumns?: (keyof T)[]; // NEW PROP
 }
 
 // --- REUSABLE DATA TABLE COMPONENT ---
@@ -103,6 +105,7 @@ export function DataTable<T extends { id: string | number }>({
   onFilterChange,
   selectedRows: controlledSelectedRows,
   onSelectedRowsChange: setControlledSelectedRows,
+  searchColumns, // NEW PROP
 }: DataTableProps<T>) {
   // --- STATE MANAGEMENT ---
   const [sortConfig, setSortConfig] = React.useState<{
@@ -163,6 +166,13 @@ export function DataTable<T extends { id: string | number }>({
             .toLowerCase()
             .includes(lowercasedFilter)
         );
+      } else if (searchColumns && searchColumns.length > 0) {
+        filteredData = filteredData.filter((row) => {
+          return searchColumns.some(colKey => {
+            const cellValue = getDeepValue(row, String(colKey));
+            return String(cellValue ?? "").toLowerCase().includes(lowercasedFilter);
+          });
+        });
       } else {
         filteredData = filteredData.filter((row) => {
           return columns.some(col => {
@@ -192,7 +202,7 @@ export function DataTable<T extends { id: string | number }>({
       });
     }
     return filteredData;
-  }, [data, globalFilter, globalFilterKey, filterValues, sortConfig, columns]);
+  }, [data, globalFilter, globalFilterKey, filterValues, sortConfig, columns, searchColumns]);
 
   const paginatedData = React.useMemo(() => {
     const startIndex = (currentPage - 1) * rowsPerPage;
@@ -306,7 +316,7 @@ export function DataTable<T extends { id: string | number }>({
             <div key={String(filter.id)} className="w-full md:w-auto md:min-w-[180px]">
               <label
                 htmlFor={`filter-${String(filter.id)}`}
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 mb-1 text-left" // changed to left-aligned
               >
                 {filter.label}
               </label>
@@ -454,7 +464,11 @@ export function DataTable<T extends { id: string | number }>({
                                     : "text-left"
                             }`}
                         >
-                            {col.render ? col.render(row) : String(cellValue ?? "")}
+                            {col.render
+                                ? col.render(row)
+                                : (typeof cellValue === 'string' && cellValue.length > 15
+                                    ? <span title={cellValue}>{cellValue.slice(0, 15) + '...'}</span>
+                                    : String(cellValue ?? ""))}
                         </TableCell>
                     );
                   })}

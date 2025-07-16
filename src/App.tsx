@@ -15,7 +15,6 @@ import CategoriesPage from './pages/categories/CategoriesPage';
 import ProductTypesPage from './pages/product-types/product-types-page';
 import ProductsPage from './pages/products/ProductsPage';
 import ArticlesPage from './pages/articles/ArticlesPage';
-import PacksPage from './pages/packs/PacksPage';
 
 import Projects from './pages/project/Projects';
 import AddProject from './pages/project/AddProject';
@@ -56,7 +55,6 @@ function App() {
         <Route path="produits" element={<ProductsPage />} />
         <Route path="typeproducts" element={<ProductTypesPage />} />
         <Route path="articles" element={<ArticlesPage />} />
-        <Route path="packs" element={<PacksPage />} />
 
         {/* Projects */}
         <Route path="projects" element={<Projects />} />

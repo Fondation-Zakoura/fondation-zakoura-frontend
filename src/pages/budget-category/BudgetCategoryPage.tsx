@@ -230,7 +230,6 @@ const BudgetCategoryPage: React.FC = () => {
 
   const columnFilters = useMemo((): ColumnFilter[] => {
     const uniqueTypes = Array.from(new Set(categories.map((c) => c.type)));
-    // Aplatir tous les domaines budgétaires pour obtenir la liste unique
     const allAreas = categories.flatMap((c) => Array.isArray(c.budgetary_area) ? c.budgetary_area : [c.budgetary_area]);
     const uniqueAreas = Array.from(new Set(allAreas)).filter((a): a is string => typeof a === 'string' && a.length > 0);
     return [
@@ -248,8 +247,8 @@ const BudgetCategoryPage: React.FC = () => {
         id: 'is_active',
         label: 'Statut',
         options: [
-          { value: 'true', label: 'Actif' },
-          { value: 'false', label: 'Inactif' },
+          { value: 1, label: 'Actif' },
+          { value: 0, label: 'Inactif' },
         ],
       },
     ];
@@ -287,7 +286,6 @@ const BudgetCategoryPage: React.FC = () => {
       align: 'right',
       render: (row) => (
         <div className="flex gap-1 justify-end">
-          <button onClick={() => openShow(row)} className="p-2 rounded hover:bg-gray-200 text-gray-600" title="Voir"><Eye size={16} /></button>
           <button onClick={() => openEdit(row)} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Éditer"><Pen size={16} /></button>
           <button
             onClick={() => {
@@ -334,7 +332,6 @@ const BudgetCategoryPage: React.FC = () => {
         <PageHeaderLayout
           title="Rubriques budgétaires"
           breadcrumbs={[
-            { label: 'Paramètres' },
             { label: 'Finance', url: '/projets/finance/ressources' },
             { label: 'Rubriques budgétaires', active: true },
           ]}
