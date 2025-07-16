@@ -19,9 +19,7 @@ import {
     RiBarChartBoxLine,
     RiMoneyDollarCircleLine,
     RiGroupLine,
-    RiBuildingLine,
     RiMapPinLine,
-    RiHandCoinLine,
     RiAwardLine,
     RiTrophyLine,
     RiEditBoxLine,
@@ -29,7 +27,6 @@ import {
     RiBriefcaseLine,
     RiStackLine,
     RiBookOpenLine,
-    RiCalendarLine,
     RiPlaneLine,
     RiSendPlaneLine,
     RiFileListLine,
@@ -215,8 +212,9 @@ export const menuItems = [
                 nestedDropdownItems: [
                     { id: 'marques', title: 'Marques', link: '/achats/marques', icon: RiPriceTagLine, type: 'link' },
                     { id: 'categories', title: 'Catégories', link: '/categories', icon: RiBriefcaseLine, type: 'link' },
-                    { id: 'produits', title: 'Produits', link: '/achats/produits', icon: MdOutlineEvent, type: 'link' },
-                    { id: 'packs', title: 'Packs', link: '/achats/packs', icon: RiStackLine, type: 'link' }, // Added link
+                    { id: 'produits', title: 'Produits', link: '/produits', icon: MdOutlineEvent, type: 'link' },
+                    { id: 'articles', title: 'Articles', link: '/articles', icon: MdOutlineEvent, type: 'link' },
+                    { id: 'packs', title: 'Packs', link: '/packs', icon: RiStackLine, type: 'link' }, // Added link
                 ],
             },
             {
@@ -396,7 +394,39 @@ export const menuItems = [
                     { id: 'banques', title: 'Banques', link: '/parametres/projets/banques', icon: RiBankLine, type: 'link' },
                     { id: 'agences-bancaires', title: 'Agences bancaires', link: '/parametres/projets/agences-bancaires', icon: RiBankLine, type: 'link' },
                     { id: 'pays', title: 'Pays', link: '/parametres/projets/pays', icon: RiEarthLine, type: 'link' },
+                     
+                    {
+                        id: 'statuts_finance',
+                        title: 'Statuts',
+                        type: 'dropdown',
+                        icon: null,
+                        link: '#',
+                        nestedDropdownItems: [
+                            { id: 'statuts-ressources-financieres', title: 'Statuts de ressources financières', link: '/parametres/finance/statuts/ressources-financieres', icon: RiBarChartGroupedLine, type: 'link' }, // inferred
+                            { id: 'statuts-partenaires', title: 'Statuts des partenaires', link: '/parametres/finance/statuts/partenaires', icon: RiBarChartGroupedLine, type: 'link' },
+                            { id: 'statuts-appels-a-projets', title: 'Statuts des appels à projets', link: '/parametres/finance/statuts/appels-a-projets', icon: RiBarChartGroupedLine, type: 'link' },
+                            { id: 'statuts-projets', title: 'Statuts des projets', link: '/parametres/finance/statuts/projets', icon: RiBarChartGroupedLine, type: 'link' },
+                            { id: 'statuts-sondages', title: 'Statuts des sondages', link: '/parametres/finance/statuts/sondages', icon: RiBarChartGroupedLine, type: 'link' },
+                        ],
+                    },
+                    {
+                        id: 'types_finance',
+                        title: 'Types',
+                        type: 'dropdown',
+                        icon: null,
+                        link: '#',
+                        nestedDropdownItems: [
+                            { id: 'types-ressources-financieres', title: 'Types de ressources financières', link: '/parametres/finance/types/ressources-financieres', icon: RiSettings2Line, type: 'link' },
+                            { id: 'types-partenaires', title: 'Types de partenaires', link: '/parametres/finance/types/partenaires', icon: RiSettings2Line, type: 'link' },
+                            { id: 'natures-partenaires', title: 'Natures de partenaires', link: '/parametres/finance/types/natures-partenaires', icon: RiSettings2Line, type: 'link' },
+                            { id: 'types-projets', title: 'Types de projets', link: '/parametres/finance/types/projets', icon: RiSettings2Line, type: 'link' },
+                            { id: 'types-rubriques', title: 'Types de rubriques', link: '/parametres/finance/types/rubriques', icon: RiSettings2Line, type: 'link' },
+                            { id: 'types-sondages', title: 'Types de sondages', link: '/parametres/finance/types/sondages', icon: RiSettings2Line, type: 'link' },
+                        ],
+                    },
                 ],
+           
+              
             },
             {
                 id: 'rh_param',

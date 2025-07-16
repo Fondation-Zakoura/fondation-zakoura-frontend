@@ -13,12 +13,13 @@ const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const result = await loginUser({ email, password }).unwrap();
-      dispatch(login({ token: result.token }));
-      console.log("user logged in successfully");
+    dispatch(login({ name: result.name, token: result.token }));
+
+      console.log("user logged in successfully",result.name);
       navigate("/");
     } catch (err) {
       console.error("Failed to login:", err);
