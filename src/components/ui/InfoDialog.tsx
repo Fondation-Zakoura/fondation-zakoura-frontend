@@ -15,7 +15,7 @@ type InfoDialogProps = {
   title: string;
   description?: string;
   confirmLabel?: string;
-  duration?: number; // e.g., 3000 for 3 seconds
+  duration?: number; 
 };
 
 const InfoDialog: React.FC<InfoDialogProps> = ({

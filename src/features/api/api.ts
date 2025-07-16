@@ -1,24 +1,19 @@
-// src/features/api/api.ts
-
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
+// features/api/api.ts
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+ 
 export const baseApi = createApi({
-  reducerPath: 'api',
+  reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    // Make sure the baseUrl does NOT have a trailing slash
-    baseUrl: 'http://localhost:8000/api', 
-    
+    baseUrl: import.meta.env.VITE_API_URL,
     prepareHeaders: (headers) => {
-      // 1. Add the Accept header. This is the crucial fix.
-      headers.set('Accept', 'application/json');
-
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
+      headers.set("Accept", 'Application/json');
       return headers;
     },
   }),
-  tagTypes: ['Category', 'User'], 
-  endpoints: () => ({}), 
+  tagTypes: ["Category", "User",'BudgetLine','BudgetCategory'],
+  endpoints: () => ({}),
 });
