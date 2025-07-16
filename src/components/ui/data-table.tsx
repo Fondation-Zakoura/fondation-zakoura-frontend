@@ -51,7 +51,7 @@ export interface ColumnFilter {
 interface DataTableProps<T extends { id: string | number }> {
   columns: Column<T>[];
   data: T[];
-  columnFilters?: ColumnFilter[]; // FIX 1: No longer needs <T> here
+  columnFilters?: ColumnFilter[];
   emptyText?: string;
   striped?: boolean;
   hoverEffect?: boolean;

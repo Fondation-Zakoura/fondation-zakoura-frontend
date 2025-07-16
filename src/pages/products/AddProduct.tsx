@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAddProductMutation } from '@/features/api/products';
-import { useGetCategoriesQuery } from '@/features/api/categories';
 import { useGetProductTypesQuery } from '@/features/api/product_types';
 
 // Shadcn UI Components
@@ -22,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useGetCategoriesQuery } from '@/features/api/categoriesApi';
 
 type ModalProps = {
   isOpen: boolean;
@@ -31,7 +31,7 @@ type ModalProps = {
 
 const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
   const { data: categoriesData } = useGetCategoriesQuery({ page: 1, perPage: 100 });
-  const { data: product_typeData } = useGetProductTypesQuery();
+  const { data: product_typeData } = useGetProductTypesQuery({ page: 1, perPage: 100 });
   const [addProduct, { isLoading, isError }] = useAddProductMutation();
 
   // Local state for the form fields
@@ -108,14 +108,11 @@ const AddProductModal = ({ isOpen, onClose, title }: ModalProps) => {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesData?.data?.map((category: { category_id: number; name: string; status: number }) =>
-                    category.status === 1 && (
-                      // --- FIX 4: Ensure the value is a string ---
-                      <SelectItem key={category.category_id} value={String(category.category_id)}>
-                        {category.name}
-                      </SelectItem>
-                    )
-                  )}
+                  {categoriesData?.data?.map((category) => (
+                    <SelectItem key={category.category_id} value={String(category.category_id)}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

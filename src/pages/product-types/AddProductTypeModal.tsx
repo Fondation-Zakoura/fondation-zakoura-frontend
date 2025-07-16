@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,16 +11,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAddProductTypeMutation } from "../../features/api/product_types";
 
-export default function AddProductTypeModal({ isOpen, onClose }) {
+type AddProductTypeModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export default function AddProductTypeModal({ isOpen, onClose }: AddProductTypeModalProps) {
   const [name, setName] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [addProductType, { isLoading ,error}] = useAddProductTypeMutation();
+  const [addProductType, { isLoading }] = useAddProductTypeMutation();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
    
     if (!name.trim()) {
-      setError("Le nom est requis.");
+      setErrorMessage("Le nom est requis.");
       return;
     }
     try {
@@ -56,7 +62,7 @@ export default function AddProductTypeModal({ isOpen, onClose }) {
               disabled={isLoading}
               autoFocus
             />
-            {error && <p className="text-sm text-red-600 mt-1">{error?.data?.message}</p>}
+            {errorMessage && <p className="text-sm text-red-600 mt-1">{errorMessage}</p>}
           </div>
           <DialogFooter>
             <Button

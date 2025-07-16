@@ -23,8 +23,8 @@ export default function ArticlesPage() {
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, _setCurrentPage] = useState(1);
+  const [rowsPerPage, _setRowsPerPage] = useState(10);
 
   const { data: articleData, isLoading, isError, refetch } = useGetArticlesQuery({
     page: currentPage,
@@ -59,7 +59,7 @@ export default function ArticlesPage() {
   const handleConfirmDelete = async () => {
     if (!deleteId) return;
     try {
-      await deleteArticle(deleteId).unwrap();
+      await deleteArticle(String(deleteId)).unwrap();
       refetch();
       setDeleteId(null);
     } catch (err) {
@@ -175,6 +175,7 @@ export default function ArticlesPage() {
     },
   ];
 
+  if (isLoading) return <div className="text-center py-8 text-lg text-gray-500">Chargement des articles...</div>;
   if (isError) return <p>Erreur lors du chargement des articles.</p>;
 
   return (
@@ -182,7 +183,7 @@ export default function ArticlesPage() {
       <div className="flex justify-between items-center">
         <PageHeaderLayout
           title="Liste des articles"
-          breadcrumbs={[{ label: "Achat", href: "#" }, { label: "Produits", href: "#" }, { label: "Articles", active: true }]}
+          breadcrumbs={[{ label: "Achat", url: "#" }, { label: "Produits", url: "#" }, { label: "Articles", active: true }]}
         />
         <Button
           onClick={handleAddOpen}
@@ -203,17 +204,6 @@ export default function ArticlesPage() {
         hoverEffect
         onBulkDelete={handleBulkDelete}
         onRowClick={handleView}
-        pagination={{
-          server: true,
-          totalRows: articleData?.pagination?.total ?? 0,
-          currentPage,
-          rowsPerPage,
-          onPageChange: setCurrentPage,
-          onRowsPerPageChange: (perPage: number) => {
-            setRowsPerPage(perPage);
-            setCurrentPage(1);
-          },
-        }}
       />
 
       {isAddModalOpen && (

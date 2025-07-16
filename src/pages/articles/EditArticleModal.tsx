@@ -51,7 +51,7 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
 
     try {
       await updateArticle({
-  id: articleId,
+  id: String(articleId),
   product_id: Number(selectedProductId),
   name,
   specifications: specifications || undefined,
