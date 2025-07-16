@@ -43,7 +43,8 @@ export const categoriesApi = baseApi.injectEndpoints({
     }),
 
     // 2. FIXED: To correctly handle the payload from the component
-    updateCategory: builder.mutation<any, { id: string; name: string; description: string; status: number }>({
+    updateCategory: builder.mutation<any, { id: string; name: string; description: string; statut: number }>({
+
       // Destructure `id` for the URL and the rest of the payload for the body
       query: ({ id, ...body }) => ({
         url: `/categories/${id}`,

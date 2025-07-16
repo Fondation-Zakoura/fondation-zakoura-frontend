@@ -55,6 +55,7 @@ export const EditBankAccountModal: React.FC<EditBankAccountModalProps> = ({
         ) : null}
         {!filePreview && typeof form.supporting_document === "string" && form.supporting_document && !removeExistingFile && (
           <div className="relative flex items-center gap-2 mb-2">
+            {/* ...existing file preview logic as in ProjectBankAccountsPage... */}
             <a href={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline mt-2 block">Voir le document</a>
             <button type="button" onClick={onRemoveFile} className="ml-2 text-red-500 hover:text-red-700" title="Supprimer">&#10005;</button>
           </div>

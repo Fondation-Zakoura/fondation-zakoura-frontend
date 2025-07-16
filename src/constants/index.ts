@@ -1,23 +1,21 @@
 // src/constants/menuData.js
 
 // --- Main Menu Icons ---
-import { MdOutlineCalculate, MdOutlineDashboard } from 'react-icons/md';
+import { MdOutlineDashboard } from 'react-icons/md';
 import { LiaHandshake } from 'react-icons/lia';
 import { GoProjectRoadmap } from 'react-icons/go';
 import { SlBookOpen, SlChart, SlGraph, SlPeople, SlDocs } from 'react-icons/sl';
-import { CiShop, CiShuffle } from 'react-icons/ci';
+import { CiShop } from 'react-icons/ci';
 import { BsCoin } from 'react-icons/bs';
-import { IoLayersOutline, IoSettingsOutline } from 'react-icons/io5';
+import { IoSettingsOutline } from 'react-icons/io5';
 import { PiStudent } from 'react-icons/pi';
-import { RiBriefcase4Line } from "react-icons/ri";
-import { MdOutlineEvent } from "react-icons/md";
+
 import { BiServer } from 'react-icons/bi';
 import { TbVectorBezier } from 'react-icons/tb';
 
 // --- Sub-Menu & Nested Icons ---
 import {
     RiBarChartBoxLine,
-    RiMoneyDollarCircleLine,
     RiGroupLine,
     RiMapPinLine,
     RiAwardLine,
@@ -48,17 +46,8 @@ import {
     RiGraduationCapLine,
     RiCrosshairLine,
     RiInformationLine,
-    RiBankLine,
-    RiEarthLine,
-    RiAccountBoxLine,
-    RiOrganizationChart,
-    RiLightbulbLine,
-    RiBookLine,
-    RiBookmarkLine,
-    RiBarChartGroupedLine,
-    RiSettings2Line,
 } from 'react-icons/ri';
-import { LuShieldX } from 'react-icons/lu';
+import { LucideShieldX } from 'lucide-react';
 
 
 export const menuItems = [
@@ -113,31 +102,10 @@ export const menuItems = [
         icon: GoProjectRoadmap,
         type: 'dropdown',
         subItems: [
-            // This is the direct 'Projets' link under the main 'Projets' dropdown
-          
-              {
-                id: 'finance_dropdown',
-                title: 'Projets',
-                type: 'dropdown',
-                icon: null, // No icon visible next to 'Finance' in image_22c73e.png
-                link: '/projets/liste', // This acts as a non-navigating parent for its own nested items
-                nestedDropdownItems: [
-                    { id: 'projets', title: 'Projets', link: '/projects', icon: RiBriefcase4Line, type: 'link' },
-                ],
-            },
-            // This is the 'Finance' dropdown which is a direct child of the main 'Projets' dropdown
-            {
-                id: 'projets_finance_dropdown',
-                title: 'Finance',
-                type: 'dropdown',
-                icon: null, // No icon visible next to 'Finance' in image_22c73e.png
-                link: '#', // This acts as a non-navigating parent for its own nested items
-                nestedDropdownItems: [
-                    { id: 'ressources-financieres', title: 'Ressources financières', link: '/projets/finance/ressources', icon: RiMoneyDollarCircleLine, type: 'link' },
-                    { id: 'depenses', title: 'Dépenses', link: '/projets/finance/depenses', icon: RiExchangeFundsLine, type: 'link' },
-                    { id: 'caisses', title: 'Caisses', link: '/projets/finance/caisses', icon: RiWalletLine, type: 'link' },
-                ],
-            },
+            { id: 'conceptions', title: 'Conceptions', link: '/projets/conceptions', icon: RiBarChartBoxLine, type: 'link' },
+            { id: 'evaluations', title: 'Evaluations', link: '/projets/evaluations', icon: RiBarChartBoxLine, type: 'link' },
+            { id: 'publications', title: 'Publications', link: '/projets/publications', icon: RiBookOpenLine, type: 'link' },
+            { id: 'sondages', title: 'Sondages', link: '/projets/sondages', icon: RiBarChartBoxLine, type: 'link' },
         ],
     },
     {
@@ -210,10 +178,9 @@ export const menuItems = [
                 link: '#', // Non-navigating parent
                 nestedDropdownItems: [
                     { id: 'marques', title: 'Marques', link: '/achats/marques', icon: RiPriceTagLine, type: 'link' },
-                    { id: 'categories', title: 'Catégories', link: '/categories', icon: RiBriefcaseLine, type: 'link' },
-                    { id: 'produits', title: 'Produits', link: '/produits', icon: MdOutlineEvent, type: 'link' },
-                    { id: 'articles', title: 'Articles', link: '/articles', icon: MdOutlineEvent, type: 'link' },
-                    { id: 'packs', title: 'Packs', link: '/packs', icon: RiStackLine, type: 'link' }, // Added link
+                    { id: 'categories', title: 'Catégories', link: '/achats/categories', icon: RiBriefcaseLine, type: 'link' },
+                    { id: 'produits', title: 'Produits', link: '/achats/produits', icon: RiStackLine, type: 'link' },
+                    { id: 'packs', title: 'Packs', link: '/achats/packs', icon: RiStackLine, type: 'link' }, // Added link
                 ],
             },
             {
@@ -272,20 +239,10 @@ export const menuItems = [
             // These are direct links within finance
             { id: 'factures', title: 'Factures', link: '/finance/factures', icon: RiBillLine, type: 'link' },
             { id: 'paiements', title: 'Paiements', link: '/finance/paiements', icon: RiWalletLine, type: 'link' },
-            { id: 'operations-caisse', title: 'Opérations de caisse', link: '/finance/operations-caisse', icon: CiShuffle, type: 'link' },
-            { id: 'notes-de-frais', title: 'Notes de frais', link: '/finance/notes-de-frais', icon: MdOutlineCalculate, type: 'link' },
-            { id: 'budget-category', title: 'Rubrique Budgetaire', link: '/budget-category', icon: RiBarChartGroupedLine, type: 'link' },
-            { id: 'statuts-sondages', title: 'Ligne Budgetaire', link: '/budget-line', icon: RiBarChartGroupedLine, type: 'link' },
+            { id: 'operations-caisse', title: 'Opérations de caisse', link: '/finance/operations-caisse', icon: RiExchangeFundsLine, type: 'link' },
+            { id: 'notes-de-frais', title: 'Notes de frais', link: '/finance/notes-de-frais', icon: RiFilePaperLine, type: 'link' },
 
-           
-        ],
-    },
-    {
-        id: 'operations',
-        title: 'Opérations',
-        icon: IoLayersOutline,
-        type: 'dropdown',
-        subItems: [
+            // These are already correctly structured as dropdowns with nestedDropdownItems
             {
                 id: 'prospections_finance_dropdown',
                 title: 'Prospections',
@@ -319,7 +276,7 @@ export const menuItems = [
                     { id: 'beneficiaires_finance_link', title: 'Bénéficiaires', link: '/finance/beneficiaires', icon: RiGroupLine, type: 'link' },
                     { id: 'parents_finance', title: 'Parents', link: '/finance/parents', icon: RiParentLine, type: 'link' },
                     { id: 'absences-seance_finance', title: 'Absences de séance', link: '/finance/absences-seance', icon: RiInformationLine, type: 'link' },
-                     { id: 's', title: 'Assurances', link: '/finance/assurances', icon: LuShieldX , type: 'link' },
+                     { id: 's', title: 'Assurances', link: '/finance/assurances', icon: LucideShieldX , type: 'link' },
                 ],
             },
         ],
@@ -383,238 +340,8 @@ export const menuItems = [
         id: 'parametres',
         title: 'Paramètres',
         icon: IoSettingsOutline,
-        type: 'dropdown', // Changed to dropdown since it now has sub-items
-        subItems: [
-            {
-                id: 'projets_param',
-                title: 'Projets',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    { id: 'banques', title: 'Banques', link: '/banks', icon: RiBankLine, type: 'link' },
-                    { id: 'bank-accounts', title: 'Comptes Bancaire', link: '/bank-accounts', icon: RiBankLine, type: 'link' },
-                    { id: 'agences-bancaires', title: 'Agences bancaires', link: '/bank-agencies', icon: RiBankLine, type: 'link' },
-                    { id: 'pays', title: 'Pays', link: '/countries', icon: RiEarthLine, type: 'link' },
-                    {
-                        id: 'types_dropdown',
-                        title: 'Types',
-                        type: 'dropdown',
-                        icon: null, // As per image
-                        link: '#', // Non-navigating parent
-                        nestedDropdownItems: [
-                            { id: 'structures-partenaires', title: 'Structures de partenaires', link: '/partner-structures', icon: RiSettings2Line, type: 'link' },
-                            { id: 'natures-partenaires', title: 'Natures de partenaires', link: '/partner-natures', icon: RiSettings2Line, type: 'link' },
-                            { id: 'project-types', title: 'Types de Projet', link: '/project-types',icon: RiSettings2Line, type: 'link' },
-                        ],
-                    },
-                    {
-                        id: 'statuses_dropdown',
-                        title: 'Status',
-                        type: 'dropdown',
-                        icon: null, // As per image
-                        link: '#', // Non-navigating parent
-                        nestedDropdownItems: [
-                            { id: 'project-statuses', title: 'Status des Projet', link: '/project-statuses', icon: RiSettings2Line, type: 'link' },
-
-                        ],
-                    },
-                ],
-            },
-            {
-                id: 'operations_param',
-                title: 'Opérations',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    { id: 'sites', title: 'Sites', link: '/sites', icon: RiBankLine, type: 'link' },
-                    {id: 'unites', title: 'Unités', link: '/parametres/operations/unites', icon: RiBankLine, type: 'link' },
-                    { id: 'agences-bancaires', title: 'Agences bancaires', link: '/parametres/projets/agences-bancaires', icon: RiBankLine, type: 'link' },
-                    { id: 'pays', title: 'Pays', link: '/parametres/projets/pays', icon: RiEarthLine, type: 'link' },
-                ],
-            },
-            {
-                id: 'rh_param',
-                title: 'RH',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    { id: 'genres', title: 'Genres', link: '/parametres/rh/genres', icon: RiAccountBoxLine, type: 'link' },
-                    { id: 'unites-organisationnelles', title: 'Unités organisationnelles', link: '/parametres/rh/unites-organisationnelles', icon: RiOrganizationChart, type: 'link' },
-                    { id: 'postes', title: 'Postes', link: '/parametres/rh/postes', icon: RiBriefcase4Line, type: 'link' },
-                    { id: 'situations', title: 'Situations', link: '/parametres/rh/situations', icon: RiGroupLine, type: 'link' },
-                    { id: 'relations', title: 'Relations', link: '/parametres/rh/relations', icon: RiTeamLine, type: 'link' },
-                    { id: 'sources', title: 'Sources', link: '/parametres/rh/sources', icon: RiLightbulbLine, type: 'link' },
-                    {
-                        id: 'diplomes_param_rh',
-                        title: 'Diplômes',
-                        type: 'dropdown',
-                        icon: null, // No icon for the header
-                        link: '#', // Non-navigating parent
-                        nestedDropdownItems: [
-                            { id: 'disciplines', title: 'Disciplines', link: '/parametres/rh/diplomes/disciplines', icon: RiBookLine, type: 'link' },
-                            { id: 'niveaux', title: 'Niveaux', link: '/parametres/rh/diplomes/niveaux', icon: RiBookLine, type: 'link' },
-                            { id: 'etablissements', title: 'Etablissements', link: '/parametres/rh/diplomes/etablissements', icon: RiBuilding2Line, type: 'link' },
-                            { id: 'diplomes_list', title: 'Diplômes', link: '/parametres/rh/diplomes/list', icon: RiBookmarkLine, type: 'link' },
-                        ],
-                    },
-                    {
-                        id: 'statuts_rh',
-                        title: 'Statuts',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'statuts-collaborateurs', title: 'Statuts des collaborateurs', link: '/parametres/rh/statuts/collaborateurs', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-conges', title: 'Statuts des congés', link: '/parametres/rh/statuts/conges', icon: RiBarChartGroupedLine, type: 'link' },
-                        ],
-                    },
-                    {
-                        id: 'types_rh',
-                        title: 'Types',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'types-absences', title: "Types d'absences", link: '/parametres/rh/types/absences', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-ordres-mission', title: "Types des ordres de mission", link: '/parametres/rh/types/ordres-mission', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-demandes', title: "Types des demandes", link: '/parametres/rh/types/demandes', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-appels-candidatures', title: "Types d'appels à candidatures", link: '/parametres/rh/types/appels-candidatures', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-contrats', title: "Types de contrats", link: '/parametres/rh/types/contrats', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-unites-organisationnelles', title: "Types d'unités organisationnelles", link: '/parametres/rh/types/unites-organisationnelles', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-sources', title: "Types de sources", link: '/parametres/rh/types/sources', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-conges', title: "Types de congés", link: '/parametres/rh/types/conges', icon: RiSettings2Line, type: 'link' },
-                        ],
-                    },
-                ],
-            },
-            {
-                id: 'achats_param',
-                title: 'Achats',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    { id: 'unites_achats', title: 'Unités', link: '/parametres/achats/unites', icon: RiMapPinLine, type: 'link' },
-                    {
-                        id: 'statuts_achats',
-                        title: 'Statuts',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'statuts-fiches-mise-a-disp', title: 'Statuts des fiches de mise à disposition', link: '/parametres/achats/statuts/fiches-mise-a-disp', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-bons-de-sortie', title: 'Statuts des bons de sortie', link: '/parametres/achats/statuts/bons-de-sortie', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-factures', title: 'Statuts des factures', link: '/parametres/achats/statuts/factures', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-packs', title: 'Statuts des packs', link: '/parametres/achats/statuts/packs', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-produits', title: 'Statuts des produits', link: '/parametres/achats/statuts/produits', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-bons-de-commande', title: 'Statuts des bons de commande', link: '/parametres/achats/statuts/bons-de-commande', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-demandes-d-achat', title: "Statuts des demandes d'achat", link: '/parametres/achats/statuts/demandes-d-achat', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-devis', title: 'Statuts des devis', link: '/parametres/achats/statuts/devis', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-bons-de-reception', title: 'Statuts des bons de réception', link: '/parametres/achats/statuts/bons-de-reception', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-bons-de-retour', title: 'Statuts des bons de retour', link: '/parametres/achats/statuts/bons-de-retour', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-fournisseurs', title: 'Statuts des fournisseurs', link: '/parametres/achats/statuts/fournisseurs', icon: RiBarChartGroupedLine, type: 'link' }, // inferred from position
-                        ],
-                    },
-                    {
-                        id: 'types_achats',
-                        title: 'Types',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'types-produits', title: 'Types de produits', link: '/parametres/achats/types/produits', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-niveaux-urgence', title: "Types des niveaux d'urgence", link: '/parametres/achats/types/niveaux-urgence', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-fournisseurs', title: 'Types de fournisseurs', link: '/parametres/achats/types/fournisseurs', icon: RiSettings2Line, type: 'link' },
-                        ],
-                    },
-                ],
-            },
-            {
-                id: 'finance_param',
-                title: 'Finance',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    {
-                        id: 'statuts_finance',
-                        title: 'Statuts',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'statuts-ressources-financieres', title: 'Statuts de ressources financières', link: '/parametres/finance/statuts/ressources-financieres', icon: RiBarChartGroupedLine, type: 'link' }, // inferred
-                            { id: 'statuts-partenaires', title: 'Statuts des partenaires', link: '/parametres/finance/statuts/partenaires', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-appels-a-projets', title: 'Statuts des appels à projets', link: '/parametres/finance/statuts/appels-a-projets', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-projets', title: 'Statuts des projets', link: '/parametres/finance/statuts/projets', icon: RiBarChartGroupedLine, type: 'link' },
-                            { id: 'statuts-sondages', title: 'Statuts des sondages', link: '/parametres/finance/statuts/sondages', icon: RiBarChartGroupedLine, type: 'link' },
-                            
-                        ],
-                    },
-                    {
-                        id: 'types_finance',
-                        title: 'Types',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'types-ressources-financieres', title: 'Types de ressources financières', link: '/parametres/finance/types/ressources-financieres', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-projets', title: 'Types de projets', link: '/parametres/finance/types/projets', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-rubriques', title: 'Types de rubriques', link: '/parametres/finance/types/rubriques', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-sondages', title: 'Types de sondages', link: '/parametres/finance/types/sondages', icon: RiSettings2Line, type: 'link' },
-                        ],
-                    },
-                ],
-            },
-            {
-                id: 'operations_param',
-                title: 'Opérations',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    { id: 'conceptions', title: 'Conceptions', link: '/parametres/operations/conceptions', icon: RiBarChartBoxLine, type: 'link' },
-                    { id: 'evaluations', title: 'Evaluations', link: '/parametres/operations/evaluations', icon: RiBarChartBoxLine, type: 'link' },
-                    { id: 'publications', title: 'Publications', link: '/parametres/operations/publications', icon: RiBookOpenLine, type: 'link' },
-                    { id: 'sondages', title: 'Sondages', link: '/parametres/operations/sondages', icon: RiBarChartBoxLine, type: 'link' },
-                ],
-            },
-            {
-                id: 'academie_param',
-                title: 'Académie',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    {
-                        id: 'types_academie',
-                        title: 'Types',
-                        type: 'dropdown',
-                        icon: null,
-                        link: '#',
-                        nestedDropdownItems: [
-                            { id: 'types-formations', title: 'Types de formations', link: '/parametres/academie/types/formations', icon: RiSettings2Line, type: 'link' }, // Inferred
-                            { id: 'types-lieux', title: 'Types de lieux', link: '/parametres/academie/types/lieux', icon: RiSettings2Line, type: 'link' }, // Inferred
-                            { id: 'types-participants', title: 'Types de participants', link: '/parametres/academie/types/participants', icon: RiSettings2Line, type: 'link' }, // Inferred
-                            { id: 'types-prestataires', title: 'Types de prestataires', link: '/parametres/academie/types/prestataires', icon: RiSettings2Line, type: 'link' }, // Inferred
-                        ],
-                    },
-                ],
-            },
-            {
-                id: 'general_param',
-                title: 'Général',
-                type: 'dropdown',
-                icon: null, // No icon for the header
-                link: '#', // Non-navigating parent
-                nestedDropdownItems: [
-                    { id: 'langues', title: 'Langues', link: '/parametres/general/langues', icon: RiEarthLine, type: 'link' }, // Inferred
-                    { id: 'devises', title: 'Devises', link: '/parametres/general/devises', icon: RiMoneyDollarCircleLine, type: 'link' }, // Inferred
-                ],
-            },
-        ],
+        link: '/parametres',
+        type: 'link', // No sub-items, so type is 'link'
+        // subItems: [], // No need to explicitly define empty subItems array
     },
 ];

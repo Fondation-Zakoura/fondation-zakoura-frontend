@@ -8,7 +8,7 @@ import {
   useDeleteProductsMutation,
   useDeleteProductMutation,
 } from "../../features/api/products";
-import { DataTable } from "@/components/ui/data-table"; 
+import { DataTable } from "@/components/ui/data-table"; // ✅ your reusable component
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
