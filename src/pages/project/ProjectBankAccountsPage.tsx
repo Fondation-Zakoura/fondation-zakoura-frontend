@@ -996,13 +996,13 @@ const ProjectBankAccountsPage: React.FC = () => {
                         form.supporting_document
                       ) ? (
                         <img
-                          src={`http://localhost:8000/storage/${form.supporting_document}`}
+                          src={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`}
                           alt="Pièce justificative"
                           className="w-24 h-24 object-cover rounded border"
                         />
                       ) : /\.pdf$/i.test(form.supporting_document) ? (
                         <a
-                          href={`http://localhost:8000/storage/${form.supporting_document}`}
+                          href={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 underline mt-2 block"
@@ -1011,7 +1011,7 @@ const ProjectBankAccountsPage: React.FC = () => {
                         </a>
                       ) : (
                         <a
-                          href={`http://localhost:8000/storage/${form.supporting_document}`}
+                          href={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 underline mt-2 block"
@@ -1166,7 +1166,7 @@ const ProjectBankAccountsPage: React.FC = () => {
                 </span>
                 {selected.supporting_document ? (
                   (() => {
-                    const url = `http://localhost:8000/storage/${selected.supporting_document}`;
+                    const url = `${import.meta.env.VITE_STORAGE_URL}/${selected.supporting_document}`;
                     console.log(url);
                     const isImage = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(
                       selected.supporting_document

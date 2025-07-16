@@ -41,9 +41,6 @@ export const EditBankAccountModal: React.FC<EditBankAccountModalProps> = ({
       </DialogHeader>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* ...same fields as AddBankAccountModal... */}
-          {/* ...copy the same fields as AddBankAccountModal, but add file preview and remove logic... */}
-          {/* ...for brevity, you can copy the field structure from AddBankAccountModal and add the preview logic as in ProjectBankAccountsPage... */}
         </div>
         {/* File preview and remove logic */}
         {filePreview && typeof form.supporting_document !== "string" ? (
@@ -58,8 +55,7 @@ export const EditBankAccountModal: React.FC<EditBankAccountModalProps> = ({
         ) : null}
         {!filePreview && typeof form.supporting_document === "string" && form.supporting_document && !removeExistingFile && (
           <div className="relative flex items-center gap-2 mb-2">
-            {/* ...existing file preview logic as in ProjectBankAccountsPage... */}
-            <a href={`http://localhost:8000/storage/${form.supporting_document}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline mt-2 block">Voir le document</a>
+            <a href={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline mt-2 block">Voir le document</a>
             <button type="button" onClick={onRemoveFile} className="ml-2 text-red-500 hover:text-red-700" title="Supprimer">&#10005;</button>
           </div>
         )}

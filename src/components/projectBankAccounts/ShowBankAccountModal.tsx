@@ -65,7 +65,7 @@ export const ShowBankAccountModal: React.FC<ShowBankAccountModalProps> = ({
             <span className="block text-xs text-gray-500">Pièce justificative (Scan)</span>
             {selected.supporting_document ? (
               (() => {
-                const url = `http://localhost:8000/storage/${selected.supporting_document}`;
+                const url = `${import.meta.env.VITE_STORAGE_URL}/${selected.supporting_document}`;
                 const isImage = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(selected.supporting_document);
                 const isPDF = /\.pdf$/i.test(selected.supporting_document);
                 if (isImage) {
