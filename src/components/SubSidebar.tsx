@@ -5,7 +5,7 @@ import MenuItemRenderer from './MenuItemRenderer';
 
 
 interface SubSidebarProps{
-    itemId:string;
+    itemId?:string;
 }
 const SubSidebar:React.FC<SubSidebarProps> = ({ itemId }) => {
     const selectedLink = menuItems.find(item => item.id === itemId);
