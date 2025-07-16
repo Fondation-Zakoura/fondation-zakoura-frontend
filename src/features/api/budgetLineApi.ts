@@ -2,8 +2,8 @@ import { baseApi } from "./api";
 
 export const budgetLineApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getBudgetLines: builder.query<any, void>({
-            query: () => "/budget-lines",
+        getBudgetLines: builder.query<any, { page?: number; perPage?: number }>({
+            query: ({ page = 1, perPage = 10 } = {}) => `/budget-lines?page=${page}&per_page=${perPage}`,
             providesTags: ["BudgetLine"],
         }),
         getBudgetLineOptions: builder.query<any, void>({

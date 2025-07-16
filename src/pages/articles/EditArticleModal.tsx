@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type ModalProps = {
   isOpen: boolean;
@@ -21,9 +22,13 @@ type ModalProps = {
 };
 
 const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) => {
-  const { data: productsData } = useGetProductsQuery({ page: 1, perPage: 100 });
+  const { data: productsData, isLoading: isLoadingProducts } = useGetProductsQuery({ page: 1, perPage: 100 });
   const { data: articleData, isLoading: isFetching } = useShowArticleQuery(articleId);
   const [updateArticle, { isLoading: isSaving, isError }] = useUpdateArticleMutation();
+
+  // Debug: Log the data
+  console.log('Products data:', productsData);
+  console.log('Article data:', articleData);
 
   // Form state
   const [selectedProductId, setSelectedProductId] = useState<string>("");
@@ -36,7 +41,10 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
   useEffect(() => {
     if (articleData) {
       const details = articleData.data || articleData;
-      setSelectedProductId(String(details.product_id ?? ""));
+      console.log('Setting form data:', details);
+      const productId = String(details.product_id ?? "");
+      console.log('Setting product ID:', productId);
+      setSelectedProductId(productId);
       setName(details.name ?? "");
       setSpecifications(details.specifications ?? "");
       setBrand(details.brand ?? "");
@@ -77,7 +85,7 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
           <DialogTitle>Modifier l'article</DialogTitle>
         </DialogHeader>
 
-        {isFetching ? (
+        {isFetching || isLoadingProducts ? (
           <p className="text-center py-6">Chargement...</p>
         ) : (
           <form onSubmit={handleSubmit}>
@@ -85,27 +93,34 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
               {/* Produit */}
               <div className="grid grid-cols-4 ">
                 <Label>Produit<span className="text-red-500">*</span></Label>
-                <Combobox
-                  options={productsData?.data?.filter(p => p.status === 1).map((prod) => ({
-                    label: prod.name,
-                    value: String(prod.product_id),
-                  })) || []}
+                <Select
                   value={selectedProductId}
-                  onChange={(v) => {
-                    setSelectedProductId(v);
-                  }}
-                  placeholder="Sélectionner un produit"
-                  className="col-span-3"
-                />
+                  onValueChange={setSelectedProductId}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Sélectionner un produit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productsData?.data?.map((product) => (
+                      <SelectItem
+                        key={product.product_id}
+                        value={String(product.product_id)}
+                      >
+                        {product.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Nom */}
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="article-name" className="text-right">
+                <Label htmlFor="name" className="text-right">
                   Nom<span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="article-name"
+                  id="name"
+                  name="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="col-span-3"
@@ -120,6 +135,7 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
                 </Label>
                 <Textarea
                   id="specifications"
+                  name="specifications"
                   value={specifications}
                   onChange={(e) => setSpecifications(e.target.value)}
                   className="col-span-3"
@@ -134,6 +150,7 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
                 </Label>
                 <Input
                   id="brand"
+                  name="brand"
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                   className="col-span-3"
@@ -157,19 +174,18 @@ const EditArticleModal: React.FC<ModalProps> = ({ isOpen, onClose, articleId }) 
               </div>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+            {isError && (
+              <p className="text-sm text-red-500">Erreur lors de la mise à jour.</p>
+            )}
+
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
                 Annuler
               </Button>
               <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Enregistrement..." : "Enregistrer"}
+                {isSaving ? "Mise à jour..." : "Sauvegarder"}
               </Button>
             </DialogFooter>
-            {isError && (
-              <p className="text-sm text-red-500 text-center mt-2">
-                Une erreur est survenue. Veuillez réessayer.
-              </p>
-            )}
           </form>
         )}
       </DialogContent>
