@@ -1,6 +1,6 @@
 // src/features/api/geographicApi.ts
-
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+// IMPORT THE GLOBAL baseApi HERE
+import { baseApi } from './api'; // Adjust the path as per your project structure
 
 // Define a type for geographic options (matching your GeoOption interface)
 interface GeoOption {
@@ -8,77 +8,68 @@ interface GeoOption {
   name: string;
 }
 
-export const geographicApi = createApi({
-  reducerPath: 'geographicApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${import.meta.env.VITE_API_URL}/geographic`, // Base URL for geographic endpoints
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      headers.set('Accept', 'application/json');
-      return headers;
-    },
-  }),
-  tagTypes: ['Region', 'Province', 'Cercle', 'Commune', 'Douar'],
+// Use baseApi.injectEndpoints instead of createApi
+export const geographicApi = baseApi.injectEndpoints({
+  // No reducerPath, baseQuery, or tagTypes here.
+  // These are handled by the global baseApi.
   endpoints: (builder) => ({
     getRegions: builder.query<GeoOption[], void>({
-      query: () => '/regions',
+      query: () => 'geographic/regions', // Adjust path to include 'geographic/'
       providesTags: ['Region'],
     }),
-    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getProvinces: builder.query<GeoOption[], number | null>({
       query: (regionId) => {
         if (regionId === null) {
-          return '/provinces'; // Endpoint to fetch ALL provinces if no regionId is provided
+          // You need to decide if your API supports getting all provinces without a regionId
+          // or if it should return an empty array or an error.
+          // For consistency with other geographic endpoints, assuming /geographic/provinces returns all
+          return 'geographic/provinces';
         }
-        return `/provinces/${regionId}`;
+        return `geographic/provinces/${regionId}`; // Adjust path to include 'geographic/'
       },
+      // Prefix unused parameters with '_'
       providesTags: (_result, _error, regionId) => [
-        { type: 'Province', id: regionId ?? undefined } // Convert null to undefined
+        { type: 'Province', id: regionId ?? 'LIST' } // Use 'LIST' or a specific ID for queries without a parent ID
       ],
     }),
-    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getCercles: builder.query<GeoOption[], number | null>({
       query: (provinceId) => {
         if (provinceId === null) {
-          return '/cercles'; // Endpoint to fetch ALL cercles if no provinceId is provided
+          return 'geographic/cercles'; // Adjust path
         }
-        return `/cercles/${provinceId}`;
+        return `geographic/cercles/${provinceId}`; // Adjust path
       },
+      // Prefix unused parameters with '_'
       providesTags: (_result, _error, provinceId) => [
-        { type: 'Cercle', id: provinceId ?? undefined } // Convert null to undefined
+        { type: 'Cercle', id: provinceId ?? 'LIST' }
       ],
     }),
-    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getCommunes: builder.query<GeoOption[], number | null>({
       query: (cercleId) => {
         if (cercleId === null) {
-          // You need to decide what your API does here:
-          // 1. Return all communes: '/communes'
-          // 2. Return an empty array (if communes *must* have a cercle): This would involve returning { data: [] } or a specific endpoint for no-cercle communes.
-          // For now, I'll assume '/communes' returns all communes. Adjust if your API differs.
-          return '/communes';
+          return 'geographic/communes'; // Adjust path
         }
-        return `/communes/${cercleId}`;
+        return `geographic/communes/${cercleId}`; // Adjust path
       },
+      // Prefix unused parameters with '_'
       providesTags: (_result, _error, cercleId) => [
-        { type: 'Commune', id: cercleId ?? undefined } // Convert null to undefined
+        { type: 'Commune', id: cercleId ?? 'LIST' }
       ],
     }),
-    // IMPORTANT: Fixed providesTags to handle null/undefined correctly
     getDouars: builder.query<GeoOption[], number | null>({
       query: (communeId) => {
         if (communeId === null) {
-          return '/douars'; // Endpoint to fetch ALL douars if no communeId is provided
+          return 'geographic/douars'; // Adjust path
         }
-        return `/douars/${communeId}`;
+        return `geographic/douars/${communeId}`; // Adjust path
       },
+      // Prefix unused parameters with '_'
       providesTags: (_result, _error, communeId) => [
-        { type: 'Douar', id: communeId ?? undefined } // Convert null to undefined
+        { type: 'Douar', id: communeId ?? 'LIST' }
       ],
     }),
     getUsers: builder.query<{ id: number; name: string; email: string }[], void>({
-      query: () => '/users',
+      query: () => '/users', // This should likely be in usersApi.ts
     }),
   }),
 });
@@ -89,5 +80,5 @@ export const {
   useGetCerclesQuery,
   useGetCommunesQuery,
   useGetDouarsQuery,
-  useGetUsersQuery,
+  useGetUsersQuery
 } = geographicApi;

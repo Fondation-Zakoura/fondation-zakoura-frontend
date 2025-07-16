@@ -30,12 +30,12 @@ import { type Dispatch, type SetStateAction } from "react";
 
 
 export interface Column<T> {
-  key: keyof T | string; // key can be a direct property of T or a string for nested access
-  header: React.ReactNode;
+  key: keyof T | 'actions' | string; // 'string' added for keys that might not be directly on T, like 'partner_logo'
+  header: string | React.ReactNode;
   render?: (row: T) => React.ReactNode;
   sortable?: boolean;
-  width?: string | number;
-  align?: "left" | "center" | "right";
+  width?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 // FIX: Removed unused generic TData from ColumnFilter
@@ -43,6 +43,7 @@ export interface ColumnFilter {
   id: string; // The filter key (e.g., "region", "status")
   label: string;
   options: { value: string | number; label: string }[];
+  isLoading?: boolean; 
 }
 
 // T must extend an object with an 'id' property of type string or number

@@ -1,17 +1,17 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { Plus, Trash2, Eye, Pencil, RotateCw } from "lucide-react";
+import { Plus, Trash2, Eye, Pencil, RotateCw, Loader2, AlertCircle } from "lucide-react";
 import { AddEditPartnerModal } from "../components/partners/AddEditPartnerModal";
-import { PartnerDetailsModal } from "../components/partners/PartnersTable";
-import type { Partner  , OptionItem} from "../types/partners"; // Assuming 'Partner' is defined here
+import { PartnerDetailsModal } from "../components/partners/PartnersTable"; // Assuming PartnerDetailsModal is defined here
+import type { Partner, OptionItem   } from "../types/partners";
 import {
   useGetPartnersQuery,
   useAddPartnerMutation,
   useUpdatePartnerMutation,
   useDeletePartnersMutation,
-  useGetOptionsQuery,
-} from "../features/partnersApi";
+  useGetPartnerOptionsQuery, // Updated hook name
+} from "../features/api/partnersApi";
 import { DataTable } from "../components/ui/data-table";
-import type { Column, ColumnFilter } from "../components/ui/data-table"; // Import ColumnFilter WITHOUT generic
+import type { Column, ColumnFilter } from "../components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -30,8 +31,7 @@ const PartnersListPage: React.FC = () => {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedPartnerForDetails, setSelectedPartnerForDetails] =
-    useState<Partner | null>(null);
+  const [selectedPartnerForDetails, setSelectedPartnerForDetails] = useState<Partner | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   // State for the partner being activated or deactivated
@@ -45,90 +45,85 @@ const PartnersListPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  // RTK Query: Fetch ALL partners once
+  const [tableFilters, setTableFilters] = useState<Record<string, string | string[]>>({});
+  const [selectedRows, setSelectedRows] = useState<Partner[]>([]);
+  const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
+
+  // RTK Query: Fetch Partners with filters and pagination
   const {
-    data: partnersData,
+    data: partnersApiResponse, // This will be ApiResponse<Partner> | undefined
     error: fetchError,
     isLoading,
     refetch,
-  } = useGetPartnersQuery({ filters: {} });
+  } = useGetPartnersQuery({ filters: tableFilters, page: 1 });
 
   const [addPartner] = useAddPartnerMutation();
   const [updatePartner] = useUpdatePartnerMutation();
-  const [deletePartners] = useDeletePartnersMutation();
+  const [deletePartners] = useDeletePartnersMutation(); // Used for both single and bulk toggle/delete
 
   // RTK Query: Fetch filter options
-  // Use GetOptionsResponse as the generic type for useGetOptionsQuery
-  const { data: natures } = useGetOptionsQuery("nature-partners");
-  const { data: structures } = useGetOptionsQuery("structure-partners");
-  const { data: statuts } = useGetOptionsQuery("status-partners");
+  const { data: naturesData, isLoading: isLoadingNatures } = useGetPartnerOptionsQuery("nature-partners");
+  const { data: structuresData, isLoading: isLoadingStructures } = useGetPartnerOptionsQuery("structure-partners");
+  const { data: statutsData, isLoading: isLoadingStatuts } = useGetPartnerOptionsQuery("status-partners");
+
   // Memoize partners list and derived filter options to prevent re-renders
-  const allPartners = useMemo(() => partnersData?.data || [], [partnersData]);
-  // Inside PartnersListPage, before the filterOptions useMemo
-console.log("Natures data:", natures);
-console.log("Structures data:", structures);
-console.log("Statuts data:", statuts);
+  const allPartners = useMemo(() => partnersApiResponse?.data || [], [partnersApiResponse]);
 
   // Derive filter options inside useMemo and explicitly type them
-// Derive filter options inside useMemo and explicitly type them
-const filterOptions = useMemo(() => {
+  const filterOptions = useMemo(() => {
     const typeOptions: OptionItem[] = [
-        { id: "National", name: "National" },
-        { id: "International", name: "International" },
+      { id: "National", name: "National" },
+      { id: "International", name: "International" },
     ];
 
     return {
-
-        natures: natures?.data || [],
-        structures: structures?.data || [],
-        statuts: statuts?.data || [],
-        types: typeOptions,
+      natures: naturesData?.data || [],
+      structures: structuresData?.data || [],
+      statuts: statutsData?.data || [],
+      types: typeOptions,
     };
-}, [natures, structures, statuts]); // This dependency array is correct
-
+  }, [naturesData, structuresData, statutsData]);
 
   // Prepare the filter configuration for the DataTable
-  // Correct: ColumnFilter is NOT generic
   const columnFilters = useMemo((): ColumnFilter[] => {
     return [
       {
         id: "nature_partner",
         label: "Nature du partenaire",
-        // Explicitly type 'n' as OptionItem
         options: (filterOptions.natures || []).map((n: OptionItem) => ({
-          value: String(n.name), // Ensure value is a string
+          value: String(n.name),
           label: n.name,
         })),
+        isLoading: isLoadingNatures,
       },
       {
         id: "partner_type",
         label: "Type du partenaire",
-        // Explicitly type 't' as OptionItem
         options: (filterOptions.types || []).map((t: OptionItem) => ({
-          value: String(t.name), // Ensure value is a string
+          value: String(t.name),
           label: t.name,
         })),
       },
       {
         id: "structure_partner",
         label: "Structure du partenaire",
-        // Explicitly type 's' as OptionItem
         options: (filterOptions.structures || []).map((s: OptionItem) => ({
-          value: String(s.name), // Ensure value is a string
+          value: String(s.name),
           label: s.name,
         })),
+        isLoading: isLoadingStructures,
       },
       {
         id: "status",
         label: "Phase du partenaire",
-        // Explicitly type 's' as OptionItem
         options: (filterOptions.statuts || []).map((s: OptionItem) => ({
-          value: String(s.name), // Ensure value is a string
+          value: String(s.name),
           label: s.name,
         })),
+        isLoading: isLoadingStatuts,
       },
     ];
-  }, [filterOptions]); // Now correctly depends on filterOptions
+  }, [filterOptions, isLoadingNatures, isLoadingStructures, isLoadingStatuts]);
 
   // --- Modal and Action Handlers (wrapped in useCallback) ---
   const handleOpenAddModal = useCallback(() => {
@@ -144,6 +139,7 @@ const filterOptions = useMemo(() => {
   const handleSavePartner = useCallback(
     async (formData: FormData, id?: number) => {
       setIsSaving(true);
+      setDialogErrorMessage(null); // Clear previous errors
       try {
         if (id) {
           await updatePartner({ id, data: formData }).unwrap();
@@ -152,8 +148,13 @@ const filterOptions = useMemo(() => {
         }
         setEditModalOpen(false);
         refetch();
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Failed to save partner:", err);
+        const error = err as FetchBaseQueryError;
+        const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
+          ? (error.data as { message: string }).message
+          : "Une erreur est survenue lors de l'enregistrement du partenaire.";
+        setDialogErrorMessage(msg); // Set error for display if modal supports it
       } finally {
         setIsSaving(false);
       }
@@ -163,20 +164,28 @@ const filterOptions = useMemo(() => {
 
   const handleToggleRequest = useCallback((partner: Partner) => {
     setPartnerToAction(partner);
+    setDialogErrorMessage(null); // Clear previous errors
     setConfirmOpen(true);
   }, []);
 
   const handleConfirmToggle = useCallback(async () => {
     if (!partnerToAction) return;
     setIsDeleting(true);
+    setDialogErrorMessage(null); // Clear previous errors
     try {
-      // Assuming deletePartners expects an array of numbers (partner IDs)
+      // Assuming deletePartners endpoint also handles soft deletes/restores based on IDs
+      // You might need a specific backend endpoint for toggle, or your current delete handles it.
       await deletePartners([partnerToAction.id]).unwrap();
       setConfirmOpen(false);
       setPartnerToAction(null);
       refetch();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Toggle failed:", err);
+      const error = err as FetchBaseQueryError;
+      const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
+        ? (error.data as { message: string }).message
+        : "Une erreur est survenue lors du changement de statut du partenaire.";
+      setDialogErrorMessage(msg);
     } finally {
       setIsDeleting(false);
     }
@@ -186,6 +195,7 @@ const filterOptions = useMemo(() => {
     if (isDeleting) return;
     setConfirmOpen(false);
     setPartnerToAction(null);
+    setDialogErrorMessage(null); // Clear error on cancel
   }, [isDeleting]);
 
   const handleViewDetails = useCallback((partner: Partner) => {
@@ -193,30 +203,35 @@ const filterOptions = useMemo(() => {
   }, []);
 
   const handleBulkDelete = useCallback((ids: (string | number)[]) => {
-    // Convert to number[] as per pendingDeleteIds state type
     const numericIds = ids.map((id) => Number(id));
     if (!numericIds.length) return;
     setPendingDeleteIds(numericIds);
+    setDialogErrorMessage(null); // Clear previous errors
     setShowBulkDeleteDialog(true);
   }, []);
 
   const handleConfirmBulkDelete = useCallback(async () => {
     if (!pendingDeleteIds.length) return;
     setIsBulkDeleting(true);
+    setDialogErrorMessage(null); // Clear previous errors
     try {
-      // Assuming deletePartners expects an array of numbers (partner IDs)
       await deletePartners(pendingDeleteIds).unwrap();
       setPendingDeleteIds([]);
       setShowBulkDeleteDialog(false);
+      setSelectedRows([]); // Clear selected rows after bulk action
       refetch();
-    } catch (err) {
-      console.error("Bulk delete failed:", err);
+    } catch (err: unknown) {
+      console.error("Bulk delete/toggle failed:", err);
+      const error = err as FetchBaseQueryError;
+      const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
+        ? (error.data as { message: string }).message
+        : "Une erreur est survenue lors de l'action groupée sur les partenaires.";
+      setDialogErrorMessage(msg);
     } finally {
       setIsBulkDeleting(false);
     }
   }, [deletePartners, pendingDeleteIds, refetch]);
 
-  // --- DataTable Column Definitions (Updated) ---
   const columns: Column<Partner>[] = useMemo(
     () => [
       {
@@ -236,7 +251,7 @@ const filterOptions = useMemo(() => {
               </span>
             </div>
           ),
-        width: 80,
+        width: '80px',
         align: "center",
       },
       { key: "partner_name", header: "Nom du partenaire", sortable: true },
@@ -248,38 +263,47 @@ const filterOptions = useMemo(() => {
         key: "actions",
         header: "Actions",
         align: "right",
+        width: '120px',
         render: (row) => (
           <div className="flex gap-1 justify-end">
-            <button
+            <Button
               onClick={() => handleViewDetails(row)}
               className="p-2 rounded hover:bg-gray-200 text-gray-600"
               title="Voir"
+              variant="ghost"
+              size="sm"
             >
               <Eye size={16} />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleOpenEditModal(row)}
               className="p-2 rounded hover:bg-blue-100 text-blue-600"
               title="Éditer"
+              variant="ghost"
+              size="sm"
             >
               <Pencil size={16} />
-            </button>
+            </Button>
             {row.deleted_at ? (
-              <button
+              <Button
                 onClick={() => handleToggleRequest(row)}
                 className="p-2 rounded hover:bg-green-100 text-green-600"
                 title="Réactiver"
+                variant="ghost"
+                size="sm"
               >
                 <RotateCw size={16} />
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 onClick={() => handleToggleRequest(row)}
                 className="p-2 rounded hover:bg-red-100 text-red-600"
                 title="Désactiver"
+                variant="ghost"
+                size="sm"
               >
                 <Trash2 size={16} />
-              </button>
+              </Button>
             )}
           </div>
         ),
@@ -287,6 +311,9 @@ const filterOptions = useMemo(() => {
     ],
     [handleViewDetails, handleOpenEditModal, handleToggleRequest]
   );
+
+  const totalItems = partnersApiResponse?.meta?.total || 0;
+  const perPage = partnersApiResponse?.meta?.per_page || 10;
 
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
@@ -306,39 +333,50 @@ const filterOptions = useMemo(() => {
         </Button>
       </div>
       <div className="max-w-screen-2xl mx-auto ">
-        {fetchError && (
-          <div
-            className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4"
-            role="alert"
-          >
-            <p className="font-bold">Erreur de chargement</p>
-            <p>{String(fetchError)}</p>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-10 w-10 animate-spin text-[#576CBC]" />
+            <p className="ml-4 text-lg text-gray-600">Chargement des données...</p>
           </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center h-64 text-red-600">
+            <AlertCircle size={48} className="mb-4" />
+            <p className="text-xl font-semibold">Erreur de chargement des données</p>
+            <p className="text-md text-gray-500">Impossible de récupérer les partenaires. Veuillez réessayer plus tard.</p>
+            {typeof fetchError === 'object' && fetchError !== null && 'status' in fetchError && (
+              <p className="text-sm text-gray-500 mt-2">Status: {(fetchError as FetchBaseQueryError).status}</p>
+            )}
+          </div>
+        ) : (
+          <DataTable<Partner>
+            columns={columns}
+            data={allPartners}
+            columnFilters={columnFilters}
+            onFilterChange={setTableFilters}
+            selectedRows={selectedRows}
+            onSelectedRowsChange={setSelectedRows}
+            emptyText={"Aucun partenaire trouvé"}
+            initialPageSize={perPage}
+            headerStyle="primary"
+            hoverEffect
+            striped
+            totalItems={totalItems}
+            onBulkDelete={handleBulkDelete}
+            globalFilterKey="partner_name"
+          />
         )}
-
-        <DataTable
-          columns={columns}
-          data={allPartners}
-          columnFilters={columnFilters}
-          emptyText={
-            isLoading ? "Chargement des données..." : "Aucun partenaire trouvé"
-          }
-          initialPageSize={10}
-          headerStyle="primary"
-          hoverEffect
-          striped
-          onBulkDelete={handleBulkDelete}
-          globalFilterKey="partner_name"
-        />
       </div>
 
       <AddEditPartnerModal
         isOpen={isEditModalOpen}
-        onClose={() => setEditModalOpen(false)}
+        onClose={() => {
+          setEditModalOpen(false);
+          setDialogErrorMessage(null); // Clear error on close
+        }}
         onSave={handleSavePartner}
         partner={editingPartner}
-        options={filterOptions} // Pass the correctly structured filterOptions
-        serverErrors={{}}
+        options={filterOptions}
+        serverErrors={{}} // You might want to populate this with actual server errors from handleSavePartner
         isLoading={isSaving}
       />
       <PartnerDetailsModal
@@ -347,6 +385,7 @@ const filterOptions = useMemo(() => {
         partner={selectedPartnerForDetails}
       />
 
+      {/* Single Toggle/Delete Dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
@@ -359,6 +398,9 @@ const filterOptions = useMemo(() => {
               {partnerToAction?.deleted_at
                 ? `Êtes-vous sûr de vouloir réactiver le partenaire "${partnerToAction?.partner_name}" ?`
                 : `Êtes-vous sûr de vouloir désactiver le partenaire "${partnerToAction?.partner_name}" ? Cette action est réversible.`}
+              {dialogErrorMessage && (
+                <p className="text-red-500 text-sm mt-2">{dialogErrorMessage}</p>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -379,26 +421,7 @@ const filterOptions = useMemo(() => {
               onClick={handleConfirmToggle}
             >
               {isDeleting && (
-                <svg
-                  className="animate-spin h-5 w-5 mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
-                </svg>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               {partnerToAction?.deleted_at ? "Réactiver" : "Désactiver"}
             </Button>
@@ -406,6 +429,7 @@ const filterOptions = useMemo(() => {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Delete Dialog */}
       <Dialog
         open={showBulkDeleteDialog}
         onOpenChange={setShowBulkDeleteDialog}
@@ -415,9 +439,12 @@ const filterOptions = useMemo(() => {
             <DialogTitle>Confirmer l'action groupée</DialogTitle>
             <DialogDescription>
               Vous êtes sur le point de modifier le statut de{" "}
-              {pendingDeleteIds.length} partenaire(s). Les partenaires actifs
+              **{pendingDeleteIds.length} partenaire(s)**. Les partenaires actifs
               seront désactivés et les inactifs seront réactivés. Êtes-vous sûr
               de vouloir continuer ?
+              {dialogErrorMessage && (
+                <p className="text-red-500 text-sm mt-2">{dialogErrorMessage}</p>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -426,7 +453,10 @@ const filterOptions = useMemo(() => {
                 type="button"
                 variant="outline"
                 disabled={isBulkDeleting}
-                onClick={() => setPendingDeleteIds([])}
+                onClick={() => {
+                  setPendingDeleteIds([]);
+                  setDialogErrorMessage(null); // Clear error on cancel
+                }}
               >
                 Annuler
               </Button>
@@ -438,26 +468,7 @@ const filterOptions = useMemo(() => {
               onClick={handleConfirmBulkDelete}
             >
               {isBulkDeleting && (
-                <svg
-                  className="animate-spin h-5 w-5 mr-2 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
-                </svg>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Confirmer
             </Button>
