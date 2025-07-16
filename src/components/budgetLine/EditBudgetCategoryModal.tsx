@@ -3,8 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import ReactSelect from "react-select";
 
 interface EditBudgetCategoryModalProps {
   open: boolean;
@@ -68,43 +68,20 @@ export const EditBudgetCategoryModal: React.FC<EditBudgetCategoryModalProps> = (
           </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="budgetary_area">Domaine budgétaire <span className="text-red-500">*</span></Label>
-            <div className="relative">
-              <div className="flex flex-wrap gap-1 mb-1">
-                {form.budgetary_area.map((area: string) => (
-                  <span key={area} className="flex items-center bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-xs mr-1 mb-1">
-                    {area}
-                    <button
-                      type="button"
-                      className="ml-1 text-blue-500 hover:text-red-500"
-                      onClick={() => {
-                        const newAreas = form.budgetary_area.filter((a: string) => a !== area);
-                        onSelectChange('budgetary_area', newAreas);
-                      }}
-                      aria-label={`Retirer ${area}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="border rounded px-2 py-1 flex flex-wrap gap-2 bg-white">
-                {domaineBudgetaires.filter(opt => !form.budgetary_area.includes(opt.value)).length === 0 ? (
-                  <span className="text-gray-400 text-xs">Tous les domaines sont sélectionnés</span>
-                ) : (
-                  domaineBudgetaires.filter(opt => !form.budgetary_area.includes(opt.value)).map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className="bg-gray-100 hover:bg-blue-100 text-gray-700 rounded px-2 py-0.5 text-xs"
-                      onClick={() => onSelectChange('budgetary_area', [...form.budgetary_area, opt.value])}
-                    >
-                      {opt.label}
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-            {fieldErrors.budgetary_area && <span className="text-xs text-red-500">{fieldErrors.budgetary_area}</span>}
+            <ReactSelect
+              id="budgetary_area"
+              isMulti
+              options={domaineBudgetaires}
+              value={domaineBudgetaires.filter(opt => form.budgetary_area.includes(opt.value))}
+              onChange={(selected: import('react-select').MultiValue<{ value: string; label: string }>) =>
+                onSelectChange('budgetary_area', selected.map(opt => opt.value))
+              }
+              classNamePrefix="react-select"
+              placeholder="Sélectionner un ou plusieurs domaines"
+            />
+            {fieldErrors.budgetary_area && (
+              <span className="text-xs text-red-500">{fieldErrors.budgetary_area}</span>
+            )}
           </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="is_active">Statut <span className="text-red-500">*</span></Label>
