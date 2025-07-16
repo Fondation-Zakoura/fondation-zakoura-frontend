@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useAddCategoryMutation } from "../../features/api/categories";
+import { useAddCategoryMutation } from "../../features/api/categoriesApi";
 
 // Props definition for the modal component
 interface ModalProps {
@@ -93,9 +93,11 @@ const AddCategory: React.FC<ModalProps> = ({ isOpen, onClose, title }) => {
           </div>
 
           {/* Error message display if mutation fails */}
-          {isError && (
-            <p className="text-sm text-red-500">{error?.data?.message}</p>
-          )}
+         {isError && (
+  <p className="text-sm text-red-500">
+    {('data' in error && error.data) ? (error.data as { message?: string }).message : 'An error occurred'}
+  </p>
+)}
 
           {/* Modal footer with action buttons */}
           <DialogFooter className="mt-4">

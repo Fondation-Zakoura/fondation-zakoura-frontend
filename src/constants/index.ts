@@ -19,9 +19,7 @@ import {
     RiBarChartBoxLine,
     RiMoneyDollarCircleLine,
     RiGroupLine,
-    RiBuildingLine,
     RiMapPinLine,
-    RiHandCoinLine,
     RiAwardLine,
     RiTrophyLine,
     RiEditBoxLine,
@@ -29,7 +27,6 @@ import {
     RiBriefcaseLine,
     RiStackLine,
     RiBookOpenLine,
-    RiCalendarLine,
     RiPlaneLine,
     RiSendPlaneLine,
     RiFileListLine,
@@ -64,13 +61,12 @@ import {
 import { LuShieldX } from 'react-icons/lu';
 
 
-
 export const menuItems = [
     {
         id: 'dashboards',
         title: 'Dashboards',
         icon: MdOutlineDashboard,
-        type: 'dropdown', // Top-level items with sub-items are dropdowns
+        type: 'dropdown', 
         subItems: [
             { id: 'general', title: 'Général', link: '/dashboards/general', icon: null, type: 'link' },
             { id: 'finance-admin', title: 'Finance et administration', link: '/dashboards/finance-admin', icon: null, type: 'link' },
@@ -93,7 +89,8 @@ export const menuItems = [
                 icon: null, // As per image
                 link: '#', // Non-navigating parent
                 nestedDropdownItems: [
-                    { id: 'partenaires', title: 'Partenaires', link: '/partenariat/partenaires', icon: RiAwardLine, type: 'link' },
+                    { id: 'partenaires', title: 'Partenaires', link: '/partners', icon: RiAwardLine, type: 'link' },
+                    { id: 'projets', title: 'Projets', link: '/projects', icon: RiAwardLine, type: 'link' },
                     { id: 'appels-a-projet', title: 'Appels à projet', link: '/partenariat/appels-a-projet', icon: RiTrophyLine, type: 'link' },
                 ],
             },
@@ -101,8 +98,8 @@ export const menuItems = [
                 id: 'suivi_partenaires_dropdown',
                 title: 'Suivi des partenaires',
                 type: 'dropdown',
-                icon: null, // As per image
-                link: '#', // Non-navigating parent
+                icon: null,
+                link: '#', 
                 nestedDropdownItems: [
                     { id: 'reporting', title: 'Reporting', link: '/partenariat/reporting', icon: RiEditBoxLine, type: 'link' },
                     { id: 'recouvrements', title: 'Recouvrements', link: '/partenariat/recouvrements', icon: RiRefreshLine, type: 'link' },
@@ -125,8 +122,7 @@ export const menuItems = [
                 icon: null, // No icon visible next to 'Finance' in image_22c73e.png
                 link: '/projets/liste', // This acts as a non-navigating parent for its own nested items
                 nestedDropdownItems: [
-                    { id: 'projets', title: 'Projets', link: '/projets/projets/projets', icon: RiBriefcase4Line, type: 'link' },
-                    
+                    { id: 'projets', title: 'Projets', link: '/projects', icon: RiBriefcase4Line, type: 'link' },
                 ],
             },
             // This is the 'Finance' dropdown which is a direct child of the main 'Projets' dropdown
@@ -215,8 +211,9 @@ export const menuItems = [
                 nestedDropdownItems: [
                     { id: 'marques', title: 'Marques', link: '/achats/marques', icon: RiPriceTagLine, type: 'link' },
                     { id: 'categories', title: 'Catégories', link: '/categories', icon: RiBriefcaseLine, type: 'link' },
-                    { id: 'produits', title: 'Produits', link: '/achats/produits', icon: MdOutlineEvent, type: 'link' },
-                    { id: 'packs', title: 'Packs', link: '/achats/packs', icon: RiStackLine, type: 'link' }, // Added link
+                    { id: 'produits', title: 'Produits', link: '/produits', icon: MdOutlineEvent, type: 'link' },
+                    { id: 'articles', title: 'Articles', link: '/articles', icon: MdOutlineEvent, type: 'link' },
+                    { id: 'packs', title: 'Packs', link: '/packs', icon: RiStackLine, type: 'link' }, // Added link
                 ],
             },
             {
@@ -277,6 +274,8 @@ export const menuItems = [
             { id: 'paiements', title: 'Paiements', link: '/finance/paiements', icon: RiWalletLine, type: 'link' },
             { id: 'operations-caisse', title: 'Opérations de caisse', link: '/finance/operations-caisse', icon: CiShuffle, type: 'link' },
             { id: 'notes-de-frais', title: 'Notes de frais', link: '/finance/notes-de-frais', icon: MdOutlineCalculate, type: 'link' },
+            { id: 'budget-category', title: 'Rubrique Budgetaire', link: '/budget-category', icon: RiBarChartGroupedLine, type: 'link' },
+            { id: 'statuts-sondages', title: 'Ligne Budgetaire', link: '/budget-line', icon: RiBarChartGroupedLine, type: 'link' },
 
            
         ],
@@ -393,7 +392,44 @@ export const menuItems = [
                 icon: null, // No icon for the header
                 link: '#', // Non-navigating parent
                 nestedDropdownItems: [
-                    { id: 'banques', title: 'Banques', link: '/parametres/projets/banques', icon: RiBankLine, type: 'link' },
+                    { id: 'banques', title: 'Banques', link: '/banks', icon: RiBankLine, type: 'link' },
+                    { id: 'bank-accounts', title: 'Comptes Bancaire', link: '/bank-accounts', icon: RiBankLine, type: 'link' },
+                    { id: 'agences-bancaires', title: 'Agences bancaires', link: '/bank-agencies', icon: RiBankLine, type: 'link' },
+                    { id: 'pays', title: 'Pays', link: '/countries', icon: RiEarthLine, type: 'link' },
+                    {
+                        id: 'types_dropdown',
+                        title: 'Types',
+                        type: 'dropdown',
+                        icon: null, // As per image
+                        link: '#', // Non-navigating parent
+                        nestedDropdownItems: [
+                            { id: 'structures-partenaires', title: 'Structures de partenaires', link: '/partner-structures', icon: RiSettings2Line, type: 'link' },
+                            { id: 'natures-partenaires', title: 'Natures de partenaires', link: '/partner-natures', icon: RiSettings2Line, type: 'link' },
+                            { id: 'project-types', title: 'Types de Projet', link: '/project-types',icon: RiSettings2Line, type: 'link' },
+                        ],
+                    },
+                    {
+                        id: 'statuses_dropdown',
+                        title: 'Status',
+                        type: 'dropdown',
+                        icon: null, // As per image
+                        link: '#', // Non-navigating parent
+                        nestedDropdownItems: [
+                            { id: 'project-statuses', title: 'Status des Projet', link: '/project-statuses', icon: RiSettings2Line, type: 'link' },
+
+                        ],
+                    },
+                ],
+            },
+            {
+                id: 'operations_param',
+                title: 'Opérations',
+                type: 'dropdown',
+                icon: null, // No icon for the header
+                link: '#', // Non-navigating parent
+                nestedDropdownItems: [
+                    { id: 'sites', title: 'Sites', link: '/sites', icon: RiBankLine, type: 'link' },
+                    {id: 'unites', title: 'Unités', link: '/parametres/operations/unites', icon: RiBankLine, type: 'link' },
                     { id: 'agences-bancaires', title: 'Agences bancaires', link: '/parametres/projets/agences-bancaires', icon: RiBankLine, type: 'link' },
                     { id: 'pays', title: 'Pays', link: '/parametres/projets/pays', icon: RiEarthLine, type: 'link' },
                 ],
@@ -515,6 +551,7 @@ export const menuItems = [
                             { id: 'statuts-appels-a-projets', title: 'Statuts des appels à projets', link: '/parametres/finance/statuts/appels-a-projets', icon: RiBarChartGroupedLine, type: 'link' },
                             { id: 'statuts-projets', title: 'Statuts des projets', link: '/parametres/finance/statuts/projets', icon: RiBarChartGroupedLine, type: 'link' },
                             { id: 'statuts-sondages', title: 'Statuts des sondages', link: '/parametres/finance/statuts/sondages', icon: RiBarChartGroupedLine, type: 'link' },
+                            
                         ],
                     },
                     {
@@ -525,8 +562,6 @@ export const menuItems = [
                         link: '#',
                         nestedDropdownItems: [
                             { id: 'types-ressources-financieres', title: 'Types de ressources financières', link: '/parametres/finance/types/ressources-financieres', icon: RiSettings2Line, type: 'link' },
-                            { id: 'types-partenaires', title: 'Types de partenaires', link: '/parametres/finance/types/partenaires', icon: RiSettings2Line, type: 'link' },
-                            { id: 'natures-partenaires', title: 'Natures de partenaires', link: '/parametres/finance/types/natures-partenaires', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-projets', title: 'Types de projets', link: '/parametres/finance/types/projets', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-rubriques', title: 'Types de rubriques', link: '/parametres/finance/types/rubriques', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-sondages', title: 'Types de sondages', link: '/parametres/finance/types/sondages', icon: RiSettings2Line, type: 'link' },

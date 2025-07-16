@@ -1,3 +1,5 @@
+// combobox.tsx (No changes needed, keeping as is)
+
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,21 +17,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
- 
 export interface ComboboxOption {
   value: string;
   label: string;
 }
- 
+
 interface ComboboxProps {
   options: ComboboxOption[];
-  value: string;
+  value?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
 }
- 
 export const Combobox: React.FC<ComboboxProps> = ({
   options,
   value,
@@ -40,7 +40,6 @@ export const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const selected = options.find((o) => o.value === value);
- 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -48,7 +47,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className, !selected && "text-muted-foreground")}
+          className={cn(
+            "w-full justify-between",
+            className,
+            !selected && "text-muted-foreground"
+          )}
           disabled={disabled}
         >
           {selected ? selected.label : placeholder}
@@ -66,7 +69,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue) => {
-                    onChange(currentValue);
+                    onChange(currentValue); // This is line 73, and it's correct because onChange is defined
                     setOpen(false);
                   }}
                 >
@@ -86,4 +89,3 @@ export const Combobox: React.FC<ComboboxProps> = ({
     </Popover>
   );
 };
- 

@@ -1,0 +1,442 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '../ui/input';
+import { useUpdateBudgetLineMutation, useGetBudgetLineOptionsQuery } from '@/features/api/budgetLineApi';
+import { Button } from '../ui/button';
+import { Select, SelectValue, SelectItem, SelectTrigger, SelectContent } from '../ui/select';
+import { Trash2 } from 'lucide-react';
+import type { BudgetLine } from '@/features/types/budgetLine';
+
+interface Props {
+  onClose: () => void;
+  refetch: () => void;
+  budgetLine: BudgetLine;
+}
+
+function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
+  const [form, setForm] = useState({ 
+    total_amount: '',
+    consumed_amount: '',
+    remaining_amount: '',
+    project_id: '',
+    budget_category_id: '',
+    status: 'active',
+    partners: [
+      {
+        id: '',
+        allocated_amount: '',
+      }
+    ]
+  });
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  const [updateBudgetLine] = useUpdateBudgetLineMutation();
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const { data: options, isLoading } = useGetBudgetLineOptionsQuery();
+
+  // Extract data from options object
+  const budgetCategoriesData = options?.budgetCategories?.data || [];
+  const partnersData = options?.partners?.data || [];
+  const projectsData = options?.projects?.data || [];
+
+  if (isLoading) {
+    return (
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la ligne budgétaire</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-12 text-lg text-gray-500">
+            Chargement des données...
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Initialize form with budget line data
+  useEffect(() => {
+    if (budgetLine) {
+      console.log('Budget line data for editing:', budgetLine);
+      console.log('Partners data:', budgetLine.partners);
+      
+      setForm({
+        total_amount: budgetLine.total_amount?.toString() || '',
+        consumed_amount: budgetLine.consumed_amount?.toString() || '',
+        remaining_amount: budgetLine.remaining_amount?.toString() || '',
+        project_id: budgetLine.project_id?.toString() || '',
+        budget_category_id: budgetLine.budget_category_id?.toString() || '',
+        status: 'active', // Default status since it's not in the type
+        partners: budgetLine.partners?.length > 0 
+          ? budgetLine.partners.map(partner => {
+              console.log('Processing partner:', partner);
+              // Access partner data from pivot table (Laravel relationship)
+              const partnerId = partner.id?.toString() || '';
+              const allocatedAmount = (partner as any).pivot?.allocated_amount?.toString() || '';
+              return {
+                id: partnerId,
+                allocated_amount: allocatedAmount
+              };
+            })
+          : [{ id: '', allocated_amount: '' }]
+      });
+    }
+  }, [budgetLine]);
+
+  // Real-time validation function
+  const validateField = (name: string, value: string) => {
+    const newErrors = { ...errors };
+    
+    switch (name) {
+      case 'total_amount':
+        if (!value) {
+          newErrors[name] = 'Le montant total est requis';
+        } else if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
+          newErrors[name] = 'Le montant total doit être un nombre positif';
+        } else {
+          delete newErrors[name];
+        }
+        break;
+      case 'consumed_amount':
+        if (!value) {
+          newErrors[name] = 'Le montant consommé est requis';
+        } else if (isNaN(parseFloat(value)) || parseFloat(value) < 0) {
+          newErrors[name] = 'Le montant consommé doit être un nombre positif';
+        } else if (parseFloat(value) > parseFloat(form.total_amount || '0')) {
+          newErrors[name] = 'Le montant consommé ne peut pas dépasser le montant total';
+        } else {
+          delete newErrors[name];
+        }
+        break;
+      case 'project_id':
+        if (!value) {
+          newErrors[name] = 'Le projet est requis';
+        } else {
+          delete newErrors[name];
+        }
+        break;
+      case 'budget_category_id':
+        if (!value) {
+          newErrors[name] = 'La catégorie budgétaire est requise';
+        } else {
+          delete newErrors[name];
+        }
+        break;
+    }
+    
+    setErrors(newErrors);
+  };
+
+  // Validate partner field
+  const validatePartner = (index: number, field: string, value: string) => {
+    const newErrors = { ...errors };
+    const errorKey = `partner_${index}_${field}`;
+    
+    if (field === 'id') {
+      if (!value) {
+        newErrors[errorKey] = 'Le partenaire est requis';
+      } else {
+        delete newErrors[errorKey];
+      }
+    } else if (field === 'allocated_amount') {
+      if (!value) {
+        newErrors[errorKey] = 'Le montant alloué est requis';
+      } else if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
+        newErrors[errorKey] = 'Le montant alloué doit être un nombre positif';
+      } else {
+        delete newErrors[errorKey];
+      }
+    }
+    
+    setErrors(newErrors);
+  };
+
+  // Update total_amount and consumed_amount handlers to recalculate remaining_amount
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    let newForm = { ...form, [name]: value };
+    if (name === 'total_amount' || name === 'consumed_amount') {
+      const total = parseFloat(name === 'total_amount' ? value : form.total_amount) || 0;
+      const consumed = parseFloat(name === 'consumed_amount' ? value : form.consumed_amount) || 0;
+      newForm.remaining_amount = (total - consumed).toString();
+    }
+    setForm(newForm);
+    validateField(name, value);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdateLoading(true);
+    
+    try {
+      // Validate form data
+      if (!form.total_amount || !form.consumed_amount || !form.remaining_amount || 
+          !form.project_id || !form.budget_category_id) {
+        throw new Error('Veuillez remplir tous les champs obligatoires');
+      }
+      
+      // Validate partners
+      const validPartners = form.partners.filter(partner => 
+        partner.id && partner.allocated_amount && 
+        partner.allocated_amount.trim() !== ''
+      );
+      
+      if (validPartners.length === 0) {
+        throw new Error('Veuillez ajouter au moins un partenaire avec un montant alloué');
+      }
+      
+      // Prepare the data to send
+      const budgetLineData = {
+        total_amount: parseFloat(form.total_amount),
+        consumed_amount: parseFloat(form.consumed_amount),
+        remaining_amount: parseFloat(form.remaining_amount),
+        project_id: parseInt(form.project_id),
+        budget_category_id: parseInt(form.budget_category_id),
+        status: form.status,
+        partners: validPartners.map(partner => ({
+          id: parseInt(partner.id),
+          allocated_amount: parseFloat(partner.allocated_amount)
+        }))
+      };
+      
+      // Log the JSON object as a formatted string
+      console.log('Updating budget line data:', JSON.stringify(budgetLineData, null, 2));
+      
+      await updateBudgetLine({ id: budgetLine.id, body: budgetLineData }).unwrap();
+      onClose();
+      refetch();
+    } catch (error) {
+      console.error('Erreur lors de la modification', error);
+      alert(error instanceof Error ? error.message : "Une erreur est survenue lors de la modification");
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Modifier la ligne budgétaire</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="total_amount">
+                Montant Total <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="total_amount"
+                name="total_amount"
+                placeholder="Le Montant Total"
+                value={form.total_amount}
+                onChange={handleAmountChange}
+                className={errors.total_amount ? 'border-red-500' : ''}
+                required
+              />
+              {errors.total_amount && (
+                <span className="text-red-500 text-sm">{errors.total_amount}</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="consumed_amount">
+                Montant Consommé <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="consumed_amount"
+                name="consumed_amount"
+                placeholder="Montant Consommé"
+                value={form.consumed_amount}
+                onChange={handleAmountChange}
+                className={errors.consumed_amount ? 'border-red-500' : ''}
+                required
+              />
+              {errors.consumed_amount && (
+                <span className="text-red-500 text-sm">{errors.consumed_amount}</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="remaining_amount">
+                Montant Disponible
+              </Label>
+              <Input
+                id="remaining_amount"
+                name="remaining_amount"
+                placeholder="Montant Disponible"
+                value={form.remaining_amount}
+                disabled
+                readOnly
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="project_id">
+                Le Projet Concerné <span className="text-red-500">*</span>
+              </Label>
+              <Select value={form.project_id} onValueChange={(e) => {
+                setForm({ ...form, project_id: e });
+                validateField('project_id', e);
+              }}>
+                <SelectTrigger className={`w-full ${errors.project_id ? 'border-red-500' : ''}`} id='project_id' name='project_id'>
+                  <SelectValue placeholder="Le Projet Concerné" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectsData.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.project_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.project_id && (
+                <span className="text-red-500 text-sm">{errors.project_id}</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="budget_category_id">
+                Catégorie Budgétaire <span className="text-red-500">*</span>
+              </Label>
+              <Select value={form.budget_category_id} onValueChange={(e) => {
+                setForm({ ...form, budget_category_id: e });
+                validateField('budget_category_id', e);
+              }}>
+                <SelectTrigger className={`w-full ${errors.budget_category_id ? 'border-red-500' : ''}`} id='budget_category_id' name='budget_category_id'>
+                  <SelectValue placeholder="Catégorie Budgétaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  {budgetCategoriesData.map((category: any) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name || category.title || category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.budget_category_id && (
+                <span className="text-red-500 text-sm">{errors.budget_category_id}</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="status">
+                Statut <span className="text-red-500">*</span>
+              </Label>
+              <Select value={form.status} onValueChange={e => setForm({ ...form, status: e })}>
+                <SelectTrigger className='w-full' id='status' name='status'>
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="consumed">Consommée</SelectItem>
+                  <SelectItem value="on_alert">En alerte</SelectItem>
+                                                    </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Partners Section */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Partenaires</Label>
+            {form.partners.map((partner, index) => (
+              <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 border rounded-lg relative">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={`partner-${index}`}>
+                    Partenaire <span className="text-red-500">*</span>
+                  </Label>
+                  <Select 
+                    value={partner.id} 
+                    onValueChange={(e) => {
+                      const updatedPartners = [...form.partners];
+                      updatedPartners[index].id = e;
+                      setForm({ ...form, partners: updatedPartners });
+                      validatePartner(index, 'id', e);
+                    }}
+                  >
+                    <SelectTrigger className={`w-full ${errors[`partner_${index}_id`] ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Sélectionner un partenaire" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partnersData.map((partnerItem: any) => (
+                        <SelectItem key={partnerItem.id} value={partnerItem.id.toString()}>
+                          {partnerItem.partner_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors[`partner_${index}_id`] && (
+                    <span className="text-red-500 text-sm">{errors[`partner_${index}_id`]}</span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={`allocated-${index}`}>
+                    Montant Alloué <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id={`allocated-${index}`}
+                    placeholder="Montant alloué"
+                    value={partner.allocated_amount}
+                    onChange={(e) => {
+                      const updatedPartners = [...form.partners];
+                      updatedPartners[index].allocated_amount = e.target.value;
+                      setForm({ ...form, partners: updatedPartners });
+                      validatePartner(index, 'allocated_amount', e.target.value);
+                    }}
+                    className={errors[`partner_${index}_allocated_amount`] ? 'border-red-500' : ''}
+                    required
+                  />
+                  {errors[`partner_${index}_allocated_amount`] && (
+                    <span className="text-red-500 text-sm">{errors[`partner_${index}_allocated_amount`]}</span>
+                  )}
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const updatedPartners = form.partners.filter((_, i) => i !== index);
+                      setForm({ ...form, partners: updatedPartners });
+                    }}
+                    className="h-10 w-10 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={form.partners.length === 1}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setForm({
+                  ...form,
+                  partners: [...form.partners, { id: '', allocated_amount: '' }]
+                });
+              }}
+              className="w-full"
+            >
+              + Ajouter un partenaire
+            </Button>
+          </div>
+          
+          <DialogFooter>
+            <Button type="submit" className="text-white" disabled={updateLoading}>
+              {updateLoading && <span className="loader mr-2"></span>} Modifier
+            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Annuler</Button>
+            </DialogClose>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default EditBudgetLineModal; 

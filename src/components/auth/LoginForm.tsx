@@ -3,8 +3,8 @@ import { useLoginUserMutation } from "../../features/api/authApi";
 import { useDispatch } from "react-redux";
 import { login } from "../../features/user/userSlice";
 import { useNavigate } from "react-router-dom";
-import girl from "../../../src/assets/images/login/girl.png"; 
-import logo from "../../../src/assets/images/zakoura-logo.svg"; 
+import girl from "../../../src/assets/images/login/girl.png"; // Assuming this path is correct
+import logo from "/zakoura-logo.svg"; // Import the logo
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -13,12 +13,13 @@ const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const result = await loginUser({ email, password }).unwrap();
-      dispatch(login({ token: result.token }));
-      console.log("user logged in successfully");
+    dispatch(login({ name: result.name, token: result.token }));
+
+      console.log("user logged in successfully",result.name);
       navigate("/");
     } catch (err) {
       console.error("Failed to login:", err);
@@ -28,14 +29,12 @@ const LoginForm = () => {
   return (
     // Outer container for the whole page background and centering
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center " 
+      className="min-h-screen flex items-center justify-center bg-cover bg-center "
       style={{
         backgroundImage: "url('/src/assets/images/login/course-lg.jpg')",
       }}
     >
-   
       <div className="flex flex-col md:flex-row bg-white shadow-2xl rounded-lg  max-w-2xl w-full lg:mx-7 mx-3  lg:max-w-4xl  ">
-      
         <div className="relative w-full md:w-2/5 flex-shrink-1 ">
           {/* Main image covering the section */}
           <img
@@ -44,10 +43,10 @@ const LoginForm = () => {
             className="object-cover md:w-full md:h-full w-full h-55 rounded-lg md:rounded-none"
           />
 
-          
-
           <div className="absolute lg:inset-x-0 lg:bottom-14 bottom-5 p-8 text-white text-left ">
-            <p className="lg:text-3xl text-lg font-semibold mb-2">Le devoir d'agir</p>
+            <p className="lg:text-3xl text-lg font-semibold mb-2">
+              Le devoir d'agir
+            </p>
             <p className="text-sm">
               Veuillez utiliser vos identifiants pour vous connecter.
               <br />
@@ -99,14 +98,17 @@ const LoginForm = () => {
               />
             </div>
             <div className="flex justify-between">
-            <button className="text-sm text-gray-600 cursor-pointer hover:text-blue-900">Mot de passe oublié ?</button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className=" py-3 text-sm lg:px-11 px-8 bg-[#00365a] hover:bg-[#001E31] cursor-pointer text-white font-semibold rounded-full transition-colors shadow-lg duration-200 disabled:opacity-60"
-            >
-             Connextion
-            </button></div>
+              <button className="text-sm text-gray-600 cursor-pointer hover:text-blue-900">
+                Mot de passe oublié ?
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className=" py-3 text-sm lg:px-11 px-8 bg-[#00365a] hover:bg-[#001E31] cursor-pointer text-white font-semibold rounded-full transition-colors shadow-lg duration-200 disabled:opacity-60"
+              >
+                Connexion
+              </button>
+            </div>
             {error && (
               <p className="text-red-600 text-center mt-2">
                 Login failed. Please check your credentials.

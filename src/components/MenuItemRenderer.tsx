@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { IoIosArrowDown, IoIosArrowForward } from 'react-icons/io'; // Icons for dropdown arrows
 
 // --- 1. Helper Component: Renders a standard clickable link item ---
-const LinkItem = ({ item, depth }) => {
+const LinkItem = ({ item, depth }: { item: any; depth: number }) => {
     // Calculate padding based on depth for visual indentation
     const paddingLeft = `${(depth * 16) + 20}px`; 
 
@@ -20,7 +20,7 @@ const LinkItem = ({ item, depth }) => {
 };
 
 // --- 2. Helper Component: Renders a non-clickable header/separator item ---
-const HeaderItem = ({ item, depth }) => {
+const HeaderItem = ({ item, depth }: { item: any; depth: number }) => {
     // Calculate padding based on depth for visual indentation
     const paddingLeft = `${(depth * 16) + 20}px`; 
 
@@ -32,7 +32,7 @@ const HeaderItem = ({ item, depth }) => {
 };
 
 // --- 3. Helper Component: Renders a dropdown item (this is the recursive part) ---
-const DropdownItem = ({ item, depth }) => {
+const DropdownItem = ({ item, depth }: { item: any; depth: number }) => {
     const [isOpen, setIsOpen] = useState(false); // Manages if this specific dropdown is open or closed
 
     const toggleDropdown = () => {
@@ -60,7 +60,7 @@ const DropdownItem = ({ item, depth }) => {
             {/* If the dropdown is open AND it has nested items, render them */}
             {isOpen && item.nestedDropdownItems && (
                 <ul className="py-1 "> {/* Styling for the nested list */}
-                    {item.nestedDropdownItems.map((nestedItem) => (
+                    {item.nestedDropdownItems.map((nestedItem: any) => (
                         // !!! THIS IS THE RECURSIVE CALL !!!
                         // We render another MenuItemRenderer for each nested item,
                         // incrementing the 'depth' to push it further in.
@@ -73,7 +73,7 @@ const DropdownItem = ({ item, depth }) => {
 };
 
 interface MenuItemRendererProps {
-  item: MenuItem; // The item can be ANY of the MenuItem union types
+  item: any;
   depth: number;
 }
 

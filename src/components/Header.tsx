@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CiMenuBurger } from "react-icons/ci";
 import userImage from "../../src/assets/images/candidates/0.jpg";
-import logo from "../assets/images/zakoura-logo.svg";
+import logo from "/zakoura-logo.svg";
 import { IoGridOutline } from "react-icons/io5";
 import { IoNotificationsOutline } from "react-icons/io5";
 import { PiToggleLeftFill } from "react-icons/pi";
@@ -16,10 +16,10 @@ interface HeaderProps{
     menuButtonRef:React.RefObject<HTMLButtonElement |null>;
 
 }
-
+//test
 
 const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
-    const [notificationCount, setNotificationCount] = useState<number>(0);
+    const [notificationCount, _setNotificationCount] = useState<number>(0);
     const [isDropdownToggled, setIsDropdownToggled] = useState<boolean >(false);
     const [isAppLauncherToggled, setIsAppLauncherToggled] = useState<boolean>(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ const Header :React.FC<HeaderProps>= ({handleSidebarToggle,menuButtonRef }) => {
                     </button>
                     <AppLauncherDropdown isAppLauncherToggled={isAppLauncherToggled} />
                 </div>
-                <div className="relative">
+                <div className="relative  hidden lg:block">
                     <button
                         aria-label={`You have ${notificationCount} notifications`}
                         className="focus:outline-none align-middle"

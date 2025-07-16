@@ -7,16 +7,19 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useShowCategoryQuery } from "../../features/api/categories";
-
-const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
-  const { data, error, isLoading } = useShowCategoryQuery(categoryId, {
-    skip: !categoryId,
-  });
+import { useShowCategoryQuery } from "../../features/api/categoriesApi";
+type viewCategoryModalProps={
+  isOpen:boolean,
+  onClose:()=>void,
+  categoryId:number,
+  
+}
+const ViewCategoryModal = ({ categoryId, isOpen, onClose }:viewCategoryModalProps) => {
+ const { data, error, isLoading } = useShowCategoryQuery({ id: categoryId }, { skip: !categoryId },{withTrashed: true});
 
   if (!isOpen) return null;
 
-  // Your original logic to handle nested or direct data
+  // to handle nested or direct data
   const categoryDetails = data ? (data.data || data) : null;
 
   return (
@@ -52,10 +55,10 @@ const ViewCategoryModal = ({ categoryId, isOpen, onClose }) => {
                 <span className="font-medium text-gray-700">Statut</span>
                 <span
                   className={`font-semibold ${
-                    categoryDetails.status === 1 ? "text-green-600" : "text-red-600"
+                    categoryDetails.deleted_at === null ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {categoryDetails.status === 1 ? "Actif" : "Inactif"}
+                  {categoryDetails.deleted_at === null ? "Actif" : "Inactif"}
                 </span>
               </div>
               <div className="flex justify-between mt-2">
