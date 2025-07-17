@@ -232,7 +232,7 @@ export default function CategoriesPage() {
   onClose={() => setInfoDialogOpen(false)}
   title={infoDialogContent.title}
   description={infoDialogContent.description}
-  duration={2500}
+  duration={4500}
 />
     </div>
   );

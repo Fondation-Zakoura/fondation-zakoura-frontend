@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetProductTypeByIdQuery, useUpdateProductTypeMutation } from "../../features/api/product_types";
+import InfoDialog from "@/components/ui/InfoDialog";
+
 
 type EditProductTypeModalProps = {
   isOpen: boolean;
@@ -22,6 +24,8 @@ export default function EditProductTypeModal({ isOpen, onClose, productTypeId }:
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [updateProductType, { isLoading: isUpdating }] = useUpdateProductTypeMutation();
+   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  const [infoDialogContent, setInfoDialogContent] = useState({ title: "", description: "" });
 
 useEffect(() => {
   // productData.data is an array!
@@ -42,10 +46,17 @@ useEffect(() => {
     try {
       await updateProductType({ product_type_id: productTypeId, name }).unwrap();
       onClose();
-    } catch (err) {
+    } catch (err:any) {
         
       setError("Erreur lors de la mise à jour du type de produit.");
       console.error(err);
+      if (err.status===409) {
+        setInfoDialogContent({
+          title: "Conflit de mise à jour",
+          description: "Le type de produit que vous essayez de modifier a été mis à jour par un autre utilisateur. Veuillez recharger la page et réessayer.",
+        });
+        setInfoDialogOpen(true);
+      }
     }
   };
 
@@ -87,6 +98,13 @@ useEffect(() => {
           </DialogFooter>
         </form>
       </DialogContent>
+      <InfoDialog
+  isOpen={infoDialogOpen}
+  onClose={() => setInfoDialogOpen(false)}
+  title={infoDialogContent.title}
+  description={infoDialogContent.description}
+  duration={2500}
+/>
     </Dialog>
   );
 }
