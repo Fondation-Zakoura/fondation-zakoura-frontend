@@ -23,6 +23,10 @@ export default function ViewProductTypeModal({ isOpen, onClose, productTypeId }:
 
   if (!productTypeId) return null;
   const details = Array.isArray(productData?.data) ? productData.data[0] : productData?.data;
+ const statusColor =
+    details?.deleted_at === null
+      ? "bg-green-100 text-green-700"
+      : "bg-red-100 text-red-700";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -44,6 +48,12 @@ export default function ViewProductTypeModal({ isOpen, onClose, productTypeId }:
               <div className="flex justify-between mt-2">
                 <span className="font-medium text-gray-700">ID</span>
                 <span className="text-gray-900">{details.id ?? "—"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-700">Statut</span>
+                <span className={`px-2 py-1 text-xs rounded-full ${statusColor}`}>
+                  {details.deleted_at === null ? "Actif" : "Inactif"}
+                </span>
               </div>
               <div className="flex justify-between mt-2">
                 <span className="font-medium text-gray-700">Créé le</span>
