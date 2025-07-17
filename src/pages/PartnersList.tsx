@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Plus, Trash2, Eye, Pencil, RotateCw, Loader2, AlertCircle } from "lucide-react";
 import { AddEditPartnerModal } from "../components/partners/AddEditPartnerModal";
-import { PartnerDetailsModal } from "../components/partners/PartnersTable"; // Assuming PartnerDetailsModal is defined here
-import type { Partner, OptionItem   } from "../types/partners";
+import { PartnerDetailsModal } from "../components/partners/PartnersTable";
+import type { Partner, OptionItem } from "../types/partners";
 import {
   useGetPartnersQuery,
   useAddPartnerMutation,
   useUpdatePartnerMutation,
   useDeletePartnersMutation,
-  useGetPartnerOptionsQuery, // Updated hook name
+  useGetPartnerOptionsQuery,
 } from "../features/api/partnersApi";
 import { DataTable } from "../components/ui/data-table";
 import type { Column, ColumnFilter } from "../components/ui/data-table";
@@ -24,6 +24,7 @@ import {
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { useDebounce } from '../hooks/useDebounce';
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -45,17 +46,69 @@ const PartnersListPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const [tableFilters, setTableFilters] = useState<Record<string, string | string[]>>({});
+  // --- Backend Filtering, Sorting, and Pagination States ---
+  // Global search term (local, immediate updates for debouncing)
+  const [localSearchTerm, setLocalSearchTerm] = useState<string>('');
+  // Debounced search term (updates after a delay, used for API call)
+  const debouncedSearchTerm = useDebounce(localSearchTerm, 500);
+
+  // State for column filters (sent to backend)
+  const [columnFilterState, setColumnFilterState] = useState<Record<string, string | string[]>>({
+    activation_status: 'active' // Default to 'active' partners
+  });
+
+  // State for sorting (sent to backend)
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({
+    key: 'created_at', // Default sort key
+    direction: 'desc', // Default sort direction
+  });
+
+  // State for pagination (sent to backend)
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, // 0-based index for API, will be converted to 1-based for backend
+    pageSize: 10, // Default page size
+  });
+
+  // State for selected rows in the data table
   const [selectedRows, setSelectedRows] = useState<Partner[]>([]);
   const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
 
-  // RTK Query: Fetch Partners with filters and pagination
+  // Combine all filter, search, sort, and pagination parameters for the API call
+  const combinedFilters = useMemo(() => {
+    // Explicitly type filters to match the expected type in useGetPartnersQuery
+    const filters: Record<string, string | string[]> = {
+      page: String(pagination.pageIndex + 1), // Convert to string
+      per_page: String(pagination.pageSize), // Convert to string
+    };
+
+    // Add debounced global search term
+    if (debouncedSearchTerm) {
+      filters.partner_name = debouncedSearchTerm;
+    }
+
+    // Add column filters
+    for (const key in columnFilterState) {
+      if (Object.prototype.hasOwnProperty.call(columnFilterState, key) && columnFilterState[key] !== null && columnFilterState[key] !== '') {
+        filters[key] = columnFilterState[key];
+      }
+    }
+
+    // Add sorting parameters
+    if (sortConfig) {
+      filters.sort_by = sortConfig.key;
+      filters.sort_direction = sortConfig.direction;
+    }
+
+    return filters;
+  }, [columnFilterState, debouncedSearchTerm, pagination, sortConfig]);
+
+  // RTK Query: Fetch Partners with combined filters and pagination
   const {
-    data: partnersApiResponse, // This will be ApiResponse<Partner> | undefined
+    data: partnersApiResponse,
     error: fetchError,
     isLoading,
     refetch,
-  } = useGetPartnersQuery({ filters: tableFilters, page: 1 });
+  } = useGetPartnersQuery({ filters: combinedFilters, page: pagination.pageIndex + 1 }); // Pass combinedFilters to the query
 
   const [addPartner] = useAddPartnerMutation();
   const [updatePartner] = useUpdatePartnerMutation();
@@ -76,17 +129,33 @@ const PartnersListPage: React.FC = () => {
       { id: "International", name: "International" },
     ];
 
+    // New options for activation status
+    const activationStatusOptions: OptionItem[] = [
+      { id: "active", name: "Actif" },
+      { id: "deactivated", name: "Désactivé" },
+    ];
+
     return {
       natures: naturesData?.data || [],
       structures: structuresData?.data || [],
       statuts: statutsData?.data || [],
       types: typeOptions,
+      activation_status: activationStatusOptions, // Add new filter options
     };
   }, [naturesData, structuresData, statutsData]);
 
   // Prepare the filter configuration for the DataTable
   const columnFilters = useMemo((): ColumnFilter[] => {
     return [
+      {
+        id: "activation_status", // New filter ID
+        label: "Statut d'activation",
+        options: filterOptions.activation_status.map(opt => ({ // Map OptionItem to { value, label }
+          value: String(opt.id),
+          label: opt.name,
+        })),
+        isLoading: false, // This is a static list, so no loading
+      },
       {
         id: "nature_partner",
         label: "Nature du partenaire",
@@ -124,6 +193,41 @@ const PartnersListPage: React.FC = () => {
       },
     ];
   }, [filterOptions, isLoadingNatures, isLoadingStructures, isLoadingStatuts]);
+
+  // Handler for DataTable filter changes (column filters)
+  const handleDataTableFilterChange = useCallback((newFilters: Record<string, string | string[]>) => {
+    // This handler receives the *combined* filters from DataTable,
+    // including the global search term. We need to separate them.
+    const globalSearchValue = newFilters['partner_name'];
+    setLocalSearchTerm(typeof globalSearchValue === 'string' ? globalSearchValue : '');
+
+    // Remove the global search key before setting column filters
+    const { partner_name, ...otherColumnFilters } = newFilters;
+    setColumnFilterState(otherColumnFilters);
+
+    // Reset pagination to first page when filters change
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
+  // Handler for global search input changes (from DataTable)
+  const handleGlobalSearchChange = useCallback((value: string) => {
+    setLocalSearchTerm(value);
+    // Reset pagination to first page when global search changes
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
+  // Handler for sort changes (from DataTable)
+  const handleSortChange = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+    // Reset pagination to first page when sort changes
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
+  // Handler for pagination changes (from DataTable)
+  const handlePaginationChange = useCallback((newPagination: { pageIndex: number; pageSize: number }) => {
+    setPagination(newPagination);
+  }, []);
+
 
   // --- Modal and Action Handlers (wrapped in useCallback) ---
   const handleOpenAddModal = useCallback(() => {
@@ -173,8 +277,6 @@ const PartnersListPage: React.FC = () => {
     setIsDeleting(true);
     setDialogErrorMessage(null); // Clear previous errors
     try {
-      // Assuming deletePartners endpoint also handles soft deletes/restores based on IDs
-      // You might need a specific backend endpoint for toggle, or your current delete handles it.
       await deletePartners([partnerToAction.id]).unwrap();
       setConfirmOpen(false);
       setPartnerToAction(null);
@@ -240,7 +342,7 @@ const PartnersListPage: React.FC = () => {
         render: (row) =>
           row.logo_url ? (
             <img
-              src={row.logo_url}
+              src={`${row.logo_url}`}
               alt={row.partner_name}
               className="h-10 w-10 rounded-full object-cover border"
             />
@@ -312,9 +414,6 @@ const PartnersListPage: React.FC = () => {
     [handleViewDetails, handleOpenEditModal, handleToggleRequest]
   );
 
-  const totalItems = partnersApiResponse?.meta?.total || 0;
-  const perPage = partnersApiResponse?.meta?.per_page || 10;
-
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
       <div className="flex justify-between items-center mb-8">
@@ -333,7 +432,8 @@ const PartnersListPage: React.FC = () => {
         </Button>
       </div>
       <div className="max-w-screen-2xl mx-auto ">
-        {isLoading ? (
+        {/* Loading and Error states for the overall data fetch */}
+        {isLoading && !partnersApiResponse ? ( // Only show full loading if no data yet
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-10 w-10 animate-spin text-[#576CBC]" />
             <p className="ml-4 text-lg text-gray-600">Chargement des données...</p>
@@ -350,19 +450,27 @@ const PartnersListPage: React.FC = () => {
         ) : (
           <DataTable<Partner>
             columns={columns}
-            data={allPartners}
+            data={allPartners} // Data is already paginated/filtered by backend
             columnFilters={columnFilters}
-            onFilterChange={setTableFilters}
+            onFilterChange={handleDataTableFilterChange}
+            onGlobalSearchChange={handleGlobalSearchChange} // Pass global search handler
+            onSortChange={handleSortChange} // Pass sort handler
+            onPaginationChange={handlePaginationChange} // Pass pagination handler
             selectedRows={selectedRows}
             onSelectedRowsChange={setSelectedRows}
             emptyText={"Aucun partenaire trouvé"}
-            initialPageSize={perPage}
-            headerStyle="primary"
+            initialPageSize={pagination.pageSize} // Pass current page size to DataTable
+            headerStyle="light"
             hoverEffect
             striped
-            totalItems={totalItems}
+            serverPagination={true} // Crucial: tell DataTable to use server-side pagination
+            pageCount={partnersApiResponse?.meta?.last_page || 0} // Total pages from backend meta
+            pageIndex={pagination.pageIndex} // Current page index (0-based)
+            totalItems={partnersApiResponse?.meta?.total || 0} // Total items from backend meta
             onBulkDelete={handleBulkDelete}
             globalFilterKey="partner_name"
+            globalFilterValue={localSearchTerm} // Pass local search term for input display
+            isLoading={isLoading} // Pass isLoading to DataTable for its internal loading overlay
           />
         )}
       </div>
@@ -376,7 +484,7 @@ const PartnersListPage: React.FC = () => {
         onSave={handleSavePartner}
         partner={editingPartner}
         options={filterOptions}
-        serverErrors={{}} // You might want to populate this with actual server errors from handleSavePartner
+        serverErrors={{}}
         isLoading={isSaving}
       />
       <PartnerDetailsModal
@@ -438,10 +546,10 @@ const PartnersListPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Confirmer l'action groupée</DialogTitle>
             <DialogDescription>
-              Vous êtes sur le point de modifier le statut de{" "}
-              **{pendingDeleteIds.length} partenaire(s)**. Les partenaires actifs
-              seront désactivés et les inactifs seront réactivés. Êtes-vous sûr
-              de vouloir continuer ?
+              You are about to change the status of{" "}
+              <strong>{pendingDeleteIds.length} partner(s)</strong>. Active partners
+              will be deactivated and inactive ones will be reactivated. Are you sure
+              you want to continue?
               {dialogErrorMessage && (
                 <p className="text-red-500 text-sm mt-2">{dialogErrorMessage}</p>
               )}
@@ -458,7 +566,7 @@ const PartnersListPage: React.FC = () => {
                   setDialogErrorMessage(null); // Clear error on cancel
                 }}
               >
-                Annuler
+                Cancel
               </Button>
             </DialogClose>
             <Button
@@ -470,7 +578,7 @@ const PartnersListPage: React.FC = () => {
               {isBulkDeleting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Confirmer
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>

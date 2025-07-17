@@ -45,7 +45,7 @@ export const UnitsListPage: React.FC = () => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0); // 0-based for react-table
   const [currentPageSize, setCurrentPageSize] = useState(10);
   const [tableFilters, setTableFilters] = useState<Record<string, string | string[]>>({}); // Column filters
-  const [globalSearchTerm, setGlobalSearchTerm] = useState<string>(''); // Global search
+  // const [globalSearchTerm, setGlobalSearchTerm] = useState<string>(''); // Global search
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null); // Sorting
   const [selectedRows, setSelectedRows] = useState<Unit[]>([]); // DataTable returns full row objects
 
@@ -111,8 +111,8 @@ export const UnitsListPage: React.FC = () => {
   }, []);
 
   // Handler for global search changes from DataTable
-  const handleGlobalSearchChange = useCallback((value: string) => {
-    setGlobalSearchTerm(value);
+  const handleGlobalSearchChange = useCallback(() => {
+    // setGlobalSearchTerm(value);
     setCurrentPageIndex(0); // Reset to first page when global search changes
   }, []);
 
@@ -252,7 +252,6 @@ const currentPageFromAPI = useMemo(() => unitsData?.current_page || 1, [unitsDat
           onPaginationChange={handlePaginationChange}
           columnFilters={columnFilters}
           onFilterChange={handleFilterChange} // Fix 3: Use the dedicated handler
-          globalSearchTerm={globalSearchTerm} // Pass global search term
           onGlobalSearchChange={handleGlobalSearchChange} // Use the dedicated handler
           sortConfig={sortConfig} // Pass sort config
           onSortChange={handleSortChange} // Use the dedicated handler
