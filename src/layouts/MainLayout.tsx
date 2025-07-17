@@ -96,6 +96,7 @@ export default MainLayout;
 // PageHeaderLayout: A reusable header for pages with breadcrumbs
 export interface Breadcrumb {
   label: string;
+  url?:string;
   active?: boolean;
 }
 

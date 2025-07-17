@@ -18,7 +18,23 @@ function BudgetLinePage() {
     const [selectedBudgetLine, setSelectedBudgetLine] = useState<BudgetLine | null>(null);
     const [showViewModal, setShowViewModal] = useState(false);
     const [budgetLineToView, setBudgetLineToView] = useState<BudgetLine | null>(null);
-    const { data: apiData, isLoading, refetch } = useGetBudgetLinesQuery();
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    
+    const { data: apiData, isLoading, refetch } = useGetBudgetLinesQuery({ 
+        page: currentPage, 
+        perPage: pageSize 
+    });
+    
+    // Extract pagination data from the response
+    const budgetLines = apiData?.data || [];
+  
+    const perPage = apiData?.per_page || 10;
+    const totalPages = apiData?.last_page || 1;
+    const currentPageFromApi = apiData?.current_page || 1;
+    
     console.log(apiData);
     const openAdd = () => {
         setShowAddModal(true);
@@ -92,7 +108,6 @@ function BudgetLinePage() {
                 <PageHeaderLayout
                   title="Rubriques budgétaires"
                   breadcrumbs={[
-                    { label: 'Paramètres' },
                     { label: 'Finance', url: '/projets/finance/ressources' },
                     { label: 'Ligne budgétaires', active: true },
                   ]}
