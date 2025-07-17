@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import ReactSelect from "react-select";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AddBudgetCategoryModalProps {
   open: boolean;
@@ -69,17 +70,43 @@ export const AddBudgetCategoryModal: React.FC<AddBudgetCategoryModalProps> = ({
             <Label htmlFor="budgetary_area">
               Domaine budgétaire <span className="text-red-500">*</span>
             </Label>
-            <ReactSelect
-              id="budgetary_area"
-              isMulti
-              options={domaineBudgetaires}
-              value={domaineBudgetaires.filter(opt => form.budgetary_area.includes(opt.value))}
-              onChange={(selected: import('react-select').MultiValue<{ value: string; label: string }>) =>
-                onSelectChange('budgetary_area', selected.map(opt => opt.value))
-              }
-              classNamePrefix="react-select"
-              placeholder="Sélectionner un ou plusieurs domaines"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  type="button"
+                >
+                  {form.budgetary_area.length > 0
+                    ? domaineBudgetaires
+                        .filter(opt => form.budgetary_area.includes(opt.value))
+                        .map(opt => opt.label)
+                        .join(", ")
+                    : "Sélectionner"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2">
+                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                  {domaineBudgetaires.map(opt => (
+                    <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.budgetary_area.includes(opt.value)}
+                        onCheckedChange={checked => {
+                          let newValue: string[];
+                          if (checked) {
+                            newValue = [...form.budgetary_area, opt.value];
+                          } else {
+                            newValue = form.budgetary_area.filter(v => v !== opt.value);
+                          }
+                          onSelectChange("budgetary_area", newValue);
+                        }}
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             {fieldErrors.budgetary_area && (
               <span className="text-xs text-red-500">{fieldErrors.budgetary_area}</span>
             )}

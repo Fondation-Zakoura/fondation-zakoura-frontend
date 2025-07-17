@@ -2,8 +2,16 @@ import { baseApi } from "./api";
 
 export const budgetCategoryApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getBudgetCategories: builder.query<any, { page?: number; per_page?: number }>({
-            query: ({ page = 1, per_page = 10 } = {}) => `/budget-categories?page=${page}&per_page=${per_page}`,
+        getBudgetCategories: builder.query<any, { page?: number; per_page?: number; type?: string; is_active?: string; label?: string; code?: string; budgetary_area?: string }>({
+            query: (params = {}) => {
+                const { page = 1, per_page = 10, ...filters } = params;
+                const searchParams = new URLSearchParams({
+                    page: String(page),
+                    per_page: String(per_page),
+                    ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '')),
+                });
+                return `/budget-categories?${searchParams.toString()}`;
+            },
             providesTags: ["BudgetCategory"],
         }),
         addBudgetCategory: builder.mutation<any, any>({
@@ -41,6 +49,13 @@ export const budgetCategoryApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ["BudgetCategory"],
         }),
+        restoreBudgetCategory: builder.mutation<any, number>({
+            query: (id) => ({
+                url: `/budget-categories/${id}/restore`,
+                method: "PUT",
+            }),
+            invalidatesTags: ["BudgetCategory"],
+        }),
     }),
     overrideExisting: false,
 });
@@ -52,4 +67,5 @@ export const {
     useGetBudgetCategoryByIdQuery,
     useDeleteBudgetCategoryMutation,
     useBulkDeleteBudgetCategoriesMutation,
+    useRestoreBudgetCategoryMutation,
 } = budgetCategoryApi;

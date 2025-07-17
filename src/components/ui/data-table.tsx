@@ -101,7 +101,6 @@ export function DataTable<T extends { id: string | number }>({
   serverPagination = false,
   pageCount,
   pageIndex,
-  totalItems = 0, // Default to 0 if not provided
   onPaginationChange,
   onFilterChange,
   onGlobalSearchChange, // Destructure new props

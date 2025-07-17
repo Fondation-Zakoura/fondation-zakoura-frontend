@@ -5,10 +5,11 @@ import {
   useUpdateBudgetCategoryMutation,
   useDeleteBudgetCategoryMutation,
   useBulkDeleteBudgetCategoriesMutation,
+  useRestoreBudgetCategoryMutation,
 } from '@/features/api/budgetCategoryApi';
 import type { BudgetCategory } from '@/features/types/budgetCategory';
 import { Button } from '@/components/ui/button';
-import { Plus, Pen, Trash} from 'lucide-react';
+import { Plus, Pen, Trash, RotateCcw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 import type { Column, ColumnFilter } from '@/components/ui/data-table';
-import { DataTable } from '@/components/ui/data-table';
+import { NewDataTable } from '@/components/ui/new-data-table';
 
 import { AddBudgetCategoryModal } from "@/components/budgetLine/AddBudgetCategoryModal";
 import { EditBudgetCategoryModal } from "@/components/budgetLine/EditBudgetCategoryModal";
@@ -37,12 +38,25 @@ const ACTIVE_OPTIONS = [
   { value: 'false', label: 'Inactif' },
 ];
 
+const DOMAINE_BUDGETAIRES = [
+  { value: 'RH', label: 'RH' },
+  { value: 'IT', label: 'IT' },
+  { value: 'Logistique', label: 'Logistique' },
+  { value: 'Finance', label: 'Finance' },
+  { value: 'Opérations', label: 'Opérations' },
+  { value: 'Général', label: 'Général' },
+  { value: 'Projet', label: 'Projet' },
+];
+
 const emptyCategory: BudgetCategory = {
   code: '',
   label: '',
   type: '',
-  budgetary_area: [], // doit être un tableau vide
+  budgetary_area: [],
   is_active: true,
+  created_at: '',
+  deleted_at: '',
+  updated_at: '',
 };
 
 type FormType = typeof emptyCategory;
@@ -50,7 +64,14 @@ type FormType = typeof emptyCategory;
 const BudgetCategoryPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const { data: apiData, isLoading, refetch } = useGetBudgetCategoriesQuery({ page, per_page: pageSize });
+  const [filters, setFilters] = useState<Record<string, string | string[]>>({ is_active: 'true' });
+  const [search, setSearch] = useState('');
+  const { data: apiData, isLoading, refetch } = useGetBudgetCategoriesQuery({
+    page,
+    per_page: pageSize,
+    ...filters,
+    code: search || undefined,
+  });
   const pagination = apiData || {};
   const categories: (BudgetCategory & { id?: number })[] = pagination.data || [];
   const total = pagination.total || 0;
@@ -60,6 +81,8 @@ const BudgetCategoryPage: React.FC = () => {
   const [updateCategory] = useUpdateBudgetCategoryMutation();
   const [deleteCategory] = useDeleteBudgetCategoryMutation();
   const [bulkDeleteCategories] = useBulkDeleteBudgetCategoriesMutation();
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+  const [restoreBudgetCategory, { isLoading: isRestoring }] = useRestoreBudgetCategoryMutation();
   console.log(apiData)
   const [modal, setModal] = useState<'add' | 'edit' | 'show' | null>(null);
   const [selected, setSelected] = useState<BudgetCategory & { id?: number } | null>(null);
@@ -137,21 +160,24 @@ const BudgetCategoryPage: React.FC = () => {
       setAddLoading(false);
       return;
     }
-    try {
-      const payload = {
-        ...form,
-        budgetary_area: form.budgetary_area.join(','),
-      };
-      await addCategory(payload).unwrap();
-      toast.success('Rubrique budgétaire créée avec succès !');
-      closeModal();
-      refetch();
-    } catch (err: any) {
-      setError(err.data?.message || 'Erreur lors de la création');
-      toast.error(err.data?.message || 'Erreur lors de la création');
-    } finally {
-      setAddLoading(false);
-    }
+    const payload = {
+      ...form,
+      budgetary_area: form.budgetary_area.join(','),
+    };
+    addCategory(payload)
+      .unwrap()
+      .then(() => {
+        toast.success('Rubrique budgétaire créée avec succès !');
+        closeModal();
+        refetch();
+      })
+      .catch((err: any) => {
+        setError(err.data?.message || 'Erreur lors de la création');
+        toast.error(err.data?.message || 'Erreur lors de la création');
+      })
+      .finally(() => {
+        setAddLoading(false);
+      });
   };
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -164,87 +190,91 @@ const BudgetCategoryPage: React.FC = () => {
       setEditLoading(false);
       return;
     }
-    try {
-      const payload = {
-        ...form,
-        budgetary_area: form.budgetary_area.join(','),
-      };
-      await updateCategory({ id: selected.id, body: payload }).unwrap();
-      toast.success('Rubrique budgétaire modifiée avec succès !');
-      closeModal();
-      refetch();
-    } catch (err: any) {
-      setError(err.data?.message || 'Erreur lors de la modification');
-      toast.error(err.data?.message || 'Erreur lors de la modification');
-    } finally {
-      setEditLoading(false);
-    }
+    const payload = {
+      ...form,
+      budgetary_area: form.budgetary_area.join(','),
+    };
+    updateCategory({ id: selected.id, body: payload })
+      .unwrap()
+      .then(() => {
+        toast.success('Rubrique budgétaire modifiée avec succès !');
+        closeModal();
+        refetch();
+      })
+      .catch((err: any) => {
+        setError(err.data?.message || 'Erreur lors de la modification');
+        toast.error(err.data?.message || 'Erreur lors de la modification');
+      })
+      .finally(() => {
+        setEditLoading(false);
+      });
   };
 
   const handleDelete = async (category: BudgetCategory & { id?: number }) => {
     setDeleteLoading(true);
-    try {
-      await deleteCategory(category.id!).unwrap();
-      toast.success('Rubrique budgétaire supprimée avec succès !');
-      refetch();
-    } catch (err: any) {
-      toast.error(err.data?.message || 'Erreur lors de la suppression');
-    } finally {
-      setDeleteLoading(false);
-    }
+    deleteCategory(category.id!)
+      .unwrap()
+      .then(() => {
+        toast.success('Rubrique budgétaire supprimée avec succès !');
+        refetch();
+      })
+      .catch((err: any) => {
+        toast.error(err.data?.message || 'Erreur lors de la suppression');
+      })
+      .finally(() => {
+        setDeleteLoading(false);
+      });
   };
 
   
 
   // Instead of calling handleBulkDelete directly, show confirmation modal
-  const handleBulkDeleteRequest = (ids: string[]) => {
-    const numIds = ids.map(id => Number(id)).filter(Boolean);
+  const handleBulkDeleteRequest = (selectedIds: (string | number)[]) => {
+    const numIds = selectedIds.map(id => Number(id)).filter(Boolean);
     setPendingBulkDeleteIds(numIds);
     setBulkDeleteConfirmOpen(true);
   };
   const confirmBulkDelete = async () => {
     setBulkDeleteLoading(true);
-    try {
-      await bulkDeleteCategories(pendingBulkDeleteIds).unwrap();
-      toast.success('Suppression multiple réussie !');
-      setPendingBulkDeleteIds([]);
-      setBulkDeleteConfirmOpen(false);
-      setDataTableKey((k) => k + 1); // force DataTable to reset selection
-      refetch();
-    } catch (err: any) {
-      toast.error(err.data?.message || 'Erreur lors de la suppression multiple');
-    } finally {
-      setBulkDeleteLoading(false);
-    }
+    bulkDeleteCategories(pendingBulkDeleteIds)
+      .unwrap()
+      .then(() => {
+        toast.success('Suppression multiple réussie !');
+        setPendingBulkDeleteIds([]);
+        setBulkDeleteConfirmOpen(false);
+        setDataTableKey((k) => k + 1);
+        refetch();
+      })
+      .catch((err: any) => {
+        toast.error(err.data?.message || 'Erreur lors de la suppression multiple');
+      })
+      .finally(() => {
+        setBulkDeleteLoading(false);
+      });
   };
 
-  const columnFilters = useMemo((): ColumnFilter[] => {
-    const uniqueTypes = Array.from(new Set(categories.map((c) => c.type)));
-    const allAreas = categories.flatMap((c) => Array.isArray(c.budgetary_area) ? c.budgetary_area : [c.budgetary_area]);
-    const uniqueAreas = Array.from(new Set(allAreas)).filter((a): a is string => typeof a === 'string' && a.length > 0);
-    return [
-      {
-        id: 'type',
-        label: 'Type',
-        options: uniqueTypes.map((type) => ({ value: type, label: type })),
-      },
-      {
-        id: 'budgetary_area',
-        label: 'Domaine budgétaire',
-        options: uniqueAreas.map((area) => ({ value: area, label: area })),
-      },
-      {
-        id: 'is_active',
-        label: 'Statut',
-        options: [
-          { value: 1, label: 'Actif' },
-          { value: 0, label: 'Inactif' },
-        ],
-      },
-    ];
-  }, [categories]);
+  const columnFilters = useMemo((): ColumnFilter[] => [
+    {
+      id: 'type',
+      label: 'Type',
+      options: TYPE_OPTIONS,
+    },
+    {
+      id: 'budgetary_area',
+      label: 'Domaine budgétaire',
+      options: DOMAINE_BUDGETAIRES,
+    },
+    {
+      id: 'is_active',
+      label: 'Active',
+      options: [
+        { value: 'true', label: 'Active' },
+        { value: 'false', label: 'Inactive' },
+      ],
+    },
+  ], []);
 
-  const columns: Column<BudgetCategory & { id?: number }>[] = [
+  const columns: Column<BudgetCategory & { id: number }>[] = [
     { key: 'code', header: 'Code', sortable: true },
     { key: 'label', header: 'Libellé', sortable: true },
     { key: 'type', header: 'Type', sortable: true },
@@ -261,59 +291,64 @@ const BudgetCategoryPage: React.FC = () => {
       ),
     },
     {
-      key: 'is_active',
-      header: 'Statut',
-      render: (row) => (
-        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold shadow ${row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {row.is_active ? 'Actif' : 'Inactif'}
-        </span>
-      ),
-      sortable: true,
-    },
-    {
       key: 'actions',
       header: 'Actions',
       align: 'right',
       render: (row) => (
         <div className="flex gap-1 justify-end">
           <button onClick={() => openEdit(row)} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Éditer"><Pen size={16} /></button>
-          <button
-            onClick={() => {
-              setCategoryToDelete(row);
-              setConfirmDeleteOpen(true);
-            }}
-            className="p-2 rounded hover:bg-red-100 text-red-600"
-            title="Supprimer"
-          >
-            <Trash size={16} />
-          </button>
+          {row.deleted_at ? (
+            restoringId === row.id && isRestoring ? (
+              <span className="loader mr-2" />
+            ) : (
+              <button
+                onClick={async () => {
+                  setRestoringId(row.id as number);
+                  try {
+                    await restoreBudgetCategory(row.id as number);
+                    refetch();
+                  } finally {
+                    setRestoringId(null);
+                  }
+                }}
+                className="p-2 rounded hover:bg-green-100 text-green-600"
+                title="Restaurer"
+                disabled={isRestoring && restoringId === row.id}
+              >
+                <RotateCcw size={16} />
+              </button>
+            )
+          ) : (
+            <button
+              onClick={() => {
+                setCategoryToDelete(row);
+                setConfirmDeleteOpen(true);
+              }}
+              className="p-2 rounded hover:bg-red-100 text-red-600"
+              title="Supprimer"
+            >
+              <Trash size={16} />
+            </button>
+          )}
         </div>
       ),
       sortable: false,
     },
   ];
 
-  const DOMAINE_BUDGETAIRES = [
-    { value: 'RH', label: 'RH' },
-    { value: 'IT', label: 'IT' },
-    { value: 'Logistique', label: 'Logistique' },
-    { value: 'Finance', label: 'Finance' },
-    { value: 'Opérations', label: 'Opérations' },
-    { value: 'Général', label: 'Général' },
-    { value: 'Projet', label: 'Projet' },
-  ];
-
   // S'assurer que lors du mapping des catégories, budgetary_area est toujours un tableau
   const tableCategories = useMemo(() =>
-    categories.map((cat) => ({
-      ...cat,
-      id: String(cat.id ?? cat.code),
-      budgetary_area: typeof cat.budgetary_area === 'string'
-        ? (cat.budgetary_area as string).split(',').map((s: string) => s.trim()).filter(Boolean)
-        : Array.isArray(cat.budgetary_area)
-          ? cat.budgetary_area
-          : [],
-    })),
+    categories
+      .filter(cat => typeof cat.id === 'number') // Only include categories with a numeric id
+      .map((cat) => ({
+        ...cat,
+        id: cat.id as number, // ensure id is always present and not optional
+        budgetary_area: typeof cat.budgetary_area === 'string'
+          ? (cat.budgetary_area as string).split(',').map((s: string) => s.trim()).filter(Boolean)
+          : Array.isArray(cat.budgetary_area)
+            ? cat.budgetary_area
+            : [],
+      })),
   [categories]);
 
   return (
@@ -334,9 +369,9 @@ const BudgetCategoryPage: React.FC = () => {
         {isLoading ? (
           <div>Chargement...</div>
         ) : (
-          <DataTable
+          <NewDataTable<BudgetCategory & { id: number }>
             key={dataTableKey}
-            columns={columns as Column<any>[]}
+            columns={columns}
             data={tableCategories}
             hoverEffect
             emptyText={isLoading ? 'Chargement des données...' : 'Aucune rubrique trouvée'}
@@ -353,6 +388,15 @@ const BudgetCategoryPage: React.FC = () => {
               setPage(pageIndex + 1);
               if (pageSize) setPageSize(pageSize);
             }}
+            onFilterChange={(newFilters) => {
+              setFilters(newFilters);
+              setPage(1);
+            }}
+            onGlobalSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            globalSearchTerm={search}
           />
         )}
       </div>
