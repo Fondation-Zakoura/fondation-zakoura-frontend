@@ -212,6 +212,7 @@ export const menuItems = [
                     { id: 'marques', title: 'Marques', link: '/achats/marques', icon: RiPriceTagLine, type: 'link' },
                     { id: 'categories', title: 'Catégories', link: '/categories', icon: RiBriefcaseLine, type: 'link' },
                     { id: 'produits', title: 'Produits', link: '/achats/produits', icon: MdOutlineEvent, type: 'link' },
+                     { id: 'articles', title: 'Articles', link: '/articles', icon: MdOutlineEvent, type: 'link' },
                     { id: 'packs', title: 'Packs', link: '/achats/packs', icon: RiStackLine, type: 'link' }, // Added link
                 ],
             },
@@ -524,7 +525,7 @@ export const menuItems = [
                         icon: null,
                         link: '#',
                         nestedDropdownItems: [
-                            { id: 'types-produits', title: 'Types de produits', link: '/parametres/achats/types/produits', icon: RiSettings2Line, type: 'link' },
+                            { id: 'types-produits', title: 'Types de produits', link: 'typeproducts', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-niveaux-urgence', title: "Types des niveaux d'urgence", link: '/parametres/achats/types/niveaux-urgence', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-fournisseurs', title: 'Types de fournisseurs', link: '/parametres/achats/types/fournisseurs', icon: RiSettings2Line, type: 'link' },
                         ],

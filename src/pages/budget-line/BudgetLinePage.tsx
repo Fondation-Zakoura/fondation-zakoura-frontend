@@ -30,7 +30,7 @@ function BudgetLinePage() {
     
     // Extract pagination data from the response
     const budgetLines = apiData?.data || [];
-    const total = apiData?.total || 0;
+  
     const perPage = apiData?.per_page || 10;
     const totalPages = apiData?.last_page || 1;
     const currentPageFromApi = apiData?.current_page || 1;
