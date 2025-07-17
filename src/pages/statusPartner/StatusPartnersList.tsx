@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Pencil, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, AlertCircle, Loader2, Pen, Trash } from "lucide-react";
 import { DataTable } from "../../components/ui/data-table"; // Assuming this path is correct
 import type { Column } from "../../components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,10 @@ import {AddEditStatusPartnerModal} from "@/components/statusPartner/AddEditStatu
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 // Import your StatusPartner type from its dedicated types file
 import type { StatusPartner } from "@/types/statusPartners"; // Adjust this path as necessary
+
+// Import react-toastify components
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; // Import toastify CSS
 
 export const StatusPartnersListPage: React.FC = () => {
   const {
@@ -46,9 +50,9 @@ export const StatusPartnersListPage: React.FC = () => {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // State for the error alert (e.g., when deletion fails due to conflict)
-  const [isErrorAlertOpen, setErrorAlertOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // Removed error alert state as toastify will handle it
+  // const [isErrorAlertOpen, setErrorAlertOpen] = useState(false);
+  // const [errorMessage, setErrorMessage] = useState("");
 
   // --- CRITICAL FIX: Extract the array from the API response ---
   // Ensure that 'tableData' is always an array, even if the API response is undefined or null initially.
@@ -72,18 +76,17 @@ export const StatusPartnersListPage: React.FC = () => {
     try {
       if (id) {
         await updateStatusPartner({ id, name }).unwrap();
+        toast.success("Phase de partenaire mise à jour avec succès !"); // Toast success
       } else {
         await addStatusPartner({ name }).unwrap();
+        toast.success("Phase de partenaire ajoutée avec succès !"); // Toast success
       }
       setModalOpen(false);
       refetch(); // Refetch data to update the table
     } catch (error) {
       // Handle save errors if needed
       console.error("Failed to save status partner:", error); // Improved error message
-      setErrorMessage(
-        "Une erreur est survenue lors de l'enregistrement du partenaire de statut."
-      ); // Corrected French message
-      setErrorAlertOpen(true);
+      toast.error("Une erreur est survenue lors de l'enregistrement de la phase de partenaire."); // Toast error
     } finally {
       setIsSaving(false);
     }
@@ -102,6 +105,7 @@ export const StatusPartnersListPage: React.FC = () => {
       setDeleteDialogOpen(false);
       setDeleteId(null);
       refetch(); // Refetch data to update the table after deletion
+      toast.success("Phase de partenaire supprimée avec succès !"); // Toast success
     } catch (error) {
       interface ApiError {
         status: number;
@@ -109,18 +113,11 @@ export const StatusPartnersListPage: React.FC = () => {
       }
       const err = error as ApiError;
       if (err.status === 409) {
-        setErrorMessage(
-          err.data?.message ||
-            err.data?.error ||
-            "Ce partenaire de statut est utilisé et ne peut pas être supprimé car il est associé à d'autres enregistrements." // Corrected French message
-        );
-        setErrorAlertOpen(true);
+        const msg = err.data?.message || err.data?.error || "Cette phase est utilisée et ne peut pas être supprimée car elle est associée à d'autres enregistrements."; // Corrected French message
+        toast.error(msg); // Use toast.error instead of setting state for Dialog
         setDeleteDialogOpen(false); // Close the delete confirmation dialog
       } else {
-        setErrorMessage(
-          "Une erreur inattendue est survenue lors de la suppression."
-        );
-        setErrorAlertOpen(true);
+        toast.error("Une erreur inattendue est survenue lors de la suppression."); // Toast error
         console.error("Failed to delete status partner:", error); // Improved error message
       }
     } finally {
@@ -137,31 +134,27 @@ export const StatusPartnersListPage: React.FC = () => {
         key: "actions",
         header: "Actions",
         render: (row) => (
-          <div className="flex items-center justify-end space-x-2">
-            {" "}
-            {/* Added spacing */}
-            <Button
-              variant="outline" // Use outline variant for action buttons
-              size="sm"
+          <div className="flex items-center justify-end space-x-2"> {/* Added spacing */}
+            <button
+              className="p-2 rounded hover:bg-blue-100 text-blue-600"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent row click from triggering
                 handleOpenEditModal(row);
               }}
               title="Éditer"
             >
-              <Pencil size={16} />
-            </Button>
-            <Button
-              variant="destructive" // Use destructive variant for delete
-              size="sm"
+              <Pen size={16} />
+            </button>
+            <button
+            className="p-2 rounded hover:bg-red-100 text-red-600"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent row click from triggering
                 handleDeleteRequest(row.id);
               }}
               title="Supprimer"
             >
-              <Trash2 size={16} />
-            </Button>
+              <Trash size={16} />
+            </button>
           </div>
         ),
         align: "right",
@@ -172,20 +165,22 @@ export const StatusPartnersListPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-gray-50 p-4 min-h-screen">
+    <div className="p-4 min-h-screen">
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
-          title="Partenaires de statut" // Corrected title
+          title="Phases de partenaires" // Corrected title
           breadcrumbs={[
-            { label: "Tableaux de bord" },
-            { label: "Partenaires de statut", active: true }, // Corrected breadcrumb
+            { label: "Paramètres"},
+            { label: "Projets" },
+            { label: "Types" },
+            { label: "Phases de partenaires" , active: true },
           ]}
         />
         <Button
           onClick={handleOpenAddModal}
-          className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+          className="bg-primary hover:bg-[#576CBC] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" /> Ajouter un Phase de Partenaire{" "}
+          <Plus className="w-4 h-4" /> Ajouter une Phase de Partenaire{" "}
           {/* Corrected button text */}
         </Button>
       </div>
@@ -209,12 +204,13 @@ export const StatusPartnersListPage: React.FC = () => {
         <DataTable
           columns={columns}
           data={tableData}
-          emptyText="Aucun phase de partenaire trouvé." // Corrected empty text
+          emptyText="Aucune phase de partenaire trouvée." // Corrected empty text
           initialPageSize={10}
           headerStyle="light"
           hoverEffect
           striped
           enableBulkDelete={false} // Keeping this false as per your original code
+          globalSearchLabel="Rechercher une phase de partenaire..." // Corrected label
         />
       )}
 
@@ -233,7 +229,7 @@ export const StatusPartnersListPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Confirmer la suppression</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce phase de partenaire ? Cette
+              Êtes-vous sûr de vouloir supprimer cette phase de partenaire ? Cette
               action est irréversible.
             </DialogDescription>
           </DialogHeader>
@@ -261,22 +257,18 @@ export const StatusPartnersListPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Error Alert Dialog for deletion conflicts or other errors */}
-      <Dialog open={isErrorAlertOpen} onOpenChange={setErrorAlertOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle size={20} /> Erreur
-            </DialogTitle>
-            <DialogDescription className="pt-4">
-              {errorMessage}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setErrorAlertOpen(false)}>OK</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ToastContainer for notifications */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };

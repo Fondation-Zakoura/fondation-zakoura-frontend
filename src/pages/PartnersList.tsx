@@ -25,6 +25,8 @@ import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { useDebounce } from '../hooks/useDebounce';
+import { toast, ToastContainer } from 'react-toastify'; // Import toast and ToastContainer
+import 'react-toastify/dist/ReactToastify.css'; // Import toastify CSS
 
 // --- MAIN PAGE COMPONENT ---
 const PartnersListPage: React.FC = () => {
@@ -247,8 +249,10 @@ const PartnersListPage: React.FC = () => {
       try {
         if (id) {
           await updatePartner({ id, data: formData }).unwrap();
+          toast.success("Le partenaire a été mis à jour avec succès.");
         } else {
           await addPartner(formData).unwrap();
+          toast.success("Le partenaire a été ajouté avec succès.");
         }
         setEditModalOpen(false);
         refetch();
@@ -258,7 +262,7 @@ const PartnersListPage: React.FC = () => {
         const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
           ? (error.data as { message: string }).message
           : "Une erreur est survenue lors de l'enregistrement du partenaire.";
-        setDialogErrorMessage(msg); // Set error for display if modal supports it
+        toast.error(msg);
       } finally {
         setIsSaving(false);
       }
@@ -281,13 +285,19 @@ const PartnersListPage: React.FC = () => {
       setConfirmOpen(false);
       setPartnerToAction(null);
       refetch();
+      toast.success(
+        partnerToAction.deleted_at
+          ? `Le partenaire "${partnerToAction.partner_name}" a été réactivé avec succès.`
+          : `Le partenaire "${partnerToAction.partner_name}" a été désactivé avec succès.`
+      );
     } catch (err: unknown) {
       console.error("Toggle failed:", err);
       const error = err as FetchBaseQueryError;
       const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
         ? (error.data as { message: string }).message
         : "Une erreur est survenue lors du changement de statut du partenaire.";
-      setDialogErrorMessage(msg);
+      toast.error(msg);
+      setDialogErrorMessage(msg); // Keep error message in dialog if it's still open
     } finally {
       setIsDeleting(false);
     }
@@ -322,13 +332,15 @@ const PartnersListPage: React.FC = () => {
       setShowBulkDeleteDialog(false);
       setSelectedRows([]); // Clear selected rows after bulk action
       refetch();
+      toast.success(`Action groupée effectuée avec succès sur ${pendingDeleteIds.length} partenaire(s).`);
     } catch (err: unknown) {
       console.error("Bulk delete/toggle failed:", err);
       const error = err as FetchBaseQueryError;
       const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
         ? (error.data as { message: string }).message
         : "Une erreur est survenue lors de l'action groupée sur les partenaires.";
-      setDialogErrorMessage(msg);
+      toast.error(msg);
+      setDialogErrorMessage(msg); // Keep error message in dialog if it's still open
     } finally {
       setIsBulkDeleting(false);
     }
@@ -342,7 +354,7 @@ const PartnersListPage: React.FC = () => {
         render: (row) =>
           row.logo_url ? (
             <img
-              src={`${row.logo_url}`}
+              src={`${import.meta.env.VITE_STORAGE_URL}/${row.partner_logo}`}
               alt={row.partner_name}
               className="h-10 w-10 rounded-full object-cover border"
             />
@@ -415,13 +427,15 @@ const PartnersListPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
+    <div className=" p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
+      <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Liste des Partenaires"
           breadcrumbs={[
-            { label: "Tableaux de bord" },
-            { label: "Partenariat", active: true },
+            { label: "Partenariat" },
+            { label: "Prospection" },
+            { label: "Partenaires", active: true },
           ]}
         />
         <Button
@@ -471,6 +485,7 @@ const PartnersListPage: React.FC = () => {
             globalFilterKey="partner_name"
             globalFilterValue={localSearchTerm} // Pass local search term for input display
             isLoading={isLoading} // Pass isLoading to DataTable for its internal loading overlay
+            globalSearchLabel="Nom du partenaire"
           />
         )}
       </div>

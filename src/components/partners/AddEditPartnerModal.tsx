@@ -22,11 +22,10 @@ interface PartnerFormErrors {
   [key: string]: string | ContactPeopleErrors | undefined; // Allow for other top-level string errors
 }
 
-import React, { useState, useEffect, useMemo } from "react";
-import type { Partner, FilterOption, ContactPerson } from "../../types/partners"; // Make sure to define ContactPerson in your types
-import { Loader2, Save, Check, ChevronsUpDown, PlusCircle, XCircle } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import type { Partner, FilterOption, ContactPerson } from "../../types/partners";
+import { Loader2, Save, Check, ChevronsUpDown, PlusCircle, XCircle, UploadCloud } from "lucide-react"; // Removed ImageIcon
 
-// Shadcn UI Components (assuming these are correctly imported)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,7 +60,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-// Import the country data
 import countries from "@/data/countries.json";
 
 // --- Reusable Combobox Component for Countries (Unchanged) ---
@@ -137,7 +135,7 @@ interface AddEditPartnerModalProps {
   onSave: (data: FormData, id?: number) => void;
   partner: Partner | null;
   options: Record<string, FilterOption[]>;
-  serverErrors: Record<string, string[]>; // This prop seems unused, but keeping it for context
+  serverErrors: Record<string, string[]>;
   isLoading: boolean;
 }
 
@@ -145,7 +143,7 @@ type PartnerFormData = Omit<Partial<Partner>, "contact_people"> & {
   nature_partner_id?: string | number;
   structure_partner_id?: string | number;
   status_id?: string | number;
-  contact_people?: Partial<ContactPerson>[]; // Array of contacts
+  contact_people?: Partial<ContactPerson>[];
 };
 
 export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
@@ -157,18 +155,21 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
   isLoading,
 }) => {
   const emptyContact = useMemo(() => ({
-  first_name: "",
-  last_name: "",
-  position: "",
-  email: "",
-  phone: "",
-  address: "",
-}), []);
+    first_name: "",
+    last_name: "",
+    position: "",
+    email: "",
+    phone: "",
+    address: "",
+  }), []);
 
   const [formData, setFormData] = useState<PartnerFormData>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  // Use the specific type for errors
-  const [errors, setErrors] = useState<PartnerFormErrors>({}); 
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false); // New state for drag-and-drop visual feedback
+
+  const [errors, setErrors] = useState<PartnerFormErrors>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -176,42 +177,40 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
         setFormData({
           ...partner,
           partner_type: partner.partner_type || "National",
-          // Ensure contact_people is an array, provide one empty if none exist
           contact_people:
             partner.contact_people && partner.contact_people.length > 0
               ? [...partner.contact_people]
               : [emptyContact],
         });
+        if (partner.partner_logo) {
+          setLogoPreviewUrl(`${import.meta.env.VITE_STORAGE_URL}/${partner.partner_logo}`);
+        } else {
+          setLogoPreviewUrl(null);
+        }
       } else {
-        // Initialize a new partner with one empty contact
         setFormData({ partner_type: "National", contact_people: [emptyContact] });
+        setLogoPreviewUrl(null);
       }
       setLogoFile(null);
       setErrors({});
     }
-  }, [partner, isOpen , emptyContact]);
+  }, [partner, isOpen, emptyContact]);
 
   const clearError = (name: string, index?: number) => {
     setErrors((prev) => {
       const newErrors: PartnerFormErrors = { ...prev };
 
-      // Handle nested contact_people errors
       if (index !== undefined && newErrors.contact_people?.[index]) {
         const contactSpecificErrors = newErrors.contact_people[index];
         if (contactSpecificErrors[name]) {
           delete contactSpecificErrors[name];
         }
-        // If all errors for this contact are cleared, remove the contact's error entry
         if (Object.keys(contactSpecificErrors).length === 0) {
-          // If the contact_people object is empty for this index, delete it
-          // Casting to any for the delete operation as direct manipulation of indexed properties can be tricky with strict types
-          // After setting to undefined, filter out undefined entries to keep it clean
           if (newErrors.contact_people && !Object.values(newErrors.contact_people).some(val => val !== undefined)) {
-            delete newErrors.contact_people; // If all contacts errors are cleared, remove the contact_people key
+            delete newErrors.contact_people;
           }
         }
-      } 
-      // Handle top-level errors
+      }
       else if (newErrors[name]) {
         delete newErrors[name];
       }
@@ -219,8 +218,6 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     });
   };
 
-
-  // --- Handlers for regular form fields ---
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -234,43 +231,83 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     clearError(name);
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Unified function for handling file selection (from input or drag-drop)
+  const processFile = useCallback((fileList: FileList | null) => {
     clearError("partner_logo");
-    if (e.target.files && e.target.files[0]) {
-      setLogoFile(e.target.files[0]);
+    if (fileList && fileList[0]) {
+      const file = fileList[0];
+      setLogoFile(file);
+      setLogoPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setLogoFile(null);
+      setLogoPreviewUrl(partner?.partner_logo ? `${import.meta.env.VITE_STORAGE_URL}/${partner.partner_logo}` : null);
+    }
+  }, [partner]);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processFile(e.target.files);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
-  // --- Handlers for the dynamic contact list ---
-  const handleContactChange = (
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  }, [processFile]);
+
+  // Handler for the dynamic contact list
+  const handleContactChange = useCallback(( // Made useCallback
     index: number,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value } = e.target;
-    const updatedContacts = [...(formData.contact_people || [])];
-    updatedContacts[index] = { ...updatedContacts[index], [name]: value };
-    setFormData((prev) => ({ ...prev, contact_people: updatedContacts }));
+    setFormData((prev) => {
+      const updatedContacts = [...(prev.contact_people || [])];
+      updatedContacts[index] = { ...updatedContacts[index], [name]: value };
+      return { ...prev, contact_people: updatedContacts };
+    });
     clearError(name, index);
-  };
+  }, []); // Added dependencies if any, but typically none for this type of handler
 
   const addContact = () => {
     setFormData((prev) => ({
       ...prev,
       contact_people: [...(prev.contact_people || []), emptyContact],
     }));
-    // Clear any general 'contacts' error when adding a new one
-    clearError("contacts"); 
+    clearError("contacts");
   };
 
   const removeContact = (index: number) => {
     const updatedContacts = [...(formData.contact_people || [])];
     updatedContacts.splice(index, 1);
     setFormData((prev) => ({ ...prev, contact_people: updatedContacts }));
-    // Also remove any specific errors for the deleted contact
     setErrors(prevErrors => {
       const newErrors = { ...prevErrors };
       if (newErrors.contact_people) {
-        // Shift remaining contact errors if an earlier one was removed
         const newContactPeopleErrors: ContactPeopleErrors = {};
         Object.keys(newErrors.contact_people).forEach(key => {
             const numKey = Number(key);
@@ -289,11 +326,9 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     });
   };
 
-  // --- Validation and Submission ---
   const validate = (): boolean => {
-    const newErrors: PartnerFormErrors = {}; // Use the specific type
+    const newErrors: PartnerFormErrors = {};
 
-    // Partner validation
     if (!formData.partner_name?.trim())
       newErrors.partner_name = "Le nom du partenaire est obligatoire.";
     if (!formData.abbreviation?.trim())
@@ -310,13 +345,12 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
       newErrors.structure_partner_id = "La structure est obligatoire.";
     if (!formData.status_id) newErrors.status_id = "La phase est obligatoire.";
 
-    // Contact Person validation
-    const contactErrors: ContactPeopleErrors = {}; // Use the specific type
+    const contactErrors: ContactPeopleErrors = {};
     if (!formData.contact_people || formData.contact_people.length === 0) {
       newErrors.contacts = "Au moins une personne de contact est requise.";
     } else {
       formData.contact_people.forEach((contact, index) => {
-        const errorsForContact: ContactErrors = {}; // Use the specific type
+        const errorsForContact: ContactErrors = {};
         if (!contact.first_name?.trim())
           errorsForContact.first_name = "Le prénom est obligatoire.";
         if (!contact.last_name?.trim())
@@ -347,13 +381,12 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     return Object.keys(newErrors).length === 0 && (!newErrors.contact_people || Object.keys(newErrors.contact_people).length === 0);
   };
 
-const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     const data = new FormData();
 
-    // Append non-file fields, skipping partner_logo
     Object.entries(formData).forEach(([key, value]) => {
       if (
         key !== "contact_people" &&
@@ -365,7 +398,6 @@ const handleSubmit = (e: React.FormEvent) => {
       }
     });
 
-    // Append contact_people
     formData.contact_people?.forEach((contact, index) => {
       Object.entries(contact).forEach(([k, v]) => {
         if (v !== null && v !== undefined) {
@@ -374,12 +406,12 @@ const handleSubmit = (e: React.FormEvent) => {
       });
     });
 
-    // Only append a new logo file if one was selected
     if (logoFile instanceof File) {
       data.append("partner_logo", logoFile);
+    } else if (partner?.partner_logo && !logoPreviewUrl) {
+      data.append("partner_logo", "");
     }
 
-    // If updating, use PUT
     if (partner?.id) {
       data.append("_method", "PUT");
     }
@@ -406,36 +438,36 @@ const handleSubmit = (e: React.FormEvent) => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                     <div>
-                      <Label className="mb-2"  htmlFor="partner_name">Nom du Partenaire <p className="text-xs text-red-600">*</p></Label>
+                      <Label className="mb-2" htmlFor="partner_name">Nom du Partenaire <p className="text-xs text-red-600">*</p></Label>
                       <Input id="partner_name" name="partner_name" value={formData.partner_name || ""} onChange={handleChange} />
                       {errors.partner_name && <p className="text-sm text-destructive mt-1">{errors.partner_name}</p>}
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="abbreviation">Abbréviation <p className="text-xs text-red-600">*</p></Label>
+                      <Label className="mb-2" htmlFor="abbreviation">Abbréviation <p className="text-xs text-red-600">*</p></Label>
                       <Input id="abbreviation" name="abbreviation" value={formData.abbreviation || ""} onChange={handleChange} />
                       {errors.abbreviation && <p className="text-sm text-destructive mt-1">{errors.abbreviation}</p>}
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="country">Pays <p className="text-xs text-red-600">*</p></Label>
+                      <Label className="mb-2" htmlFor="country">Pays <p className="text-xs text-red-600">*</p></Label>
                       <CountryCombobox value={formData.country || ""} onValueChange={(value) => handleSelectChange("country", value)} />
                       {errors.country && <p className="text-sm text-destructive mt-1">{errors.country}</p>}
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="phone">Téléphone</Label>
+                      <Label className="mb-2" htmlFor="phone">Téléphone</Label>
                       <Input id="phone" name="phone" value={formData.phone || ""} onChange={handleChange} />
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="email">Email</Label>
+                      <Label className="mb-2" htmlFor="email">Email</Label>
                       <Input id="email" name="email" type="email" value={formData.email || ""} onChange={handleChange} />
                       {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
                     </div>
                     <div className="md:col-span-3">
-                      <Label className="mb-2"  htmlFor="address">Adresse</Label>
+                      <Label className="mb-2" htmlFor="address">Adresse</Label>
                       <Input id="address" name="address" value={formData.address || ""} onChange={handleChange} />
                     </div>
                   </div>
                 </section>
-                
+
                 {/* --- Classification Section --- */}
                 <section>
                   <h3 className="text-lg font-medium text-primary mb-4">
@@ -625,11 +657,9 @@ const handleSubmit = (e: React.FormEvent) => {
                               value={contact.phone || ""}
                               onChange={(e) => handleContactChange(index, e)}
                             />
-                            {errors.contact_people?.[index]?.phone && (
-                              <p className="text-sm text-destructive mt-1">
-                                {errors.contact_people[index].phone}
+                            <p className="text-sm text-destructive mt-1">
+                                {errors.contact_people?.[index]?.phone}
                               </p>
-                            )}
                           </div>
                           <div>
                             <Label>Adresse (facultative)</Label>
@@ -652,18 +682,64 @@ const handleSubmit = (e: React.FormEvent) => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <Label className="mb-2"  htmlFor="note">Note</Label>
+                      <Label className="mb-2" htmlFor="note">Note</Label>
                       <Textarea id="note" name="note" rows={4} value={formData.note || ""} onChange={handleChange}/>
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="actions">Actions</Label>
+                      <Label className="mb-2" htmlFor="actions">Actions</Label>
                       <Input id="actions" name="actions" value={formData.actions || ""} onChange={handleChange} />
                     </div>
                     <div>
-                      <Label className="mb-2"  htmlFor="partner_logo">Logo</Label>
-                      <Input id="partner_logo" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoChange} />
+                      <Label className="mb-2" htmlFor="partner_logo">Logo</Label>
+                      <input
+                        id="partner_logo"
+                        type="file"
+                        accept="image/png, image/jpeg, image/svg+xml"
+                        onChange={handleLogoChange}
+                        className="hidden"
+                        ref={fileInputRef}
+                      />
+                      <div
+                        className={cn(
+                          "relative w-full h-32 border-2 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors",
+                          isDragging ? "border-primary bg-primary-foreground" : "border-gray-300 hover:border-primary"
+                        )}
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
+                        {logoPreviewUrl ? (
+                          <>
+                            <img
+                              src={logoPreviewUrl}
+                              alt="Logo Preview"
+                              className="max-h-full max-w-full object-contain p-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveLogo(); }}
+                              className="absolute top-1 right-1 text-red-500 hover:bg-red-100 rounded-full"
+                              title="Supprimer le logo"
+                            >
+                              <XCircle size={20} />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud size={32} className="text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-500">
+                              Sélectionnez ou déposez un logo
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              (PNG, JPEG, SVG - max 2MB)
+                            </p>
+                          </>
+                        )}
+                      </div>
                       {errors.partner_logo && <p className="text-sm text-destructive mt-1">{errors.partner_logo}</p>}
-                      {logoFile && ( <img src={URL.createObjectURL(logoFile)} alt="Preview" className="mt-2 h-24 object-contain rounded-md border p-1" /> )}
                     </div>
                   </div>
                 </section>
