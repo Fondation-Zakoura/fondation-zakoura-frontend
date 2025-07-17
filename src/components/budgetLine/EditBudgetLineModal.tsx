@@ -22,13 +22,11 @@ interface Props {
 }
 
 function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
+  // All hooks at the top
   const [form, setForm] = useState({ 
     total_amount: '',
-    consumed_amount: '',
-    remaining_amount: '',
     project_id: '',
     budget_category_id: '',
-    status: 'active',
     partners: [
       {
         id: '',
@@ -37,47 +35,25 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
     ]
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-
   const [updateBudgetLine] = useUpdateBudgetLineMutation();
   const [updateLoading, setUpdateLoading] = useState(false);
   const { data: options, isLoading } = useGetBudgetLineOptionsQuery();
 
   // Extract data from options object
-  const budgetCategoriesData = options?.budgetCategories?.data || [];
-  const partnersData = options?.partners?.data || [];
-  const projectsData = options?.projects?.data || [];
-
-  if (isLoading) {
-    return (
-      <Dialog open onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Modifier la ligne budgétaire</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-12 text-lg text-gray-500">
-            Chargement des données...
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const budgetCategoriesData = options?.budgetCategories || [];
+  const partnersData = options?.partners || [];
+  const projectsData = options?.projects || [];
 
   // Initialize form with budget line data
   useEffect(() => {
     if (budgetLine) {
-      console.log('Budget line data for editing:', budgetLine);
-      console.log('Partners data:', budgetLine.partners);
-      
+    
       setForm({
         total_amount: budgetLine.total_amount?.toString() || '',
-        consumed_amount: budgetLine.consumed_amount?.toString() || '',
-        remaining_amount: budgetLine.remaining_amount?.toString() || '',
         project_id: budgetLine.project_id?.toString() || '',
         budget_category_id: budgetLine.budget_category_id?.toString() || '',
-        status: 'active', // Default status since it's not in the type
         partners: budgetLine.partners?.length > 0 
           ? budgetLine.partners.map(partner => {
-              console.log('Processing partner:', partner);
               // Access partner data from pivot table (Laravel relationship)
               const partnerId = partner.id?.toString() || '';
               const allocatedAmount = (partner as any).pivot?.allocated_amount?.toString() || '';
@@ -101,17 +77,6 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
           newErrors[name] = 'Le montant total est requis';
         } else if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
           newErrors[name] = 'Le montant total doit être un nombre positif';
-        } else {
-          delete newErrors[name];
-        }
-        break;
-      case 'consumed_amount':
-        if (!value) {
-          newErrors[name] = 'Le montant consommé est requis';
-        } else if (isNaN(parseFloat(value)) || parseFloat(value) < 0) {
-          newErrors[name] = 'Le montant consommé doit être un nombre positif';
-        } else if (parseFloat(value) > parseFloat(form.total_amount || '0')) {
-          newErrors[name] = 'Le montant consommé ne peut pas dépasser le montant total';
         } else {
           delete newErrors[name];
         }
@@ -163,11 +128,6 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let newForm = { ...form, [name]: value };
-    if (name === 'total_amount' || name === 'consumed_amount') {
-      const total = parseFloat(name === 'total_amount' ? value : form.total_amount) || 0;
-      const consumed = parseFloat(name === 'consumed_amount' ? value : form.consumed_amount) || 0;
-      newForm.remaining_amount = (total - consumed).toString();
-    }
     setForm(newForm);
     validateField(name, value);
   };
@@ -178,8 +138,7 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
     
     try {
       // Validate form data
-      if (!form.total_amount || !form.consumed_amount || !form.remaining_amount || 
-          !form.project_id || !form.budget_category_id) {
+      if (!form.total_amount || !form.project_id || !form.budget_category_id) {
         throw new Error('Veuillez remplir tous les champs obligatoires');
       }
       
@@ -194,13 +153,14 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
       }
       
       // Prepare the data to send
+      const totalAmount = parseFloat(form.total_amount);
       const budgetLineData = {
-        total_amount: parseFloat(form.total_amount),
-        consumed_amount: parseFloat(form.consumed_amount),
-        remaining_amount: parseFloat(form.remaining_amount),
+        total_amount: totalAmount,
+        consumed_amount: totalAmount,
+        remaining_amount: totalAmount,
         project_id: parseInt(form.project_id),
         budget_category_id: parseInt(form.budget_category_id),
-        status: form.status,
+        status: 'active',
         partners: validPartners.map(partner => ({
           id: parseInt(partner.id),
           allocated_amount: parseFloat(partner.allocated_amount)
@@ -208,18 +168,32 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
       };
       
       // Log the JSON object as a formatted string
-      console.log('Updating budget line data:', JSON.stringify(budgetLineData, null, 2));
       
       await updateBudgetLine({ id: budgetLine.id, body: budgetLineData }).unwrap();
       onClose();
       refetch();
     } catch (error) {
-      console.error('Erreur lors de la modification', error);
       alert(error instanceof Error ? error.message : "Une erreur est survenue lors de la modification");
     } finally {
       setUpdateLoading(false);
     }
   };
+
+  // Only after all hooks:
+  if (isLoading) {
+    return (
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la ligne budgétaire</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-12 text-lg text-gray-500">
+            Chargement des données...
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -245,36 +219,6 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
               {errors.total_amount && (
                 <span className="text-red-500 text-sm">{errors.total_amount}</span>
               )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="consumed_amount">
-                Montant Consommé <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="consumed_amount"
-                name="consumed_amount"
-                placeholder="Montant Consommé"
-                value={form.consumed_amount}
-                onChange={handleAmountChange}
-                className={errors.consumed_amount ? 'border-red-500' : ''}
-                required
-              />
-              {errors.consumed_amount && (
-                <span className="text-red-500 text-sm">{errors.consumed_amount}</span>
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="remaining_amount">
-                Montant Disponible
-              </Label>
-              <Input
-                id="remaining_amount"
-                name="remaining_amount"
-                placeholder="Montant Disponible"
-                value={form.remaining_amount}
-                disabled
-                readOnly
-              />
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="project_id">
@@ -313,7 +257,7 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
                 <SelectContent>
                   {budgetCategoriesData.map((category: any) => (
                     <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name || category.title || category.label}
+                      {category.code}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -321,21 +265,6 @@ function EditBudgetLineModal({ onClose, refetch, budgetLine }: Props) {
               {errors.budget_category_id && (
                 <span className="text-red-500 text-sm">{errors.budget_category_id}</span>
               )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="status">
-                Statut <span className="text-red-500">*</span>
-              </Label>
-              <Select value={form.status} onValueChange={e => setForm({ ...form, status: e })}>
-                <SelectTrigger className='w-full' id='status' name='status'>
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Actif</SelectItem>
-                  <SelectItem value="consumed">Consommée</SelectItem>
-                  <SelectItem value="on_alert">En alerte</SelectItem>
-                                                    </SelectContent>
-              </Select>
             </div>
           </div>
           

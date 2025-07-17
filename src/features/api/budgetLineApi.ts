@@ -2,8 +2,21 @@ import { baseApi } from "./api";
 
 export const budgetLineApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getBudgetLines: builder.query<any, { page?: number; perPage?: number }>({
-            query: ({ page = 1, perPage = 10 } = {}) => `/budget-lines?page=${page}&per_page=${perPage}`,
+        getBudgetLines: builder.query<any, { page?: number; perPage?: number; [key: string]: any }>({
+            // Accepts any filter keys and sends them as query params
+            query: (params = {}) => {
+                const { page = 1, perPage = 10, ...filters } = params;
+                const searchParams = new URLSearchParams({
+                    page: String(page),
+                    per_page: String(perPage),
+                    ...Object.fromEntries(
+                        Object.entries(filters)
+                            .filter(([_, v]) => v !== undefined && v !== null && v !== "")
+                            .map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)])
+                    )
+                });
+                return `/budget-lines?${searchParams.toString()}`;
+            },
             providesTags: ["BudgetLine"],
         }),
         getBudgetLineOptions: builder.query<any, void>({
@@ -44,6 +57,13 @@ export const budgetLineApi = baseApi.injectEndpoints({
                 body: { ids},
             }),
             invalidatesTags: ["BudgetLine"],
+        }),
+        restoreBudgetLine: builder.mutation<any, number>({
+            query: (id) => ({
+                url: `/budget-lines/${id}/restore`,
+                method: "PUT",
+            }),
+            invalidatesTags: ["BudgetLine"],
         })
     }),
     overrideExisting: false,
@@ -56,5 +76,6 @@ export const {
     useGetBudgetLineByIdQuery,
     useDeleteBudgetLineMutation,
     useBulkDeleteBudgetLinesMutation,
-    useGetBudgetLineOptionsQuery
+    useGetBudgetLineOptionsQuery,
+    useRestoreBudgetLineMutation
 } = budgetLineApi;

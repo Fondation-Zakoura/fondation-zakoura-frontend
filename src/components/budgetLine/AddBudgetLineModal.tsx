@@ -38,9 +38,7 @@ function AddBudgetLineModal({ onClose, refetch }: Props) {
   const [addBudgetLine] = useAddBudgetLineMutation();
   const [addLoading, setAddLoading] = useState(false);
   const {data:options , isLoading} = useGetBudgetLineOptionsQuery();
-  console.log(options)
-  
-  // Extract data from options object
+ 
   const budgetCategoriesData = options?.budgetCategories || [];
   const partnersData = options?.partners || [];
   const projectsData = options?.projects || [];
@@ -96,13 +94,11 @@ function AddBudgetLineModal({ onClose, refetch }: Props) {
       };
       
       // Log the JSON object as a formatted string
-      console.log('Sending budget line data:', JSON.stringify(budgetLineData, null, 2));
       
       await addBudgetLine(budgetLineData).unwrap();
       onClose();
       refetch();
     } catch (error) {
-      console.error('Erreur lors de l\'ajout', error);
       alert(error instanceof Error ? error.message : "Une erreur est survenue lors de l'ajout");
     } finally {
       setAddLoading(false);
@@ -273,21 +269,7 @@ function AddBudgetLineModal({ onClose, refetch }: Props) {
                <span className="text-red-500 text-sm">{errors.budget_category_id}</span>
              )}
             </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="status">
-                Statut <span className="text-red-500">*</span>
-              </Label>
-              <Select value={form.status} onValueChange={e => setForm({ ...form, status: e })}>
-                <SelectTrigger className='w-full' id='status' name='status'>
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Actif</SelectItem>
-                  <SelectItem value="consumed">Consommée</SelectItem>
-                  <SelectItem value="on_alert">En alerte</SelectItem>
-                                                    </SelectContent>
-              </Select>
-            </div>
+           
           </div>
           
           {/* Partners Section */}
