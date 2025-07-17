@@ -29,7 +29,7 @@ import BudgetLinePage from "./pages/budget-line/BudgetLinePage";
 
 import Collaborateurs from "./pages/collaborateurs/Collaborateurs";
 import AddCollaborateurs from "./pages/collaborateurs/AddCollaborateur";
-
+import PacksPage from "./pages/packs/PacksPage";
 import { UnitsListPage } from "./pages/units/UnitsListPage";
 import StatusPartnersListPage from "./pages/statusPartner/StatusPartnersList";
 import EditCollaborateur from "./pages/collaborateurs/EditCollaborateur";
@@ -55,6 +55,7 @@ function App() {
         <Route path="produits" element={<ProductsPage />} />
         <Route path="typeproducts" element={<ProductTypesPage />} />
         <Route path="articles" element={<ArticlesPage />} />
+        <Route path="packs" element={<PacksPage />} />
 
         {/* Projects */}
         <Route path="projects" element={<Projects />} />
