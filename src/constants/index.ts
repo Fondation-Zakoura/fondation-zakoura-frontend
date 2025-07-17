@@ -406,6 +406,7 @@ export const menuItems = [
                         nestedDropdownItems: [
                             { id: 'structures-partenaires', title: 'Structures de partenaires', link: '/partner-structures', icon: RiSettings2Line, type: 'link' },
                             { id: 'natures-partenaires', title: 'Natures de partenaires', link: '/partner-natures', icon: RiSettings2Line, type: 'link' },
+                            { id: 'statuts-partenaires', title: 'Statuts de partenaires', link: '/partner-status', icon: RiSettings2Line, type: 'link' },
                             { id: 'project-types', title: 'Types de Projet', link: '/project-types',icon: RiSettings2Line, type: 'link' },
                         ],
                     },

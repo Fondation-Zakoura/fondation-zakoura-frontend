@@ -347,32 +347,43 @@ export const AddEditPartnerModal: React.FC<AddEditPartnerModalProps> = ({
     return Object.keys(newErrors).length === 0 && (!newErrors.contact_people || Object.keys(newErrors.contact_people).length === 0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
+
     const data = new FormData();
 
-    // Append all top-level partner fields
+    // Append non-file fields, skipping partner_logo
     Object.entries(formData).forEach(([key, value]) => {
-      // Skip contact_people, it will be handled separately
-      if (key !== "contact_people" && value !== null && value !== undefined) {
+      if (
+        key !== "contact_people" &&
+        key !== "partner_logo" &&
+        value !== null &&
+        value !== undefined
+      ) {
         data.append(key, String(value));
       }
     });
 
-    // Append contact_people array in a format backend can parse
+    // Append contact_people
     formData.contact_people?.forEach((contact, index) => {
-      Object.entries(contact).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          data.append(`contact_people[${index}][${key}]`, String(value));
+      Object.entries(contact).forEach(([k, v]) => {
+        if (v !== null && v !== undefined) {
+          data.append(`contact_people[${index}][${k}]`, String(v));
         }
       });
     });
 
-    if (logoFile) data.append("partner_logo", logoFile);
-    if (partner?.id) data.append("_method", "PUT");
+    // Only append a new logo file if one was selected
+    if (logoFile instanceof File) {
+      data.append("partner_logo", logoFile);
+    }
+
+    // If updating, use PUT
+    if (partner?.id) {
+      data.append("_method", "PUT");
+    }
+
     onSave(data, partner?.id);
   };
 
