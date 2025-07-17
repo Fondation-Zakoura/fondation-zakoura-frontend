@@ -211,7 +211,7 @@ export const menuItems = [
                 nestedDropdownItems: [
                     { id: 'marques', title: 'Marques', link: '/achats/marques', icon: RiPriceTagLine, type: 'link' },
                     { id: 'categories', title: 'Catégories', link: '/categories', icon: RiBriefcaseLine, type: 'link' },
-                    { id: 'produits', title: 'Produits', link: '/achats/produits', icon: MdOutlineEvent, type: 'link' },
+                    { id: 'produits', title: 'Produits', link: 'produits', icon: MdOutlineEvent, type: 'link' },
                     { id: 'packs', title: 'Packs', link: '/achats/packs', icon: RiStackLine, type: 'link' }, // Added link
                 ],
             },

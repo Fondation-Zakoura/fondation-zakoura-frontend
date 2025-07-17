@@ -7,7 +7,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+
 import { useShowCategoryQuery } from "@/features/api/categoriesApi";
+import type { Category } from "@/types/categories";
+
+
  
 interface ViewCategoryModalProps {
   categoryId: number;
@@ -20,13 +24,11 @@ const ViewCategoryModal: React.FC<ViewCategoryModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { data, error, isLoading } = useShowCategoryQuery(categoryId, {
-    skip: !categoryId,
-  });
- 
+ const { data, error, isLoading } = useShowCategoryQuery(categoryId, { skip: !categoryId });
   if (!isOpen) return null;
  
-  const categoryDetails = data?.data ?? null;
+const categoryDetails: Category | undefined =
+  (data && "data" in data ? data.data : data) ?? undefined;
   const status = categoryDetails?.deleted_at === null ? "Actif" : "Inactif";
   const statusColor =
     categoryDetails?.deleted_at === null ? "text-green-600" : "text-red-600";
