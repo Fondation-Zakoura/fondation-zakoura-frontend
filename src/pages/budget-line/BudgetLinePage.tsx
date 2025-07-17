@@ -80,10 +80,10 @@ function BudgetLinePage() {
     const columnFilters = useMemo((): ColumnFilter[] => [
       {
         id: 'is_active',
-        label: 'Actives',
+        label: 'Active',
         options: [
-          { value: 'true', label: 'Actives' },
-          { value: 'false', label: 'Inactives' },
+          { value: 'true', label: 'Active' },
+          { value: 'false', label: 'Inactive' },
         ],
       },
     ], []);
