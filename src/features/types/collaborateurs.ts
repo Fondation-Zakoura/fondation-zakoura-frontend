@@ -53,11 +53,12 @@ export type Collaborateur = {
 };
 export type CollaborateursResponse = {
   data: Collaborateur[];
-  meta: {
+  pagination: {
     total: number;
     per_page: number;
     current_page: number;
     last_page: number;
+    total_pages: number;
   };
 };
 export type CollaborateurFormOptions = {

@@ -1,22 +1,22 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { 
-  PageHeaderLayout 
+import {
+  PageHeaderLayout
 } from '@/layouts/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-
 import {
-  useAddCollaborateurMutation,
+  useGetCollaborateurQuery,
+  useUpdateCollaborateurMutation,
   useGetAllStatutCollaborateursQuery,
   useGetCollaborateursQuery,
   useGetStatutContratsQuery,
   useGetTypeContratsQuery
 } from '@/features/api/CollaborateursApi';
 import { DatePickerField } from '@/components/ui/Helper components';
+import { Combobox } from '@/components/ui/combobox';
 
 const initialForm = {
   civilite: '',
@@ -66,91 +66,81 @@ const initialForm = {
   situation_familiale: '',
   membre_famille: '',
   lien_familial_collaborateur: '',
-  lien_familial_autre: '',
 };
 
-const AddCollaborateurs: React.FC = () => {
+const EditCollaborateur: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { data: collaborateur, isLoading } = useGetCollaborateurQuery(Number(id));
+  const [updateCollaborateur] = useUpdateCollaborateurMutation();
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const [addCollaborateur] = useAddCollaborateurMutation();
-  
-  // Options
+
+  // Options (mock, à remplacer par données API)
   const civiliteOptions = [
-    { label: 'Monsieur', value: 'Monsieur' },
-    { label: 'Madame', value: 'Madame' },
+     { label: 'Monsieur', value: 'Monsieur' },
+     { label: 'Madame', value: 'Madame' },
   ];
-  
-  const banqueOptions = useMemo(() => [
-    'Attijariwafa Bank',
-    'Banque Populaire',
-    'BMCE Bank (Bank of Africa)',
-    'CIH Bank',
-    'Crédit du Maroc',
-    'Société Générale Maroc',
-    'BMCI',
-    'Al Barid Bank',
-    'Banque Atlantique',
-    'Umnia Bank',
-    'Bank Al Yousr',
-    'Banque Zitouna',
-    'CFG Bank'
-  ].map(b => ({ label: b, value: b })), []);
-
+  const banqueOptions = useMemo(
+    () =>
+      [
+        'Attijariwafa Bank',
+        'Banque Populaire',
+        'BMCE Bank (Bank of Africa)',
+        'CIH Bank',
+        'Crédit du Maroc',
+        'Société Générale Maroc',
+        'BMCI',
+        'Al Barid Bank',
+        'Banque Atlantique',
+        'Umnia Bank',
+        'Bank Al Yousr',
+        'Banque Zitouna',
+        'CFG Bank',
+      ].map(b => ({ label: b, value: b })),
+    []
+  );
   const regionOptions = useMemo(() => [
-    'Tanger-Tétouan-Al Hoceïma',
-    'L\'Oriental',
-    'Fès-Meknès',
-    'Rabat-Salé-Kénitra',
-    'Béni Mellal-Khénifra',
-    'Casablanca-Settat',
-    'Marrakech-Safi',
-    'Drâa-Tafilalet',
-    'Souss-Massa',
-    'Guelmim-Oued Noun',
-    'Laâyoune-Sakia El Hamra',
-    'Dakhla-Oued Ed-Dahab'
+     'Tanger-Tétouan-Al Hoceïma',
+     'L\'Oriental',
+     'Fès-Meknès',
+     'Rabat-Salé-Kénitra',
+     'Béni Mellal-Khénifra',
+     'Casablanca-Settat',
+     'Marrakech-Safi',
+     'Drâa-Tafilalet',
+     'Souss-Massa',
+     'Guelmim-Oued Noun',
+     'Laâyoune-Sakia El Hamra',
+     'Dakhla-Oued Ed-Dahab'
   ].map(r => ({ label: r, value: r })), []);
-
-  const provinceOptions = useMemo(() => [
-    'Fès',
-    'Meknès',
-    'Rabat',
-    'Salé',
-    'Kénitra',
-    'Tanger',
-    'Tétouan',
-    'Oujda',
-    'Agadir',
-    'Casablanca',
-    'El Jadida',
-    'Safi',
-    'Errachidia',
-    'Laâyoune',
-    'Dakhla'
-  ].map(p => ({ label: p, value: p })), []);
-  const relationFamilialeOptions = useMemo(() => [
-    'Conjoint(e)',
-    'Enfant',
-    'Parent',
-    'Frère/Sœur',
-    'Autre'
-  ].map(r => ({ label: r, value: r })), []);
+ 
+  const provinceOptions = useMemo(() => (
+     [
+       'Fès',
+       'Meknès',
+       'Rabat',
+       'Salé',
+       'Kénitra',
+       'Tanger',
+       'Tétouan',
+       'Oujda',
+       'Agadir',
+       'Casablanca',
+       'El Jadida',
+       'Safi',
+       'Errachidia',
+       'Laâyoune',
+       'Dakhla'
+     ].map(p => ({ label: p, value: p }))
+  ), []);
   
   const sourceOptions = useMemo(() => ['Interne', 'Externe'].map(s => ({ label: s, value: s })), []);
-  const situationFamilialeOptions = useMemo(() => ['Célibataire', 'Marié', 'Divorcé', 'Veuf'].map(s => ({ label: s, value: s })), []);
-
-  // API data options
   const { data: statusData } = useGetAllStatutCollaborateursQuery();
   const { data: typeContratsData } = useGetTypeContratsQuery();
   const { data: collaborateursData } = useGetCollaborateursQuery({});
   const { data:statusContratData } = useGetStatutContratsQuery();  
-
-  // Dates contrôlées
-  const [dateNaissance, setDateNaissance] = useState<Date | undefined>(form.date_naissance ? new Date(form.date_naissance) : undefined);
-  const [dateEntree, setDateEntree] = useState<Date | undefined>(form.date_entree ? new Date(form.date_entree) : undefined);
-  const [dateSortie, setDateSortie] = useState<Date | undefined>(form.date_sortie ? new Date(form.date_sortie) : undefined);
-  const [dateObtention, setDateObtention] = useState<Date | undefined>(form.date_obtention ? new Date(form.date_obtention) : undefined);
+  const situationFamilialeOptions = useMemo(() => ['Célibataire', 'Marié', 'Divorcé', 'Veuf'].map(s => ({ label: s, value: s })), []);
 
   const statutCollaborateurOptions = statusData?.data?.map((status: any) => ({
     label: status.type,
@@ -161,7 +151,6 @@ const AddCollaborateurs: React.FC = () => {
     label: type.type,
     value: String(type.id),
   })) ?? [];
-  
   const statutContratOptions = statusContratData?.data?.map((statut: any) => ({
     label: statut.statut,
     value: String(statut.id),
@@ -172,91 +161,160 @@ const AddCollaborateurs: React.FC = () => {
     value: String(collab.id),
   })) ?? [];
 
+  // Dates contrôlées
+  const [dateNaissance, setDateNaissance] = useState<Date | undefined>(undefined);
+  const [dateEntree, setDateEntree] = useState<Date | undefined>(undefined);
+  const [dateSortie, setDateSortie] = useState<Date | undefined>(undefined);
+  const [dateObtention, setDateObtention] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    if (collaborateur) {
+      const newForm = {
+        civilite: collaborateur.civilite || '',
+        nom: collaborateur.nom || '',
+        prenom: collaborateur.prenom || '',
+        nom_arabe: collaborateur.nomArabe || '',
+        prenom_arabe: collaborateur.prenomArabe || '',
+        telephone: collaborateur.telephone || '',
+        email: collaborateur.email || '',
+        password: collaborateur.password || '',
+        cin: collaborateur.cin || '',
+        cnss: collaborateur.cnss || '',
+        cimr: collaborateur.cimr || '',
+        n_adhesion_assurance: collaborateur.n_adhesion_assurance || '',
+        banque: collaborateur.banque || '',
+        rib: collaborateur.rib || '',
+        date_naissance: collaborateur.date_naissance || '',
+        region_naissance: collaborateur.region_naissance || '',
+        province_naissance: collaborateur.province_naissance || '',
+        adresse_residence: collaborateur.adresse_residence || '',
+        region_residence: collaborateur.region_residence || '',
+        province_residence: collaborateur.province_residence || '',
+        unite_organisationnelle: collaborateur.unite_organisationnelle || '',
+        poste: collaborateur.poste || '',
+        statut_collaborateur: collaborateur.statut_collaborateur_id ? String(collaborateur.statut_collaborateur_id) : '',
+        source: collaborateur.source || '',
+        type_contrat: collaborateur.type_contrat_id ? String(collaborateur.type_contrat_id) : '',
+        statut_contrat: collaborateur.statut_contrat_id ? String(collaborateur.statut_contrat_id) : '',
+        date_entree: collaborateur.date_entree || '',
+        date_sortie: collaborateur.date_sortie || '',
+        salaire_brut: collaborateur.salaire_brut ? String(collaborateur.salaire_brut) : '',
+        salaire_net: collaborateur.salaire_net ? String(collaborateur.salaire_net) : '',
+        periode_essai: collaborateur.periode_essai ? String(collaborateur.periode_essai) : '',
+        periode_preavis: collaborateur.periode_preavis ? String(collaborateur.periode_preavis) : '',
+        nombre_jours_conge: collaborateur.nombre_jours_conge ? String(collaborateur.nombre_jours_conge) : '',
+        experience_totale: collaborateur.experience_totale ? String(collaborateur.experience_totale) : '',
+        experience_education: collaborateur.experience_education ? String(collaborateur.experience_education) : '',
+        primes: collaborateur.primes ? String(collaborateur.primes) : '',
+        projet_affectation: collaborateur.projet_affectation || '',
+        region_affectation: collaborateur.region_affectation || '',
+        province_affectation: collaborateur.province_affectation || '',
+        superieur_hierarchique: collaborateur.superieur_hierarchique ? String(collaborateur.superieur_hierarchique) : '',
+        formation: collaborateur.formation || '',
+        discipline: collaborateur.discipline || '',
+        etablissement: collaborateur.etablissement || '',
+        date_obtention: collaborateur.date_obtention || '',
+        situation_familiale: collaborateur.situation_familiale || '',
+        membre_famille: collaborateur.membre_famille || '',
+        lien_familial_collaborateur: collaborateur.lien_familial_collaborateur || '',
+      };
+      setForm(newForm);
+      console.log('Collaborateur chargé:', newForm);
+      
+      
+      // Set dates
+      if (collaborateur.date_naissance) setDateNaissance(new Date(collaborateur.date_naissance));
+      if (collaborateur.date_entree) setDateEntree(new Date(collaborateur.date_entree));
+      if (collaborateur.date_sortie) setDateSortie(new Date(collaborateur.date_sortie));
+      if (collaborateur.date_obtention) setDateObtention(new Date(collaborateur.date_obtention));
+    }
+  }, [collaborateur]);
 
   const handleChange = (name: string, value: string | File | null) => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const payload = {
-      nom: form.nom.trim(),
-      prenom: form.prenom.trim(),
-      nomArabe: form.nom_arabe || '',
-      prenomArabe: form.prenom_arabe || '',
-      email: form.email.trim(),
-      password: form.password.trim(),
-      cin: form.cin.trim(),
-      cnss: form.cnss || '',
-      cimr: form.cimr || '',
-      n_adhesion_assurance: form.n_adhesion_assurance || '',
-      civilite: ['Monsieur', 'Madame'].includes(form.civilite) ? form.civilite : 'mr',
-      telephone: form.telephone,
-      banque: form.banque,
-      rib: form.rib,
-      date_naissance: form.date_naissance,
-      region_naissance: form.region_naissance,
-      province_naissance: form.province_naissance,
-      adresse_residence: form.adresse_residence,
-      region_residence: form.region_residence,
-      province_residence: form.province_residence,
-      unite_organisationnelle: form.unite_organisationnelle,
-      poste: form.poste,
-      source: form.source,
-      date_entree: form.date_entree,
-      date_sortie: form.date_sortie || '',
-      salaire_brut: Number(form.salaire_brut),
-      salaire_net: Number(form.salaire_net),
-      periode_essai: Number(form.periode_essai),
-      periode_preavis: Number(form.periode_preavis),
-      experience_totale: form.experience_totale ? Number(form.experience_totale) : null,
-      experience_education: form.experience_education ? Number(form.experience_education) : null,
-      primes: form.primes ? Number(form.primes) : null,
-      nombre_jours_conge: Number(form.nombre_jours_conge),
-      projet_affectation: form.projet_affectation,
-      region_affectation: form.region_affectation,
-      province_affectation: form.province_affectation,
-      formation: form.formation || '',
-      discipline: form.discipline || '',
-      etablissement: form.etablissement || '',
-      date_obtention: form.date_obtention || '',
-      membre_famille: form.membre_famille || '',
-      lien_familial_collaborateur: form.lien_familial_collaborateur || form.lien_familial_autre,
-      superieur_hierarchique: form.superieur_hierarchique
-        ? Number(form.superieur_hierarchique)
-        : null,
-      situation_familiale: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf(ve)'].includes(form.situation_familiale)
-        ? form.situation_familiale
-        : 'Célibataire',
-      statut_collaborateur_id: Number(form.statut_collaborateur)|| 1,
-      type_contrat_id: Number(form.type_contrat),
-      statut_contrat_id: Number(form.statut_contrat),
-      photo: null as File | null,
-    };
-    
-    addCollaborateur(payload)
-      .unwrap()
-      .then(() => {
-        console.log('Collaborateur ajouté avec succès');
-        navigate('/rh/collaborateurs');
-      })
-      .catch((error) => {
-        console.error("Erreur lors de l'ajout du collaborateur :", error);
-        setError("Une erreur est survenue lors de l'ajout.");
-      });
+    try {
+      const payload = {
+        id: Number(id),
+        nom: form.nom.trim(),
+        prenom: form.prenom.trim(),
+        nomArabe: form.nom_arabe || '',
+        prenomArabe: form.prenom_arabe || '',
+        email: form.email.trim(),
+        password: form.password.trim(),
+        cin: form.cin.trim(),
+        cnss: form.cnss || '',
+        cimr: form.cimr || '',
+        n_adhesion_assurance: form.n_adhesion_assurance || '',
+        civilite: ['mr', 'mme', 'Monsieur', 'Madame'].includes(form.civilite) ? form.civilite : 'mr',
+        telephone: form.telephone,
+        banque: form.banque,
+        rib: form.rib,
+        date_naissance: form.date_naissance,
+        region_naissance: form.region_naissance,
+        province_naissance: form.province_naissance,
+        adresse_residence: form.adresse_residence,
+        region_residence: form.region_residence,
+        province_residence: form.province_residence,
+        unite_organisationnelle: form.unite_organisationnelle,
+        poste: form.poste,
+        source: form.source,
+        date_entree: form.date_entree,
+        date_sortie: form.date_sortie || '',
+        salaire_brut: Number(form.salaire_brut),
+        salaire_net: Number(form.salaire_net),
+        periode_essai: Number(form.periode_essai),
+        periode_preavis: Number(form.periode_preavis),
+        experience_totale: form.experience_totale ? Number(form.experience_totale) : null,
+        experience_education: form.experience_education ? Number(form.experience_education) : null,
+        primes: form.primes ? Number(form.primes) : null,
+        nombre_jours_conge: Number(form.nombre_jours_conge),
+        projet_affectation: form.projet_affectation,
+        region_affectation: form.region_affectation,
+        province_affectation: form.province_affectation,
+        formation: form.formation || '',
+        discipline: form.discipline || '',
+        etablissement: form.etablissement || '',
+        date_obtention: form.date_obtention || '',
+        membre_famille: form.membre_famille || '',
+        lien_familial_collaborateur: form.lien_familial_collaborateur || '',
+        superieur_hierarchique: form.superieur_hierarchique
+          ? Number(form.superieur_hierarchique)
+          : null,
+        situation_familiale: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf(ve)'].includes(form.situation_familiale)
+          ? form.situation_familiale
+          : 'Célibataire',
+        statut_collaborateur_id: Number(form.statut_collaborateur),
+        type_contrat_id: Number(form.type_contrat),
+        statut_contrat_id: Number(form.statut_contrat),
+        photo: null as File | null,
+      };
+      
+      await updateCollaborateur({ code: String(id), body: payload }).unwrap();
+      navigate('/rh/collaborateurs');
+    } catch (err) {
+      setError('Une erreur est survenue lors de la mise à jour.');
+      console.error(err);
+    }
   };
 
- return (
+  if (isLoading) return <p>Chargement...</p>;
+  
+
+  return (
   <div className="p-8 font-nunito">
     <div className="flex justify-between items-center mb-8">
       <PageHeaderLayout
-        title="Ajouter un Collaborateur"
+        title="Modifier un Collaborateur"
         breadcrumbs={[
           { label: "Tableaux de bord" },
           { label: "Collaborateurs" },
-          { label: "Ajouter", active: true },
+          { label: "Modifier", active: true },
         ]}
       />
     </div>
@@ -460,14 +518,16 @@ const AddCollaborateurs: React.FC = () => {
                 Date de naissance *
               </label>
               <DatePickerField
-                 selected={dateNaissance}
-                 onSelect={(date) => {
-                   setDateNaissance(date);
-                   handleChange(
-                     "date_naissance",
-                     date ? format(date, "yyyy-MM-dd") : ""
-                   );
-                 } } label={''}              />
+                selected={dateNaissance}
+                onSelect={(date) => {
+                  setDateNaissance(date);
+                  handleChange(
+                    "date_naissance",
+                    date ? format(date, "yyyy-MM-dd") : ""
+                  );
+                }} 
+                label={''}
+              />
             </div>
             <div>
               <label className="block text-gray-700 font-semibold mb-2 text-left">
@@ -613,28 +673,32 @@ const AddCollaborateurs: React.FC = () => {
                 Date d'entrée *
               </label>
               <DatePickerField
-                 selected={dateEntree}
-                 onSelect={(date) => {
-                   setDateEntree(date);
-                   handleChange(
-                     "date_entree",
-                     date ? format(date, "yyyy-MM-dd") : ""
-                   );
-                 } } label={''}              />
+                selected={dateEntree}
+                onSelect={(date) => {
+                  setDateEntree(date);
+                  handleChange(
+                    "date_entree",
+                    date ? format(date, "yyyy-MM-dd") : ""
+                  );
+                }} 
+                label={''}
+              />
             </div>
             <div>
               <label className="block text-gray-700 font-semibold mb-2 text-left">
                 Date de sortie *
               </label>
               <DatePickerField
-                 selected={dateSortie}
-                 onSelect={(date) => {
-                   setDateSortie(date);
-                   handleChange(
-                     "date_sortie",
-                     date ? format(date, "yyyy-MM-dd") : ""
-                   );
-                 } } label={''}              />
+                selected={dateSortie}
+                onSelect={(date) => {
+                  setDateSortie(date);
+                  handleChange(
+                    "date_sortie",
+                    date ? format(date, "yyyy-MM-dd") : ""
+                  );
+                }} 
+                label={''}
+              />
             </div>
           </div>
 
@@ -838,14 +902,16 @@ const AddCollaborateurs: React.FC = () => {
                 Date d'obtention
               </label>
               <DatePickerField
-                 selected={dateObtention}
-                 onSelect={(date) => {
-                   setDateObtention(date);
-                   handleChange(
-                     "date_obtention",
-                     date ? format(date, "yyyy-MM-dd") : ""
-                   );
-                 } } label={''}              />
+                selected={dateObtention}
+                onSelect={(date) => {
+                  setDateObtention(date);
+                  handleChange(
+                    "date_obtention",
+                    date ? format(date, "yyyy-MM-dd") : ""
+                  );
+                }} 
+                label={''}
+              />
             </div>
           </div>
         </div>
@@ -882,25 +948,12 @@ const AddCollaborateurs: React.FC = () => {
               <label className="block text-gray-700 font-semibold mb-2 text-left">
                 Lien familial collaborateur
               </label>
-              <Combobox
-                options={relationFamilialeOptions}
+              <Input
                 value={form.lien_familial_collaborateur}
-                onChange={(val) => handleChange("lien_familial_collaborateur", val)}
-                placeholder="Sélectionner"
+                onChange={(e) => handleChange("lien_familial_collaborateur", e.target.value)}
+                placeholder="Entrez le lien familial"
+                className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
               />
-              {form.lien_familial_collaborateur === "Autre" && (
-                <div className="mt-4">
-                  <label className="block text-gray-700 font-semibold mb-2 text-left">
-                    Précisez le lien familial
-                  </label>
-                  <Input
-                    value={form.lien_familial_autre || ""}
-                    onChange={(e) => handleChange("lien_familial_autre", e.target.value)}
-                    placeholder="Entrez le lien familial"
-                    className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -949,4 +1002,4 @@ const AddCollaborateurs: React.FC = () => {
 );
 };
 
-export default AddCollaborateurs;
+export default EditCollaborateur;

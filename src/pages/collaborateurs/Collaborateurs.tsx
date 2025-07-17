@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, Pen, Trash, Plus, Archive } from 'lucide-react';
 import {
@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
-import { type Column, type ColumnFilter } from '@/components/ui/data-table';
-import {DataTable} from '@/components/ui/data-table';
+import { DataTable, type Column, type ColumnFilter } from '@/components/ui/data-table';
 
 import {
   useGetCollaborateursQuery,
@@ -23,19 +22,52 @@ import {
   useBulkDeleteCollaborateursMutation,
 } from '@/features/api/CollaborateursApi';
 
+type Collaborateur = {
+  id: number;
+  civilite: string;
+  nom: string;
+  prenom: string;
+  cin: string;
+  type_contrat_id: number;
+  poste: string;
+  statut_collaborateur_id: number;
+};
+
 const Collaborateurs = () => {
   const navigate = useNavigate();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [selectedCollabId, setSelectedCollabId] = useState<number | null>(null);
+  const [selectedRows, setSelectedRows] = useState<Collaborateur[]>([]);
   const [showArchived, setShowArchived] = useState(false);
-  
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, // 0-based for frontend
+    pageSize: 10,
+  });
+
   // Fetch data based on archive state
-  const { data: regularData, isLoading: isRegularLoading, isError: isRegularError } = useGetCollaborateursQuery({});
-  const { data: archivedData, isLoading: isArchivedLoading, isError: isArchivedError } = useGetArchivedCollaborateursQuery({});
-  
-  const {data: allStatusData } = useGetAllStatutCollaborateursQuery();
+  const { 
+    data: regularData, 
+    isLoading: isRegularLoading, 
+    isError: isRegularError,
+    refetch: refetchRegular
+  } = useGetCollaborateursQuery({ 
+    page: pagination.pageIndex + 1, // Convert to 1-based for backend
+    per_page: pagination.pageSize 
+  });
+
+  const { 
+    data: archivedData, 
+    isLoading: isArchivedLoading, 
+    isError: isArchivedError,
+    refetch: refetchArchived 
+  } = useGetArchivedCollaborateursQuery({ 
+    page: pagination.pageIndex + 1, // Convert to 1-based for backend
+    per_page: pagination.pageSize 
+  });
+
+  const { data: allStatusData } = useGetAllStatutCollaborateursQuery();
   const allStatusCollaborateurs = allStatusData?.data || [];
-  const {data: typeContratsData} = useGetTypeContratsQuery();
+  const { data: typeContratsData } = useGetTypeContratsQuery();
   const typeContrats = typeContratsData?.data || [];
 
   const [deleteCollaborateur, { isLoading: isDeleting }] = useDeleteCollaborateurMutation();
@@ -46,41 +78,57 @@ const Collaborateurs = () => {
   const isError = showArchived ? isArchivedError : isRegularError;
   
   const collaborateurs = data?.data || [];
+  const pageCount = data?.pagination?.total_pages || 1;
+  const totalItems = data?.pagination?.total || 0;
 
-  const handleShow = (id: number) => navigate(`/rh/collaborateurs/${id}`);
-  const handleEdit = (id: number) => navigate(`/rh/collaborateurs/${id}/edit`);
-  const handleDelete = (id: number) => {
+  console.log('Collaborateurs data:', collaborateurs);
+  console.log('Page count:', pageCount);
+  console.log('Total items:', totalItems);
+
+  const handleShow = useCallback((id: number) => navigate(`/rh/collaborateurs/${id}`), [navigate]);
+  const handleEdit = useCallback((id: number) => navigate(`/rh/collaborateurs/${id}/edit`), [navigate]);
+
+  const handleDelete = useCallback((id: number) => {
     setSelectedCollabId(id);
     setConfirmDeleteOpen(true);
-  };
-  
-  const confirmDelete = async () => {
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
     if (selectedCollabId) {
-      console.log('Suppression du collaborateur avec ID:', selectedCollabId);
-      deleteCollaborateur(selectedCollabId)
-        .unwrap()
-        .catch((error) => {
-          console.error('Erreur lors de la suppression:', error);
-      });
+      try {
+        await deleteCollaborateur(selectedCollabId).unwrap();
+        showArchived ? refetchArchived() : refetchRegular();
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+      } finally {
+        setConfirmDeleteOpen(false);
+      }
     }
-    setConfirmDeleteOpen(false);
-  };
-  
-  const handleBulkDelete = async (ids: number[]) => {
-  console.log('Suppression multiple pour les IDs:', ids);
-  bulkDeleteCollaborateurs(ids)
-    .unwrap()
-    .then(() => {
-      console.log('Suppression multiple réussie pour les IDs:', ids);
-      setConfirmDeleteOpen(false);
-    })
-    .catch((error) => {
-      console.error('Erreur lors de la suppression multiple:', error);
+  }, [selectedCollabId, deleteCollaborateur, showArchived, refetchArchived, refetchRegular]);
+
+  const handleBulkDelete = useCallback(async (ids: number[]) => {
+    try {
+      await bulkDeleteCollaborateurs(ids).unwrap();
+      setSelectedRows([]);
+      showArchived ? refetchArchived() : refetchRegular();
+    } catch (error) {
+      console.error('Erreur lors de la suppression en masse:', error);
+    }
+  }, [bulkDeleteCollaborateurs, showArchived, refetchArchived, refetchRegular]);
+
+  const handlePaginationChange = useCallback(({ pageIndex, pageSize }: { pageIndex: number; pageSize: number }) => {
+    setPagination({
+      pageIndex,
+      pageSize,
     });
-};
+  }, []);
 
+  const toggleArchiveView = useCallback(() => {
+    setShowArchived(prev => !prev);
+    setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page when switching views
+  }, []);
 
-  const columns: Column<any>[] = [
+  const columns: Column<Collaborateur>[] = useMemo(() => [
     { key: 'civilite', header: 'Civilité', sortable: true },
     { key: 'nom', header: 'Nom', sortable: true },
     { key: 'prenom', header: 'Prénom', sortable: true },
@@ -89,8 +137,8 @@ const Collaborateurs = () => {
       key: 'type_contrat_id', 
       header: 'Type de contrat',
       sortable: true,
-      render: (row) => {
-        const contrat = typeContrats.find((c: { id: Number; }) => c.id === row.type_contrat_id);
+      render: (row: Collaborateur) => {
+        const contrat = typeContrats.find((c: { id: number }) => c.id === row.type_contrat_id);
         return contrat?.type ?? 'Type inconnu';
       },
     },
@@ -99,8 +147,8 @@ const Collaborateurs = () => {
       key: 'statut_collaborateur_id',
       header: 'Statut',
       sortable: true,
-      render: (row) => {
-        const statut = allStatusCollaborateurs.find((s: { id: Number; }) => s.id === row.statut_collaborateur_id);
+      render: (row: Collaborateur) => {
+        const statut = allStatusCollaborateurs.find((s: { id: number }) => s.id === row.statut_collaborateur_id);
         return statut?.type ?? 'Statut inconnu';
       },
     },
@@ -108,7 +156,7 @@ const Collaborateurs = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (row) => (
+      render: (row: Collaborateur) => (
         <div className="flex gap-2 justify-end">
           <Button variant="ghost" size="icon" onClick={() => handleShow(row.id)}>
             <Eye className="w-4 h-4" />
@@ -126,17 +174,23 @@ const Collaborateurs = () => {
         </div>
       ),
     },
-  ];
+  ], [typeContrats, allStatusCollaborateurs, showArchived, handleShow, handleEdit, handleDelete]);
 
-  const columnFilters: ColumnFilter[] = useMemo(() => {
-    return [
-      { id: 'nom', label: 'Nom', type: 'text', options: [] },
-      { id: 'cin', label: 'CIN', type: 'text', options: [] },
-      { id: 'poste', label: 'Poste', type: 'text', options: [] },
-      { id: 'type_contrat.label', label: 'Type de contrat', type: 'text', options: [] },
-      { id: 'statut_collaborateur.label', label: 'Statut', type: 'text', options: [] },
-    ];
-  }, []);
+  const columnFilters: ColumnFilter[] = useMemo(() => [
+    { id: 'nom', label: 'Nom', type: 'text', options: [] },
+    { id: 'cin', label: 'CIN', type: 'text', options: [] },
+    { id: 'poste', label: 'Poste', type: 'text', options: [] },
+    { 
+      id: 'type_contrat_id', 
+      label: 'Type de contrat', 
+      options: typeContrats.map((t: any) => ({ value: t.id, label: t.type }))
+    },
+    { 
+      id: 'statut_collaborateur_id', 
+      label: 'Statut', 
+      options: allStatusCollaborateurs.map((s: any) => ({ value: s.id, label: s.type }))
+    },
+  ], [typeContrats, allStatusCollaborateurs]);
 
   return (
     <>
@@ -152,7 +206,7 @@ const Collaborateurs = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowArchived(!showArchived)}
+              onClick={toggleArchiveView}
               className="flex items-center gap-2"
             >
               {showArchived ? (
@@ -189,10 +243,16 @@ const Collaborateurs = () => {
               columnFilters={columnFilters}
               striped
               hoverEffect
-              initialPageSize={10}
-              enableBulkDelete={!showArchived} // Disable bulk delete in archive view
+              pageCount={pageCount}
+              totalItems={totalItems}
+              pageIndex={pagination.pageIndex}
+              onPaginationChange={handlePaginationChange}
+              enableBulkDelete={!showArchived}
               onBulkDelete={handleBulkDelete}
               emptyText={showArchived ? "Aucun collaborateur archivé trouvé" : "Aucun collaborateur trouvé"}
+              selectedRows={selectedRows}
+              onSelectedRowsChange={setSelectedRows}
+              serverPagination={true}
             />
           )}
         </div>
