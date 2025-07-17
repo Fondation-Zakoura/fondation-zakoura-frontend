@@ -116,7 +116,13 @@ export function NewDataTable<T extends { id: string | number }>({
   } | null>(null);
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [filterValues, setFilterValues] = React.useState<Record<string, string>>(
-    {}
+    () => {
+      const initial: Record<string, string> = {};
+      columnFilters.forEach(f => {
+        if (f.id === 'is_active') initial['is_active'] = 'true';
+      });
+      return initial;
+    }
   );
   const [currentPage, setCurrentPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(initialPageSize);
@@ -350,9 +356,11 @@ export function NewDataTable<T extends { id: string | number }>({
                 <SelectValue placeholder={`Tout...`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{`Tout ${filter.label
-                  .split(" ")[0]
-                  .toLowerCase()}`}</SelectItem>
+                {filter.id !== "is_active" && (
+                  <SelectItem value="all">{`Tout ${filter.label
+                    .split(" ")[0]
+                    .toLowerCase()}`}</SelectItem>
+                )}
                 {filter.options.map((opt) => (
                   <SelectItem key={String(opt.value)} value={String(opt.value)}>
                     {opt.label}
