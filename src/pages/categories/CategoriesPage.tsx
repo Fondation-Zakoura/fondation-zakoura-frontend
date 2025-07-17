@@ -32,10 +32,8 @@ export default function CategoriesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [infoDialogContent, setInfoDialogContent] = useState({ title: "", description: "" });
- 
   const [currentPage] = useState(1);
   const [rowsPerPage]= useState(10);
- 
   const { data: categoryData, isError, refetch } = useGetCategoriesQuery({
     page: currentPage,
     perPage: rowsPerPage,
@@ -200,6 +198,7 @@ export default function CategoriesPage() {
           setSelectedCategoryId(row.id);
           setViewModalOpen(true);
         }}
+        
       />
  
       {isOpen && (

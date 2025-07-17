@@ -46,12 +46,13 @@ export default function EditCategoryModal({
   });
  
   useEffect(() => {
-    if (categoryData?.data) {
-      const cat = categoryData.data;
+    const details=categoryData?(categoryData.data || categoryData):null;
+    if (details) {
+      
       setFormData({
-        name: cat.name ?? "",
-        description: cat.description ?? "",
-        status: cat.deleted_at === null ? "1" : "0",
+        name: details.name ?? "",
+        description: details.description ?? "",
+        status: details.deleted_at === null ? "1" : "0",
       });
     }
   }, [categoryData]);
