@@ -25,7 +25,6 @@ function ShowBudgetLineModal({ onClose, budgetLine }: Props) {
       minimumFractionDigits: 2
     }).format(amount);
   };
-  console.log('Here is the budget Linee: ',budgetLine)
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'active':
