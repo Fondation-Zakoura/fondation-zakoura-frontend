@@ -326,7 +326,7 @@ const PartnersListPage: React.FC = () => {
           ]}
         />
         <Button
-          className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+          className="bg-primary hover:bg-[#576CBC] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
           onClick={handleOpenAddModal}
         >
           <Plus size={18} /> Ajouter un partenaire

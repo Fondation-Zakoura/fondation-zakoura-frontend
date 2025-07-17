@@ -33,6 +33,7 @@ import EditCollaborateur from "./pages/collaborateurs/EditCollaborateurModal";
 import AddCollaborateurs from "./pages/collaborateurs/AddCollaborateur";
 
 import { UnitsListPage } from "./pages/units/UnitsListPage";
+import StatusPartnersListPage from "./pages/statusPartner/StatusPartnersList";
 
 
 function App() {
@@ -55,7 +56,6 @@ function App() {
         <Route path="produits" element={<ProductsPage />} />
         <Route path="typeproducts" element={<ProductTypesPage />} />
         <Route path="articles" element={<ArticlesPage />} />
-        {/* <Route path="packs" element={<PacksPage />} /> */}
 
         {/* Projects */}
         <Route path="projects" element={<Projects />} />
@@ -70,6 +70,7 @@ function App() {
         <Route path="partners" element={<PartnersListPage />} />
         <Route path="partner-natures" element={<NaturePartnersListPage />} />
         <Route path="partner-structures" element={<StructurePartnersListPage />} />
+        <Route path="partner-status" element={<StatusPartnersListPage />} />
         <Route path="sites" element={<SitesListPage />} />
 
         {/* Budget */}
