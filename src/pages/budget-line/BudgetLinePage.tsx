@@ -4,11 +4,12 @@ import ShowBudgetLineModal from '@/components/budgetLine/ShowBudgetLineModal';
 import { Button } from '@/components/ui/button';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useGetBudgetLinesQuery } from '@/features/api/budgetLineApi';
+import { useGetBudgetLinesQuery, useDeleteBudgetLineMutation, useBulkDeleteBudgetLinesMutation } from '@/features/api/budgetLineApi';
 import type { BudgetLine } from '@/features/types/budgetLine';
 import { PageHeaderLayout } from '@/layouts/MainLayout';
 import { Eye, Pen, Plus, Trash, Users } from 'lucide-react';
 import  { useState } from 'react';
+import { Dialog as ConfirmDialog } from '@/components/ui/dialog';
 
 function BudgetLinePage() {
     const [showAddModal, setShowAddModal] = useState(false);
@@ -30,7 +31,7 @@ function BudgetLinePage() {
     
     // Extract pagination data from the response
     const budgetLines = apiData?.data || [];
-    const total = apiData?.total || 0;
+  
     const perPage = apiData?.per_page || 10;
     const totalPages = apiData?.last_page || 1;
     const currentPageFromApi = apiData?.current_page || 1;
@@ -59,6 +60,31 @@ function BudgetLinePage() {
         setCurrentPage(newPage);
         if (pageSize) {
             setPageSize(pageSize);
+        }
+    };
+    
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [budgetLineToDelete, setBudgetLineToDelete] = useState<BudgetLine | null>(null);
+    const [idsToBulkDelete, setIdsToBulkDelete] = useState<number[]>([]);
+    const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
+    const [deleteBudgetLine, { isLoading: isDeleting }] = useDeleteBudgetLineMutation();
+    const [bulkDeleteBudgetLines, { isLoading: isBulkDeleting }] = useBulkDeleteBudgetLinesMutation();
+
+    const handleDelete = async () => {
+        if (budgetLineToDelete) {
+            await deleteBudgetLine(budgetLineToDelete.id);
+            setShowDeleteDialog(false);
+            setBudgetLineToDelete(null);
+            refetch();
+        }
+    };
+    const handleBulkDelete = async () => {
+        if (idsToBulkDelete.length > 0) {
+            await bulkDeleteBudgetLines(idsToBulkDelete);
+            setShowBulkDeleteDialog(false);
+            setIdsToBulkDelete([]);
+            refetch();
         }
     };
     
@@ -99,8 +125,8 @@ function BudgetLinePage() {
               <button onClick={() => openEdit(row)} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Éditer"><Pen size={16} /></button>
               <button
                 onClick={() => {
-                  // setBudgetLineToDelete(row); // This line was removed as per the edit hint
-                  // setConfirmDeleteOpen(true); // This line was removed as per the edit hint
+                  setBudgetLineToDelete(row);
+                  setShowDeleteDialog(true);
                 }}
                 className="p-2 rounded hover:bg-red-100 text-red-600"
                 title="Supprimer"
@@ -143,6 +169,10 @@ function BudgetLinePage() {
                           pageCount={totalPages}
                           pageIndex={currentPageFromApi - 1}
                           onPaginationChange={handlePaginationChange}
+                          onBulkDelete={(ids) => {
+                            setIdsToBulkDelete(ids as number[]);
+                            setShowBulkDeleteDialog(true);
+                          }}
                         />
                       )}
               </div>
@@ -210,6 +240,31 @@ function BudgetLinePage() {
                   budgetLine={budgetLineToView}
                 />
               )}
+              {/* Delete Confirmation Dialog */}
+              <ConfirmDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirmer la suppression</DialogTitle>
+                  </DialogHeader>
+                  <div>Voulez-vous vraiment supprimer cette ligne budgétaire ?</div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={isDeleting}>Annuler</Button>
+                    <Button variant="destructive" onClick={handleDelete} >Supprimer</Button>
+                  </div>
+                </DialogContent>
+              </ConfirmDialog>
+              <ConfirmDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirmer la suppression multiple</DialogTitle>
+                  </DialogHeader>
+                  <div>Voulez-vous vraiment supprimer les {idsToBulkDelete.length} lignes budgétaires sélectionnées ?</div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setShowBulkDeleteDialog(false)} disabled={isBulkDeleting}>Annuler</Button>
+                    <Button variant="destructive" onClick={handleBulkDelete} >Supprimer</Button>
+                  </div>
+                </DialogContent>
+              </ConfirmDialog>
         </div>
     );
 }

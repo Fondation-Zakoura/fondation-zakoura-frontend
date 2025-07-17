@@ -1,26 +1,8 @@
 import { baseApi } from "./api";
-
+import { type Article, type ArticleListResponse, type ArticleMutationParams, type ArticleQueryParams, type BulkDeleteResponse, type DeleteResponse, type SingleArticleResponse } from "@/types/articles";
 export const articlesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // List articles with optional filters
-    getArticles: builder.query<
-      {
-        data: any[];
-        pagination?: {
-          total: number;
-          perPage: number;
-          currentPage: number;
-        };
-      },
-      {
-        page?: number;
-        perPage?: number;
-        name?: string;
-        productId?: string;
-        brand?: string;
-        status?: string;
-      }
-    >({
+    getArticles: builder.query<ArticleListResponse, ArticleQueryParams>({
       query: (params) => ({
         url: "/articles",
         method: "GET",
@@ -29,14 +11,12 @@ export const articlesApi = baseApi.injectEndpoints({
       providesTags: ["Articles"],
     }),
 
-    // Get a single article by ID
-    showArticle: builder.query<any, number>({
+    showArticle: builder.query<SingleArticleResponse, number>({
       query: (id) => `/articles/${id}`,
       providesTags: (_result, _error, id) => [{ type: "Articles", id }],
     }),
 
-    // Create new article
-    createArticle: builder.mutation<any, Partial<any>>({
+    createArticle: builder.mutation<SingleArticleResponse, Partial<Article>>({
       query: (body) => ({
         url: "/articles",
         method: "POST",
@@ -45,32 +25,19 @@ export const articlesApi = baseApi.injectEndpoints({
       invalidatesTags: ["Articles"],
     }),
 
-    // Update an article
-   updateArticle: builder.mutation<
-  any,
-  {
-    id?: string;
-    product_id: number;
-    name: string;
-    specifications?: string;
-    brand?: string;
-    reference_price?: number;
-  }
->({
-  query: ({ id, ...body }) => ({
-    url: `/articles/${id}`,
-    method: "PUT",
-    body: body, // Important: body must be plain object
-  }),
-  invalidatesTags: (_result, _error, { id }) => [
-    "Articles",
-    { type: "Articles", id },
-  ],
-}),
+    updateArticle: builder.mutation<SingleArticleResponse, ArticleMutationParams>({
+      query: ({ article_id, ...body }) => ({
+        url: `/articles/${article_id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { article_id }) => [
+        "Articles",
+        { type: "Articles", id: article_id },
+      ],
+    }),
 
-
-    // Delete a single article
-    deleteArticle: builder.mutation<any, string>({
+    deleteArticle: builder.mutation<DeleteResponse, number>({
       query: (id) => ({
         url: `/articles/${id}`,
         method: "DELETE",
@@ -78,23 +45,15 @@ export const articlesApi = baseApi.injectEndpoints({
       invalidatesTags: ["Articles"],
     }),
 
-    // Bulk delete articles
-    deleteArticles: builder.mutation<any, { ids: string[] }>({
-      query: ({ids}) => ({
+    deleteArticles: builder.mutation<BulkDeleteResponse, { ids: number[] }>({
+      query: ({ ids }) => ({
         url: `/articles/bulk-delete`,
         method: "POST",
-        body:{ids}
+        body: { ids },
       }),
       invalidatesTags: ["Articles"],
     }),
   }),
 });
 
-export const {
-  useGetArticlesQuery,
-  useShowArticleQuery,
-  useCreateArticleMutation,
-  useUpdateArticleMutation,
-  useDeleteArticleMutation,
-  useDeleteArticlesMutation,
-} = articlesApi;
+export const { useGetArticlesQuery, useShowArticleQuery, useCreateArticleMutation, useUpdateArticleMutation, useDeleteArticleMutation, useDeleteArticlesMutation } = articlesApi;
