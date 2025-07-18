@@ -42,3 +42,21 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Hide the native calendar icon in Chrome, Safari, Edge, Opera */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}
+
+/* Hide the native calendar icon in Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}
+
+/* Hide the native calendar icon in Edge (old) and IE */
+input[type="date"]::-ms-input-placeholder {
+  opacity: 0;
+  display: none;
+}

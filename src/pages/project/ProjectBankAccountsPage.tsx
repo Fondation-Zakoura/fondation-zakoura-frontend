@@ -1,15 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   useGetProjectBankAccountsQuery,
   useCreateProjectBankAccountMutation,
   useUpdateProjectBankAccountMutation,
   useDeleteProjectBankAccountMutation,
   useUpdateBankAccountSupportingDocumentMutation,
+  useBulkDeleteProjectBankAccountsMutation,
+  useRestoreProjectBankAccountMutation,
 } from "@/features/api/projectsApi";
 import type { ProjectBankAccount } from "@/features/types/project";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pen, Eye, Trash } from "lucide-react";
+import { Plus, Pen, Eye, Trash, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import type { Column, ColumnFilter } from "@/components/ui/data-table";
-import { DataTable } from "@/components/ui/data-table";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -31,9 +32,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { NewDataTable } from "@/components/ui/new-data-table";
+import { useDebounce } from "@/hooks/useDebounce";
+import { AddBankAccountModal } from "@/components/projectBankAccounts/AddBankAccountModal";
+import dayjs from "dayjs";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Combobox } from "@/components/ui/combobox";
+import countriesData from "@/data/countries.json";
 
 const emptyAccount: Omit<ProjectBankAccount, "supporting_document"> & {
   supporting_document: string | File;
@@ -51,6 +60,7 @@ const emptyAccount: Omit<ProjectBankAccount, "supporting_document"> & {
   comments: "",
   status: "",
   currency: "",
+  deleted_at: null,
 };
 
 const MOROCCAN_BANKS = [
@@ -70,18 +80,29 @@ const CURRENCIES = ["MAD", "EUR", "USD"];
 type FormType = typeof emptyAccount & { supporting_document: string | File };
 
 const ProjectBankAccountsPage: React.FC = () => {
-  const { data: apiData, isLoading, refetch } = useGetProjectBankAccountsQuery();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [filters, setFilters] = useState<Record<string, string | string[]>>({ is_active: 'true' });
+  const [dataTableKey, _setDataTableKey] = useState(0);
+  const [pendingBulkDeleteIds, setPendingBulkDeleteIds] = useState<number[]>([]);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [searchCode, setSearchCode] = useState("");
+  const debouncedSearchCode = useDebounce(searchCode, 400);
+  const { data: apiData, isLoading, refetch } = useGetProjectBankAccountsQuery({ filters: { ...filters, page: String(page), per_page: String(pageSize) } });
   const accounts: ProjectBankAccount[] = Array.isArray(apiData)
-    ? apiData as ProjectBankAccount[]
-    : apiData && "data" in (apiData as { data: ProjectBankAccount[] })
-      ? (apiData as { data: ProjectBankAccount[] }).data
-      : [];
-  console.log(accounts);
+    ? apiData
+    : apiData?.data || [];
+  const total = Array.isArray(apiData) ? apiData.length : apiData?.total || 0;
+  const perPage = Array.isArray(apiData) ? apiData.length : apiData?.per_page || pageSize;
+  const currentPage = Array.isArray(apiData) ? 1 : apiData?.current_page || page;
   const [createAccount] = useCreateProjectBankAccountMutation();
   const [updateAccount] = useUpdateProjectBankAccountMutation();
   const [deleteAccount] = useDeleteProjectBankAccountMutation();
   const [updateBankAccountSupportingDocument] =
     useUpdateBankAccountSupportingDocumentMutation();
+  const [bulkDeleteProjectBankAccounts, { isLoading: bulkDeleteLoading }] = useBulkDeleteProjectBankAccountsMutation();
+  const [restoreProjectBankAccount, { isLoading: isRestoring }] = useRestoreProjectBankAccountMutation();
+  const [restoringId, setRestoringId] = useState<number | null>(null);
 
   const [modal, setModal] = useState<"add" | "edit" | "show" | null>(null);
   const [selected, setSelected] = useState<ProjectBankAccount | null>(null);
@@ -100,21 +121,42 @@ const ProjectBankAccountsPage: React.FC = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, account_title: debouncedSearchCode }));
+    setPage(1);
+    // eslint-disable-next-line
+  }, [debouncedSearchCode]);
+
   const openAdd = () => {
     setForm(emptyAccount);
     setModal("add");
   };
-  console.log(accounts);
   const openEdit = (account: ProjectBankAccount) => {
+    console.log("Opening date from backend:", account.opening_date);
     setForm({
       ...account,
       status: normalizeStatus(account.status),
       supporting_document: account.supporting_document || "",
+      opening_date: account.opening_date
+        ? dayjs(account.opening_date).format("YYYY-MM-DD")
+        : "",
     });
     setSelected(account);
     setModal("edit");
     setFilePreview(null);
     setRemoveExistingFile(false);
+  };
+  const handleBulkDelete = async () => {
+    if (pendingBulkDeleteIds.length === 0) return;
+    setBulkDeleteConfirmOpen(false);
+    try {
+      await bulkDeleteProjectBankAccounts(pendingBulkDeleteIds).unwrap();
+      setPendingBulkDeleteIds([]);
+      refetch();
+      toast.success('Désactivation multiple réussie !');
+    } catch (err: any) {
+      toast.error(err.data?.message || 'Erreur lors de la désactivation multiple');
+    }
   };
   const openShow = (account: ProjectBankAccount) => {
     setSelected(account);
@@ -332,46 +374,37 @@ const ProjectBankAccountsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (account: ProjectBankAccount) => {
-    if (!window.confirm("Supprimer ce compte bancaire ?")) return;
+  const handleDelete = async () => {
+    if (!accountToDelete) return;
     setDeleteLoading(true);
     try {
-      await deleteAccount(account.id!).unwrap();
-      toast.success('Compte bancaire supprimé avec succès !');
+      await deleteAccount(accountToDelete.id!).unwrap();
+      toast.success('Compte bancaire désactivé avec succès !');
+      setAccountToDelete(null);
       refetch();
+      setConfirmDeleteOpen(false);
     } catch (err: any) {
-      toast.error(err.data?.message || 'Erreur lors de la suppression');
+      toast.error(err.data?.message || 'Erreur lors de la désactivation');
     } finally {
       setDeleteLoading(false);
     }
   };
 
   const columnFilters = useMemo((): ColumnFilter[] => {
-    const uniqueRibs = Array.from(
-      new Set(accounts.map((a: { rib_iban: any }) => a.rib_iban))
-    );
-    const uniqueAgencies = Array.from(
-      new Set(accounts.map((a: { agency: any }) => a.agency))
-    );
-    const uniqueBanks = Array.from(
-      new Set(accounts.map((a: { bank: any }) => a.bank))
-    );
 
     return [
       {
-        id: "rib_iban",
-        label: "RIB / IBAN",
-        options: uniqueRibs.map((rib) => ({ value: String(rib), label: String(rib) })),
-      },
-      {
-        id: "agency",
-        label: "Agence",
-        options: uniqueAgencies.map((agency) => ({ value: String(agency), label: String(agency) })),
-      },
-      {
         id: "bank",
         label: "Banque",
-        options: uniqueBanks.map((bank) => ({ value: String(bank), label: String(bank) })),
+        options: MOROCCAN_BANKS.map((bank) => ({ value: bank, label: bank })),
+      },
+      {
+        id: 'is_active',
+        label: 'Active',
+        options: [
+          { value: 'true', label: 'Active' },
+          { value: 'false', label: 'Inactive' },
+        ],
       },
     ];
   }, [accounts]);
@@ -429,16 +462,40 @@ const ProjectBankAccountsPage: React.FC = () => {
           >
             <Pen size={16} />
           </button>
-          <button
-            onClick={() => {
-              setAccountToDelete(row);
-              setConfirmDeleteOpen(true);
-            }}
-            className="p-2 rounded hover:bg-red-100 text-red-600"
-            title="Supprimer"
-          >
-            <Trash size={16} />
-          </button>
+          {row.deleted_at ? (
+            restoringId === row.id && isRestoring ? (
+              <span className="loader mr-2" />
+            ) : (
+              <button
+                onClick={async () => {
+                  setRestoringId(row.id);
+                  try {
+                    await restoreProjectBankAccount(row.id);
+                    refetch();
+                    toast.success('Compte bancaire restauré avec succès !');
+                  } finally {
+                    setRestoringId(null);
+                  }
+                }}
+                className="p-2 rounded hover:bg-green-100 text-green-600"
+                title="Restaurer"
+                disabled={isRestoring && restoringId === row.id}
+              >
+                <RotateCcw size={16} />
+              </button>
+            )
+          ) : (
+            <button
+              onClick={() => {
+                setAccountToDelete(row);
+                setConfirmDeleteOpen(true);
+              }}
+              className="p-2 rounded hover:bg-red-100 text-red-600"
+              title="Désactiver"
+            >
+              <Trash size={16} />
+            </button>
+          )}
         </div>
       ),
       sortable: false,
@@ -453,6 +510,16 @@ const ProjectBankAccountsPage: React.FC = () => {
     if (s === "closed" || s === "fermé") return "closed";
     return s;
   }
+
+  // Helper function to truncate and show tooltip
+  const renderTruncated = (value: string, maxLength = 24) => {
+    if (!value) return "";
+    return value.length > maxLength ? (
+      <span title={value}>{value.slice(0, maxLength) + "..."}</span>
+    ) : (
+      value
+    );
+  };
 
   return (
     <div className="p-8">
@@ -478,7 +545,9 @@ const ProjectBankAccountsPage: React.FC = () => {
         {isLoading ? (
           <div>Chargement...</div>
         ) : (
-          <DataTable
+          <NewDataTable
+          globalSearchPlaceholder={'Rechercher par l\'intitulé de compte'}
+          key={dataTableKey}
             columns={columns}
             data={accounts}
             hoverEffect
@@ -489,270 +558,43 @@ const ProjectBankAccountsPage: React.FC = () => {
             }
             headerStyle={"primary"}
             striped
-            initialPageSize={10}
+            initialPageSize={pageSize}
             columnFilters={columnFilters}
+            enableBulkDelete={false}
+            serverPagination={true}
+            pageCount={Math.ceil(total / perPage)}
+            pageIndex={currentPage - 1}
+            onPaginationChange={({ pageIndex, pageSize }) => {
+              setPage(pageIndex + 1);
+              if (pageSize) setPageSize(pageSize);
+            }}
+            onFilterChange={(newFilters) => {
+              setFilters(newFilters);
+              setPage(1);
+            }}
+            globalSearchTerm={searchCode}
+            onGlobalSearchChange={(value) => {
+              setSearchCode(value);
+            }}
           />
+          
         )}
       </div>
       {/* Add Modal */}
-      <Dialog open={modal === "add"} onOpenChange={closeModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ajouter un compte bancaire</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="rib_iban">
-                  RIB / IBAN <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="rib_iban"
-                  name="rib_iban"
-                  placeholder="RIB / IBAN"
-                  value={form.rib_iban}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.rib_iban && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.rib_iban}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="agency">
-                  Agence <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="agency"
-                  name="agency"
-                  placeholder="Agence"
-                  value={form.agency}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.agency && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.agency}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="bank">
-                  Banque <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={form.bank}
-                  onValueChange={(value) => setForm({ ...form, bank: value })}
-                >
-                  <SelectTrigger className="w-full" id="bank" name="bank">
-                    <SelectValue placeholder="Banque" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MOROCCAN_BANKS.map((bank) => (
-                      <SelectItem key={bank} value={bank}>
-                        {bank}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.bank && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.bank}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="account_title">
-                  Intitulé du compte <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="account_title"
-                  name="account_title"
-                  placeholder="Intitulé du compte"
-                  value={form.account_title}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.account_title && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.account_title}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="account_holder_name">
-                  Nom du titulaire <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="account_holder_name"
-                  name="account_holder_name"
-                  placeholder="Nom du titulaire"
-                  value={form.account_holder_name}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.account_holder_name && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.account_holder_name}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="bic_swift">BIC / SWIFT</Label>
-                <Input
-                  id="bic_swift"
-                  name="bic_swift"
-                  placeholder="BIC / SWIFT"
-                  value={form.bic_swift}
-                  onChange={handleChange}
-                />
-                {fieldErrors.bic_swift && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.bic_swift}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="opening_date">Date d'ouverture</Label>
-                <Input
-                  id="opening_date"
-                  type="date"
-                  name="opening_date"
-                  placeholder="Date d'ouverture"
-                  value={form.opening_date}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="opening_country">
-                  Pays d'ouverture <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="opening_country"
-                  type="text"
-                  name="opening_country"
-                  placeholder="Pays d'ouverture"
-                  value={form.opening_country}
-                  onChange={handleChange}
-                  required
-                />
-                {fieldErrors.opening_country && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.opening_country}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="currency">
-                  Devise <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={form.currency}
-                  onValueChange={(value) =>
-                    setForm({ ...form, currency: value })
-                  }
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    id="currency"
-                    name="currency"
-                  >
-                    <SelectValue placeholder="Devise" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.currency && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.currency}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="status">
-                  Status <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(value) => setForm({ ...form, status: value })}
-                >
-                  <SelectTrigger className="w-full" id="status" name="status">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Actif</SelectItem>
-                    <SelectItem value="inactive">Inactif</SelectItem>
-                    <SelectItem value="closed">Fermé</SelectItem>
-                  </SelectContent>
-                </Select>
-                {fieldErrors.status && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.status}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="supporting_document">
-                  Pièce justificative (Scan)
-                </Label>
-                <Input
-                  id="supporting_document"
-                  name="supporting_document"
-                  type="file"
-                  accept="application/pdf,image/*"
-                  onChange={handleChange}
-                />
-                {fieldErrors.supporting_document && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.supporting_document}
-                  </span>
-                )}
-                {form.supporting_document &&
-                  typeof form.supporting_document !== "string" &&
-                  (form.supporting_document as File).name && (
-                    <span className="text-xs text-gray-600 mt-1">
-                      Fichier sélectionné :{" "}
-                      {(form.supporting_document as File).name}
-                    </span>
-                  )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="comments">Commentaires / Remarques</Label>
-                <Textarea
-                  id="comments"
-                  name="comments"
-                  placeholder="Commentaires / Remarques"
-                  value={form.comments}
-                  onChange={handleTextareaChange}
-                />
-              </div>
-            </div>
-            {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
-            )}
-            <DialogFooter>
-              <Button
-                type="submit"
-                className=" text-white"
-                disabled={addLoading}
-              >
-                {addLoading ? <span className="loader mr-2"></span> : null}{" "}
-                Ajouter
-              </Button>
-              <DialogClose asChild>
-                <Button variant="outline">Annuler</Button>
-              </DialogClose>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddBankAccountModal
+        open={modal === "add"}
+        onClose={closeModal}
+        onSubmit={handleAdd}
+        form={form}
+        onChange={handleChange}
+        onTextareaChange={handleTextareaChange}
+        onFileChange={handleFileChange}
+        fieldErrors={fieldErrors}
+        error={error}
+        loading={addLoading}
+        moroccanBanks={MOROCCAN_BANKS}
+        currencies={CURRENCIES}
+      />
       {/* Edit Modal */}
       <Dialog open={modal === "edit"} onOpenChange={closeModal}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
@@ -875,33 +717,50 @@ const ProjectBankAccountsPage: React.FC = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="opening_date">Date d'ouverture</Label>
-                <Input
-                  id="opening_date"
-                  type="date"
-                  name="opening_date"
-                  placeholder="Date d'ouverture"
-                  value={form.opening_date}
-                  onChange={handleChange}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="relative w-full">
+                      <Input
+                        id="opening_date"
+                        name="opening_date"
+                        placeholder="jj/mm/aaaa"
+                        value={form.opening_date ? dayjs(form.opening_date).format("DD/MM/YYYY") : ""}
+                        readOnly
+                        className="pr-10 cursor-pointer bg-white"
+                      />
+                      <CalendarIcon
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                        size={20}
+                      />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={form.opening_date ? dayjs(form.opening_date).toDate() : undefined}
+                      onSelect={date => {
+                        if (date) {
+                          const iso = dayjs(date).format("YYYY-MM-DD");
+                          handleChange({ target: { name: "opening_date", value: iso } } as any);
+                        }
+                      }}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear() + 5}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex flex-col gap-1">
-                <Label htmlFor="opening_country">
-                  Pays d'ouverture <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="opening_country"
-                  type="text"
-                  name="opening_country"
-                  placeholder="Pays d'ouverture"
+                <Label htmlFor="opening_country">Pays d'ouverture <span className="text-red-500">*</span></Label>
+                <Combobox
+                  options={countriesData.map((c: { code: string; name: string }) => ({ value: c.name, label: c.name }))}
                   value={form.opening_country}
-                  onChange={handleChange}
-                  required
+                  onChange={value => handleChange({ target: { name: "opening_country", value } } as any)}
+                  placeholder="Pays d'ouverture"
                 />
-                {fieldErrors.opening_country && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.opening_country}
-                  </span>
-                )}
+                {fieldErrors.opening_country && <span className="text-xs text-red-500">{fieldErrors.opening_country}</span>}
               </div>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="currency">
@@ -1095,19 +954,19 @@ const ProjectBankAccountsPage: React.FC = () => {
               <div>
                 <span className="block text-xs text-gray-500">RIB / IBAN</span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.rib_iban}
+                  {renderTruncated(selected.rib_iban)}
                 </span>
               </div>
               <div>
                 <span className="block text-xs text-gray-500">Agence</span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.agency}
+                  {renderTruncated(selected.agency)}
                 </span>
               </div>
               <div>
                 <span className="block text-xs text-gray-500">Banque</span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.bank}
+                  {renderTruncated(selected.bank)}
                 </span>
               </div>
               <div>
@@ -1115,7 +974,7 @@ const ProjectBankAccountsPage: React.FC = () => {
                   Intitulé du compte
                 </span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.account_title}
+                  {renderTruncated(selected.account_title)}
                 </span>
               </div>
               <div>
@@ -1123,13 +982,13 @@ const ProjectBankAccountsPage: React.FC = () => {
                   Nom du titulaire
                 </span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.account_holder_name}
+                  {renderTruncated(selected.account_holder_name)}
                 </span>
               </div>
               <div>
                 <span className="block text-xs text-gray-500">BIC / SWIFT</span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.bic_swift}
+                  {renderTruncated(selected.bic_swift)}
                 </span>
               </div>
               <div>
@@ -1145,80 +1004,39 @@ const ProjectBankAccountsPage: React.FC = () => {
                   Pays d'ouverture
                 </span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.opening_country}
+                  {renderTruncated(selected.opening_country)}
                 </span>
               </div>
               <div>
                 <span className="block text-xs text-gray-500">Devise</span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.currency}
+                  {renderTruncated(selected.currency)}
                 </span>
               </div>
               <div>
                 <span className="block text-xs text-gray-500">Status</span>
                 <span className="font-semibold text-gray-800 text-sm">
-                  {selected.status}
+                  {renderTruncated(selected.status)}
                 </span>
               </div>
               <div className="sm:col-span-2">
-                <span className="block text-xs text-gray-500">
-                  Pièce justificative (Scan)
-                </span>
+                <span className="block text-xs text-gray-500">Pièce justificative (Scan)</span>
                 {selected.supporting_document ? (
                   (() => {
                     const url = `${import.meta.env.VITE_STORAGE_URL}/${selected.supporting_document}`;
-                    console.log(url);
-                    const isImage = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(
-                      selected.supporting_document
-                    );
-                    const isPDF = /\.pdf$/i.test(selected.supporting_document);
-
-                    if (isImage) {
-                      return (
-                        <Card className="w-fit max-w-sm shadow-lg rounded-2xl">
-                          <CardHeader>
-                            <CardTitle className="text-base font-semibold">
-                              Pièce justificative
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <img
-                              src={url}
-                              alt="Pièce justificative"
-                              className="rounded-xl border shadow-sm object-cover max-h-96 w-full"
-                            />
-                          </CardContent>
-                        </Card>
-                      );
-                    }
-
-                    if (isPDF) {
-                      return (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline mt-2 block"
-                        >
-                          Voir le document PDF
-                        </a>
-                      );
-                    }
                     return (
                       <a
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 underline mt-2 block"
+                        className="inline-flex items-center gap-2 px-4 py-2 mt-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
                       >
-                        Télécharger le fichier
+                        Télécharger
                       </a>
                     );
                   })()
                 ) : (
-                  <span className="font-semibold text-gray-800 text-sm break-all">
-                    Aucun document
-                  </span>
+                  <span className="font-semibold text-gray-800 text-sm break-all">Aucun document</span>
                 )}
               </div>
               <div className="sm:col-span-2">
@@ -1240,35 +1058,40 @@ const ProjectBankAccountsPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+      {/* Bulk Delete Confirmation Modal */}
+      <Dialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogTitle>Confirmer la désactivation multiple</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce compte bancaire ? Cette
-              action est irréversible.
+              Êtes-vous sûr de vouloir désactiver les comptes bancaires sélectionnés ? Cette action est irréversible.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDeleteOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setBulkDeleteConfirmOpen(false)}>
               Annuler
             </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteLoading}
-              onClick={async () => {
-                if (accountToDelete) {
-                  await handleDelete(accountToDelete);
-                  setConfirmDeleteOpen(false);
-                  setAccountToDelete(null);
-                }
-              }}
-            >
-              {deleteLoading ? <span className="loader mr-2"></span> : null}{" "}
-              Supprimer
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteLoading}>
+              {bulkDeleteLoading ? <span className="loader mr-2"></span> : null} Désactiver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Confirmation Modal for single delete */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la désactivation</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir désactiver ce compte bancaire ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+              {deleteLoading ? <span className="loader mr-2"></span> : null} Désactiver
             </Button>
           </DialogFooter>
         </DialogContent>
