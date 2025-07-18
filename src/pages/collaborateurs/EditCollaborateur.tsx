@@ -138,7 +138,7 @@ const EditCollaborateur: React.FC = () => {
   const sourceOptions = useMemo(() => ['Interne', 'Externe'].map(s => ({ label: s, value: s })), []);
   const { data: statusData } = useGetAllStatutCollaborateursQuery();
   const { data: typeContratsData } = useGetTypeContratsQuery();
-  const { data: collaborateursData } = useGetCollaborateursQuery({});
+  const { data: collaborateursData } = useGetCollaborateursQuery({filters: {}});
   const { data:statusContratData } = useGetStatutContratsQuery();  
   const situationFamilialeOptions = useMemo(() => ['Célibataire', 'Marié', 'Divorcé', 'Veuf'].map(s => ({ label: s, value: s })), []);
 

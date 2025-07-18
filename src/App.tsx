@@ -28,12 +28,11 @@ import BudgetCategoryPage from './pages/budget-category/BudgetCategoryPage';
 import BudgetLinePage from "./pages/budget-line/BudgetLinePage";
 
 import Collaborateurs from "./pages/collaborateurs/Collaborateurs";
-import ShowCollaborateur from "./pages/collaborateurs/ShowCollaborateur";
-import EditCollaborateur from "./pages/collaborateurs/EditCollaborateurModal";
 import AddCollaborateurs from "./pages/collaborateurs/AddCollaborateur";
 
 import { UnitsListPage } from "./pages/units/UnitsListPage";
 import StatusPartnersListPage from "./pages/statusPartner/StatusPartnersList";
+import EditCollaborateur from "./pages/collaborateurs/EditCollaborateur";
 
 
 function App() {
@@ -80,7 +79,6 @@ function App() {
         {/* HR */}
         <Route path="rh/collaborateurs" element={<Collaborateurs />} />
         <Route path="rh/collaborateurs/add" element={<AddCollaborateurs />} />
-        <Route path="rh/collaborateurs/:id" element={<ShowCollaborateur />} />
         <Route path="rh/collaborateurs/:id/edit" element={<EditCollaborateur />} />
 
         {/* Settings */}
