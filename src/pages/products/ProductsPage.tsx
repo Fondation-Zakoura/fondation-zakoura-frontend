@@ -217,7 +217,7 @@ export default function ProductsPage() {
   if (isError) return <p>Erreur lors du chargement des produits.</p>;
 
   return (
-    <div className="p-8 min-h-screen">
+    <div className='p-8 min-h-screen'>
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Liste des produits"
