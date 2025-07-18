@@ -11,7 +11,7 @@ import ViewCategoryModal from "./ShowCategory";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import InfoDialog from "@/components/ui/InfoDialog";
 import { Button } from "@/components/ui/button";
-import type { Category } from "@/features/types/categories";
+import type { Category } from "@/types/categories";
 import { useDeleteCategoriesMutation, useDeleteCategoryMutation, useGetCategoriesQuery } from "@/features/api/categoriesApi";
  
 type TransformedRow = {
@@ -32,13 +32,18 @@ export default function CategoriesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [infoDialogContent, setInfoDialogContent] = useState({ title: "", description: "" });
-  const [currentPage] = useState(1);
-  const [rowsPerPage]= useState(10);
-  const { data: categoryData, isError, refetch } = useGetCategoriesQuery({
-    page: currentPage,
-    perPage: rowsPerPage,
-    withTrashed: true,
-  });
+  
+  // At the top of your CategoriesPage component
+const [queryParams, setQueryParams] = useState({
+  page: 1,
+  perPage: 5,
+  search: "",
+  sort_by: null as string | null,
+  sort_direction: null as 'asc' | 'desc' | null,
+  withTrashed: false,
+});
+  // Replace your existing useGetCategoriesQuery call with this
+const { data: categoryData, isError, isLoading, refetch } = useGetCategoriesQuery(queryParams);
  
   const { data: productsData } = useGetProductsQuery({
     page: 1,
@@ -132,6 +137,30 @@ export default function CategoriesPage() {
       ],
     },
   ];
+  // Add these handler functions inside your CategoriesPage component
+
+const handlePaginationChange = (pagination: { pageIndex: number; pageSize: number }) => {
+  setQueryParams(prev => ({
+    ...prev,
+    page: pagination.pageIndex + 1, // API is 1-indexed
+    perPage: pagination.pageSize,
+  }));
+};
+
+const handleSearchChange = (value: string) => {
+  // We reset to page 1 on a new search
+  setQueryParams(prev => ({ ...prev, search: value, page: 1 }));
+};
+
+const handleSortChange = (key: string | null, direction: 'asc' | 'desc' | null) => {
+  setQueryParams(prev => ({ ...prev, sort_by: key, sort_direction: direction }));
+};
+
+const handleFilterChange = (filters: Record<string, string | string[]>) => {
+  // Your logic here is safe because you know your 'status' filter only sends simple strings
+  const withTrashed = filters.status === "0"; // "0" is Inactive
+  setQueryParams(prev => ({ ...prev, withTrashed, page: 1 }));
+};
  
   const handleConfirmDelete = async () => {
     if (!deleteId) return;
@@ -186,20 +215,39 @@ export default function CategoriesPage() {
         </Button>
       </div>
  
-      <DataTable<TransformedRow>
-        columns={columns}
-        data={transformedData}
-        columnFilters={columnFilters}
-        emptyText="Aucune catégorie trouvée."
-        globalFilterKey="name"
-        initialPageSize={rowsPerPage}
-        onBulkDelete={handleBulkDelete}
-        onRowClick={(row) => {
-          setSelectedCategoryId(row.id);
-          setViewModalOpen(true);
-        }}
-        
-      />
+    
+
+<DataTable<TransformedRow>
+  columns={columns}
+  data={transformedData}
+  columnFilters={columnFilters}
+  emptyText="Aucune catégorie trouvée."
+  onBulkDelete={handleBulkDelete}
+  onRowClick={(row) => {
+    setSelectedCategoryId(row.id);
+    setViewModalOpen(true);
+  }}
+
+  // --- SERVER-SIDE PROPS ---
+  serverPagination={true}
+  isLoading={isLoading}
+
+  // Controlled State Props
+  pageIndex={categoryData?.pagination?.current_page ? categoryData.pagination.current_page - 1 : 0}
+  pageCount={categoryData?.pagination?.total_pages || 0}
+  globalFilterValue={queryParams.search}
+   sortConfig={
+    queryParams.sort_by && queryParams.sort_direction
+      ? { key: queryParams.sort_by, direction: queryParams.sort_direction }
+      : null
+  }
+
+  // Callback Handlers
+  onPaginationChange={handlePaginationChange}
+  onGlobalSearchChange={handleSearchChange}
+  onSortChange={handleSortChange}
+  onFilterChange={handleFilterChange}
+/>
  
       {isOpen && (
         <AddCategory isOpen={isOpen} onClose={() => setIsOpen(false)} title="Ajouter une catégorie" />

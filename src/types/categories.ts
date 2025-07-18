@@ -6,13 +6,17 @@ export interface Category {
   created_at: string;
 }
 
+
+
 export interface CategoryQueryParams {
   page: number;
   perPage: number;
   search?: string;
   withTrashed?: boolean;
+  sort_by?: string | null;
+  sort_direction?: 'asc' | 'desc' | null;
+  filter?: Record<string, any>; 
 }
-
 export interface CategoryMutationParams {
   category_id: number;
   name: string;
@@ -25,24 +29,12 @@ export interface CategoryDeleteParams {
 
 export interface CategoryResponse {
   data: Category[];
-  links: {
-    first: string;
-    last: string;
-    prev: string | null;
-    next: string | null;
-  };
-  meta: {
-    current_page: number;
-    from: number;
-    last_page: number;
-    links: {
-      url: string | null;
-      label: string;
-      active: boolean;
-    }[];
-    path: string;
-    per_page: number;
-    to: number;
-    total: number;
-  };
+  pagination: PaginationInfo; // Change 'meta' and 'links' to 'pagination'
+}
+export interface PaginationInfo {
+  total: number;
+  count: number;
+  per_page: number;
+  current_page: number;
+  total_pages: number;
 }
