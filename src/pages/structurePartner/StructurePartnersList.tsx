@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Pencil, AlertCircle, Loader2 } from "lucide-react";
+import React, { useState, useMemo, useCallback } from "react";
+import { Plus, AlertCircle, Loader2, Pen, Trash } from "lucide-react";
 import { DataTable } from "../../components/ui/data-table"; // Assuming this path is correct
 import type { Column } from "../../components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,11 @@ import { AddEditStructurePartnerModal } from "@/components/structurePartner/AddE
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 // Import your StructurePartner type from its dedicated types file
 import type { StructurePartner } from "@/types/structurePartners"; // Adjust this path as necessary
+
+// Import react-toastify components
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; // Import toastify CSS
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 export const StructurePartnersListPage: React.FC = () => {
   const {
@@ -46,9 +51,9 @@ export const StructurePartnersListPage: React.FC = () => {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // State for the error alert (e.g., when deletion fails due to conflict)
-  const [isErrorAlertOpen, setErrorAlertOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // Removed error alert state as toastify will handle it
+  // const [isErrorAlertOpen, setErrorAlertOpen] = useState(false);
+  // const [errorMessage, setErrorMessage] = useState("");
 
   // --- CRITICAL FIX: Extract the array from the API response ---
   // Ensure that 'tableData' is always an array, even if the API response is undefined or null initially.
@@ -56,70 +61,72 @@ export const StructurePartnersListPage: React.FC = () => {
   // --- END CRITICAL FIX ---
 
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = useCallback(() => {
     setEditingStructure(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleOpenEditModal = (structure: StructurePartner) => {
+  const handleOpenEditModal = useCallback((structure: StructurePartner) => {
     setEditingStructure(structure);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleSaveStructure = async (name: string, id?: number) => {
+  const handleSaveStructure = useCallback(async (name: string, id?: number) => {
     setIsSaving(true);
-    try {
-      if (id) {
-        await updateStructurePartner({ id, name }).unwrap();
-      } else {
-        await addStructurePartner({ name }).unwrap();
-      }
-      setModalOpen(false);
-      refetch(); // Refetch data to update the table
-    } catch (error) {
-        // Handle save errors if needed
-        console.error("Failed to save structure:", error);
-        setErrorMessage("Une erreur est survenue lors de l'enregistrement de la structure.");
-        setErrorAlertOpen(true);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    const mutationPromise = id
+      ? updateStructurePartner({ id, name })
+      : addStructurePartner({ name });
 
-  const handleDeleteRequest = (id: number) => {
+    mutationPromise.unwrap()
+      .then(() => {
+        setModalOpen(false);
+        refetch(); // Refetch data to update the table
+        toast.success(id ? "Structure de partenaire mise à jour avec succès !" : "Structure de partenaire ajoutée avec succès !"); // Toast success
+      })
+      .catch((error: FetchBaseQueryError) => {
+        console.error("Failed to save structure:", error);
+        toast.error("Une erreur est survenue lors de l'enregistrement de la structure."); // Toast error
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
+  }, [addStructurePartner, updateStructurePartner, refetch]);
+
+  const handleDeleteRequest = useCallback((id: number) => {
     setDeleteId(id);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      await deleteStructurePartner(deleteId).unwrap();
-      setDeleteDialogOpen(false);
-      setDeleteId(null);
-      refetch(); // Refetch data to update the table after deletion
-    } catch (error) {
-      interface ApiError {
-        status: number;
-        data?: { message?: string; error?: string }; // More robust error interface
-      }
-      const err = error as ApiError;
-      if (err.status === 409) {
-        setErrorMessage(
-          err.data?.message || err.data?.error || "Cette structure est utilisée et ne peut pas être supprimée car elle est associée à d'autres enregistrements."
-        );
-        setErrorAlertOpen(true);
-        setDeleteDialogOpen(false); // Close the delete confirmation dialog
-      } else {
-        setErrorMessage("Une erreur inattendue est survenue lors de la suppression.");
-        setErrorAlertOpen(true);
-        console.error("Failed to delete structure:", error);
-      }
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    
+    deleteStructurePartner(deleteId).unwrap()
+      .then(() => {
+        setDeleteDialogOpen(false);
+        setDeleteId(null);
+        refetch(); // Refetch data to update the table after deletion
+        toast.success("Structure de partenaire supprimée avec succès !"); // Toast success
+      })
+      .catch((err: FetchBaseQueryError) => {
+        const error = err; // 'err' is already typed as FetchBaseQueryError
+        if (error.status === 409) {
+          const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
+            ? (error.data as { message: string }).message
+            : (error.data && typeof error.data === 'object' && 'error' in error.data)
+            ? (error.data as { error: string }).error
+            : "Cette structure est utilisée et ne peut pas être supprimée car elle est associée à d'autres enregistrements.";
+          toast.error(msg); // Use toast.error instead of setting state for Dialog
+          setDeleteDialogOpen(false); // Close the delete confirmation dialog
+        } else {
+          toast.error("Une erreur inattendue est survenue lors de la suppression."); // Toast error
+          console.error("Failed to delete structure:", error);
+        }
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
+  }, [deleteId, deleteStructurePartner, refetch]);
 
   // Define columns for the DataTable
   const columns: Column<StructurePartner>[] = useMemo(
@@ -131,28 +138,26 @@ export const StructurePartnersListPage: React.FC = () => {
         header: "Actions",
         render: (row) => (
           <div className="flex items-center justify-end space-x-2"> {/* Added spacing */}
-            <Button
-              variant="outline" // Use outline variant for action buttons
-              size="sm"
+            <button
+              className="p-2 rounded hover:bg-blue-100 text-blue-600"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent row click from triggering
                 handleOpenEditModal(row);
               }}
               title="Éditer"
             >
-              <Pencil size={16} />
-            </Button>
-            <Button
-              variant="destructive" // Use destructive variant for delete
-              size="sm"
+              <Pen size={16} />
+            </button>
+            <button
+            className="p-2 rounded hover:bg-red-100 text-red-600"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent row click from triggering
                 handleDeleteRequest(row.id);
               }}
               title="Supprimer"
             >
-              <Trash2 size={16} />
-            </Button>
+              <Trash size={16} />
+            </button>
           </div>
         ),
         align: "right",
@@ -164,17 +169,30 @@ export const StructurePartnersListPage: React.FC = () => {
 
   return (
     <div className="bg-gray-50 p-4 min-h-screen">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Structures de partenaires"
           breadcrumbs={[
-            { label: "Tableaux de bord" },
-            { label: "Structures de partenaires", active: true },
+            { label: "Paramètres"},
+            { label: "Projets" },
+            { label: "Types" },
+            { label: "Structures de partenaires" , active: true },
           ]}
         />
         <Button
           onClick={handleOpenAddModal}
-          className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+          className="bg-primary hover:bg-[#576CBC] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> Ajouter une Structure de Partenaire
         </Button>
@@ -194,13 +212,15 @@ export const StructurePartnersListPage: React.FC = () => {
       ) : (
         <DataTable
           columns={columns}
-          data={tableData} 
+          data={tableData}
           emptyText="Aucune structure de partenaire trouvée."
           initialPageSize={10}
           headerStyle="light" // Changed to light, assuming primary was a placeholder color
           hoverEffect
           striped
           enableBulkDelete={false} // Keeping this false as per your original code
+          globalSearchLabel="Rechercher une structure de partenaire..."
+
         />
       )}
 
@@ -231,23 +251,6 @@ export const StructurePartnersListPage: React.FC = () => {
               {isDeleting && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
               Supprimer
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Error Alert Dialog for deletion conflicts or other errors */}
-      <Dialog open={isErrorAlertOpen} onOpenChange={setErrorAlertOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle size={20} /> Erreur
-            </DialogTitle>
-            <DialogDescription className="pt-4">
-              {errorMessage}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setErrorAlertOpen(false)}>OK</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

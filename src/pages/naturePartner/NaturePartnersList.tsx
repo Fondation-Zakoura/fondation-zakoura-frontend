@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Pencil, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, AlertCircle, Loader2, Pen, Trash } from "lucide-react";
 import { DataTable } from "../../components/ui/data-table"; // Adjust path if needed
 import type { Column } from "../../components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,10 @@ import { PageHeaderLayout } from "@/layouts/MainLayout"; // Adjust path if neede
 
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { NaturePartner } from '@/types/naturePartners'; // Import the NaturePartner type
+
+// Import react-toastify components
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; // Import toastify CSS
 
 export const NaturePartnersListPage: React.FC = () => {
   const {
@@ -51,9 +55,9 @@ export const NaturePartnersListPage: React.FC = () => {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Error alert state
-  const [isErrorAlertOpen, setErrorAlertOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // Removed error alert state as toastify will handle it
+  // const [isErrorAlertOpen, setErrorAlertOpen] = useState(false);
+  // const [errorMessage, setErrorMessage] = useState("");
 
   const handleOpenAddModal = () => {
     setEditingNature(null);
@@ -67,21 +71,23 @@ export const NaturePartnersListPage: React.FC = () => {
 
   const handleSaveNature = async (name: string, id?: number) => {
     setIsSaving(true);
-    try {
-      if (id) {
-        await updateNaturePartner({ id, name }).unwrap();
-      } else {
-        await addNaturePartner({ name }).unwrap();
-      }
-      setModalOpen(false);
-      refetch(); // Refetch data to update the table
-    } catch (error) {
+    const mutationPromise = id
+      ? updateNaturePartner({ id, name })
+      : addNaturePartner({ name });
+
+    mutationPromise.unwrap()
+      .then(() => {
+        setModalOpen(false);
+        refetch(); // Refetch data to update the table
+        toast.success(id ? "Nature de partenaire mise à jour avec succès !" : "Nature de partenaire ajoutée avec succès !");
+      })
+      .catch((error: FetchBaseQueryError) => {
         console.error("Failed to save nature:", error);
-        setErrorMessage("Une erreur est survenue lors de l'enregistrement de la nature de partenaire.");
-        setErrorAlertOpen(true);
-    } finally {
-      setIsSaving(false);
-    }
+        toast.error("Une erreur est survenue lors de l'enregistrement de la nature de partenaire.");
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
   };
 
   const handleDeleteRequest = (id: number) => {
@@ -92,37 +98,39 @@ export const NaturePartnersListPage: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (deleteId == null) return;
     setIsDeleting(true);
-    try {
-      await deleteNaturePartner(deleteId).unwrap();
-      setDeleteDialogOpen(false);
-      setDeleteId(null);
-      refetch(); // Refetch data to update the table after deletion
-    } catch (err: unknown) {
-      const error = err as FetchBaseQueryError;
-
-      if (error.status === 409) {
-        let msg = "Cette nature est utilisée par un ou plusieurs partenaires et ne peut pas être supprimée.";
-
-        if (
-          typeof error.data === "object" &&
-          error.data !== null &&
-          "error" in error.data &&
-          typeof (error.data as { error: unknown }).error === "string"
-        ) {
-          msg = (error.data as { error: string }).error;
-        }
-
-        setErrorMessage(msg);
-        setErrorAlertOpen(true);
+    
+    deleteNaturePartner(deleteId).unwrap()
+      .then(() => {
         setDeleteDialogOpen(false);
-      } else {
-        setErrorMessage("Une erreur inattendue est survenue lors de la suppression de la nature.");
-        setErrorAlertOpen(true);
-        console.error("Failed to delete nature:", error);
-      }
-    } finally {
-      setIsDeleting(false);
-    }
+        setDeleteId(null);
+        refetch(); // Refetch data to update the table after deletion
+        toast.success("Nature de partenaire supprimée avec succès !");
+      })
+      .catch((err: FetchBaseQueryError) => {
+        const error = err; // 'err' is already typed as FetchBaseQueryError
+
+        if (error.status === 409) {
+          let msg = "Cette nature est utilisée par un ou plusieurs partenaires et ne peut pas être supprimée.";
+
+          if (
+            typeof error.data === "object" &&
+            error.data !== null &&
+            "error" in error.data &&
+            typeof (error.data as { error: unknown }).error === "string"
+          ) {
+            msg = (error.data as { error: string }).error;
+          }
+
+          toast.error(msg); // Use toast.error instead of setting state for Dialog
+          setDeleteDialogOpen(false); // Close dialog even on conflict error
+        } else {
+          toast.error("Une erreur inattendue est survenue lors de la suppression de la nature.");
+          console.error("Failed to delete nature:", error);
+        }
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
   };
 
   // Define columns for the DataTable using NaturePartner type
@@ -134,30 +142,28 @@ export const NaturePartnersListPage: React.FC = () => {
         key: "actions",
         header: "Actions",
         render: (row) => (
-          <div className="flex items-center justify-end space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenEditModal(row);
-              }}
-              title="Éditer"
-            >
-              <Pencil size={16} />
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteRequest(row.id);
-              }}
-              title="Supprimer"
-            >
-              <Trash2 size={16} />
-            </Button>
-          </div>
+          <div className="flex items-center justify-end space-x-2"> {/* Added spacing */}
+              <button
+                className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click from triggering
+                  handleOpenEditModal(row);
+                }}
+                title="Éditer"
+              >
+                <Pen size={16} />
+              </button>
+              <button
+              className="p-2 rounded hover:bg-red-100 text-red-600"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click from triggering
+                  handleDeleteRequest(row.id);
+                }}
+                title="Supprimer"
+              >
+                <Trash size={16} />
+              </button>
+            </div>
         ),
         align: "right",
         width: '120px'
@@ -167,18 +173,31 @@ export const NaturePartnersListPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-gray-50 p-4 min-h-screen">
+    <div className="p-4 min-h-screen">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Natures de partenaires"
           breadcrumbs={[
-            { label: "Tableaux de bord" },
-            { label: "Natures de partenaires", active: true },
+            { label: "Paramètres"},
+            { label: "Projets" },
+            { label: "Types" },
+            { label: "Natures de partenaires" , active: true },
           ]}
         />
         <Button
           onClick={handleOpenAddModal}
-          className="bg-[#576CBC] hover:bg-[#19376D] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
+          className="bg-primary hover:bg-[#576CBC] text-white font-bold px-6 py-2 rounded-lg shadow transition-all flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> Ajouter une Nature de Partenaire
         </Button>
@@ -199,13 +218,14 @@ export const NaturePartnersListPage: React.FC = () => {
       ) : (
         <DataTable
           columns={columns}
-          data={tableData} 
+          data={tableData}
           emptyText="Aucune nature de partenaire trouvée."
           initialPageSize={10}
           headerStyle="light"
           hoverEffect
           striped
           enableBulkDelete={false}
+          globalSearchLabel="Rechercher un nature de partenaire..."
         />
       )}
 
@@ -236,23 +256,6 @@ export const NaturePartnersListPage: React.FC = () => {
               {isDeleting && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
               Supprimer
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Error Alert Dialog */}
-      <Dialog open={isErrorAlertOpen} onOpenChange={setErrorAlertOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle size={20} /> Erreur
-            </DialogTitle>
-            <DialogDescription className="pt-4">
-              {errorMessage}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setErrorAlertOpen(false)}>OK</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -28,6 +28,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { type Dispatch, type SetStateAction } from "react";
+import { Label } from "./label";
 
 
 export interface Column<T> {
@@ -73,13 +74,12 @@ interface DataTableProps<T extends { id: string | number }> {
   onGlobalSearchChange?: (value: string) => void; // Callback for global search input changes
   onSortChange?: (key: string, direction: 'asc' | 'desc') => void; // Callback for sort changes
   sortConfig?: { key: string; direction: "asc" | "desc" } | null; // Controlled sort state
-  // globalSearchTerm is not directly used in DataTable's logic, it's a controlled prop for the parent
-  // globalSearchTerm?: string; // Removed to avoid TS6133 if not directly used in DataTable's logic
   selectedRows?: T[];
   onSelectedRowsChange?: Dispatch<SetStateAction<T[]>>;
   isLoading?: boolean; // Indicates if data is currently loading (e.g., from API)
   searchColumns?: (keyof T)[]; // Columns to search if no globalFilterKey is provided
   globalFilterValue?: string; // Prop to receive the immediate search input value
+  globalSearchLabel?: string; // New prop for dynamic search input label
 }
 
 // --- REUSABLE DATA TABLE COMPONENT ---
@@ -106,8 +106,8 @@ export function DataTable<T extends { id: string | number }>({
   onGlobalSearchChange, // Destructure new props
   onSortChange, // Destructure new props
   sortConfig: controlledSortConfig, // Controlled sort state
-  // globalSearchTerm: controlledGlobalSearchTerm, // Removed from destructuring as it's not directly used
   globalFilterValue, // Destructure the immediate search input value
+  globalSearchLabel, // Destructure the new label prop
   selectedRows: controlledSelectedRows,
   onSelectedRowsChange: setControlledSelectedRows,
   searchColumns,
@@ -361,24 +361,27 @@ export function DataTable<T extends { id: string | number }>({
     <div className={`space-y-4 ${className}`}>
       {/* CONTROLS: SEARCH AND FILTERS */}
       <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-4"> {/* Added md:flex-wrap */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-end"> {/* Changed flexbox to grid, adjusted columns, and items-end */}
           {/* Search Input */}
-          <div className="w-full md:w-1/3 lg:w-1/4 mt-0 md:mt-5.5"> {/* Adjusted margin-top */}
+          <div className="w-full"> {/* Removed fixed width, now controlled by grid column */}
+            <Label htmlFor="global-search" className="block text-sm font-medium text-gray-700 mb-1 text-left">
+              {globalSearchLabel || "Rechercher..."}
+            </Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
                 id="global-search"
-                placeholder="Rechercher..."
+                placeholder={globalSearchLabel || "Rechercher..."}
                 value={globalFilterValue ?? ''}
                 onChange={handleGlobalFilterChange}
-                className="pl-10"
+                className="pl-10 w-full" // Ensure input takes full width of its grid column
               />
             </div>
           </div>
 
           {/* Mapped Dropdown Filters */}
           {columnFilters.map((filter) => (
-            <div key={String(filter.id)} className="w-full md:w-auto md:min-w-[180px] flex-grow"> {/* Added flex-grow */}
+            <div key={String(filter.id)} className="w-full"> {/* Removed fixed width and flex-grow */}
               <label
                 htmlFor={`filter-${String(filter.id)}`}
                 className="block text-sm font-medium text-gray-700 mb-1 text-left"
@@ -386,14 +389,13 @@ export function DataTable<T extends { id: string | number }>({
                 {filter.label}
               </label>
               <Select
-                value={filterValues[String(filter.id)] || ""} // Default to empty string
+                value={filterValues[String(filter.id)] || ""}
                 onValueChange={(value) => handleFilterValueChange(String(filter.id), value)}
               >
-                <SelectTrigger id={`filter-${String(filter.id)}`} className="w-full">
-                  <SelectValue placeholder={filter.id === 'activation_status' ? "Sélectionner un statut" : `Tout ${filter.label.split(" ")[0].toLowerCase()}`} /> {/* Updated placeholder */}
+                <SelectTrigger id={`filter-${String(filter.id)}`} className="w-full"> {/* Ensure trigger takes full width */}
+                  <SelectValue placeholder={filter.id === 'activation_status' ? "Sélectionner un statut" : `Tout ${filter.label.split(" ")[0].toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Removed the "Tout statut" SelectItem */}
                   {filter.options.map((opt) => (
                     <SelectItem key={String(opt.value)} value={String(opt.value)}>
                       {opt.label}
@@ -405,7 +407,7 @@ export function DataTable<T extends { id: string | number }>({
           ))}
 
           {/* Reset Button */}
-          <div className="w-full md:w-auto md:ml-auto pt-0 md:pt-5">
+          <div className="w-full"> {/* Removed fixed width and ml-auto */}
             <Button
               variant="outline"
               onClick={handleResetFilters}

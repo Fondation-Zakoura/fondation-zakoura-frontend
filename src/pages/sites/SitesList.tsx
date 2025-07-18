@@ -8,12 +8,9 @@ import {
 } from "@/features/api/sitesApi";
 import {
   useGetRegionsQuery,
-  // Removed unused imports if provinces and communes are not directly used for options
-  // useGetProvincesQuery,
-  // useGetCommunesQuery,
 } from "@/features/api/geographicApi";
 import { DataTable } from "@/components/ui/data-table";
-import type { Column, ColumnFilter } from "@/components/ui/data-table"; // Import types from DataTable
+import type { Column, ColumnFilter } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { AddEditSiteModal } from "@/components/sites/AddEditSiteModal";
 import { SiteDetailsModal } from "@/components/sites/SiteDetailsModal";
@@ -28,23 +25,33 @@ const SitesListPage: React.FC = () => {
   const [selectedSiteForDetails, setSelectedSiteForDetails] = useState<Site | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  // Use a more specific type for tableFilters
   const [tableFilters, setTableFilters] = useState<Record<string, string | string[]>>({});
   const [selectedRows, setSelectedRows] = useState<Site[]>([]);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[]>([]);
 
+  // State for server-side pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // Default page size
+  // State for server-side sorting
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  // State for global search
+  const [globalSearchTerm, setGlobalSearchTerm] = useState<string>('');
 
-  // Pass tableFilters to the query
-  const { data: sitesApiResponse, error: fetchError, isLoading, refetch } = useGetSitesQuery({ filters: tableFilters, page: 1 });
+
+  // Pass all relevant states to the query
+  const { data: sitesApiResponse, error: fetchError, isLoading, refetch } = useGetSitesQuery({
+    filters: tableFilters,
+    page: currentPage,
+    pageSize: pageSize,
+    sortConfig: sortConfig,
+    globalSearchTerm: globalSearchTerm,
+  });
+
   const [addSite] = useAddSiteMutation();
   const [updateSite] = useUpdateSiteMutation();
   const [deleteSites] = useDeleteSitesMutation();
 
   const { data: regions = [] } = useGetRegionsQuery();
-  // Removed unused province and commune queries
-  // const { data: provinces = [] } = useGetProvincesQuery(null, { skip: false });
-  // const { data: communes = [] } = useGetCommunesQuery(null, { skip: false });
-
 
   const typeOptions = useMemo(() => [
     { value: "Rural", label: "Rural" },
@@ -59,28 +66,17 @@ const SitesListPage: React.FC = () => {
     { value: "Archivé", label: "Archivé" },
   ], []);
 
-  // Ensure regionOptions are properly memoized
-  const regionOptions = useMemo(() => regions.map(r => ({ value: r.name, label: r.name })), [regions]);
-  // Removed unused provinceOptions and communeOptions
-  // const provinceOptions = useMemo(() => provinces.map(p => ({ value: p.name, label: p.name })), [provinces]);
-  // const communeOptions = useMemo(() => communes.map(c => ({ value: c.name, label: c.name })), [communes]);
+  // Ensure regionOptions are properly memoized and include "Tout région" option
+  const regionOptions = useMemo(() => {
+    const options = regions.map(r => ({ value: r.name, label: r.name }));
+    // Change value from '' to 'all' for the "Tout région" option
+    return [{ value: 'all', label: 'Tout région' }, ...options];
+  }, [regions]);
 
-  // Removed unused getCountryName function as it's not used in the component's render or logic
-  // const getCountryName = useCallback((countryCode: string | undefined) => {
-  //   if (!countryCode) return "N/A";
-  //   const country = countries.find(c => c.code === countryCode);
-  //   return country ? country.name : countryCode;
-  // }, []);
-
-  // The 'id' for region filter should match what your DataTable's getDeepValue expects
-  // and what you plan to send to the backend.
-  // If your backend expects `region_name`, change the `id` here and in `sitesApi.ts`.
-  // If `region.name` is for client-side filtering only, and backend uses `region_id`, then
-  // you need a more complex mapping in `onFilterChange` or `sitesApi`.
   const columnFilters = useMemo((): ColumnFilter[] => [
     { id: "type", label: "Type", options: typeOptions },
     { id: "status", label: "Statut", options: statusOptions },
-    { id: "commune.cercle.province.region.name", label: "Région", options: regionOptions }, // Use the full path for filtering
+    { id: "commune.cercle.province.region.name", label: "Région", options: regionOptions },
   ], [typeOptions, statusOptions, regionOptions]);
 
   const handleOpenAddModal = useCallback(() => {
@@ -139,13 +135,26 @@ const SitesListPage: React.FC = () => {
     }
   }, [deleteSites, pendingDeleteIds, refetch]);
 
+  const handlePaginationChange = useCallback(({ pageIndex, pageSize: newPageSize }: { pageIndex: number; pageSize: number }) => {
+    setCurrentPage(pageIndex + 1); // DataTable uses 0-based, API uses 1-based
+    setPageSize(newPageSize);
+  }, []);
+
+  const handleGlobalSearchChange = useCallback((value: string) => {
+    setGlobalSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on new search
+  }, []);
+
+  const handleSortChange = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
   const columns: Column<Site>[] = useMemo(() => [
     { key: "site_id", header: "ID Site", sortable: true },
     { key: "name", header: "Nom du site", sortable: true },
     { key: "internal_code", header: "Code interne", sortable: true },
     { key: "partner_reference_code", header: "Code partenaire", sortable: true },
     {
-      // Use the full path for display as well
       key: "commune.cercle.province.region.name",
       header: "Région",
       sortable: true,
@@ -171,8 +180,26 @@ const SitesListPage: React.FC = () => {
     },
   ], [handleViewDetails, handleOpenEditModal, handleDeleteRequest]);
 
-    const allSites = useMemo(() => sitesApiResponse?.data || [], [sitesApiResponse]);
+  const allSites = useMemo(() => sitesApiResponse?.data || [], [sitesApiResponse]);
+  const totalPages = sitesApiResponse?.last_page || 0;
+  const totalItems = sitesApiResponse?.total || 0;
 
+  // Custom onFilterChange handler to convert 'all' to '' for API
+  const handleFilterChange = useCallback((newFilters: Record<string, string | string[]>) => {
+    const processedFilters: Record<string, string | string[]> = {};
+    for (const key in newFilters) {
+      if (Object.prototype.hasOwnProperty.call(newFilters, key)) {
+        let value = newFilters[key];
+        // If the value is 'all' for the region filter, set it to an empty string
+        if (key === 'commune.cercle.province.region.name' && value === 'all') {
+          value = '';
+        }
+        processedFilters[key] = value;
+      }
+    }
+    setTableFilters(processedFilters);
+    setCurrentPage(1); // Reset to first page on filter change
+  }, []);
 
   return (
     <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen font-sans">
@@ -201,16 +228,26 @@ const SitesListPage: React.FC = () => {
           columns={columns}
           data={allSites}
           columnFilters={columnFilters}
-          onFilterChange={setTableFilters} // This will pass filters to the API query
+          onFilterChange={handleFilterChange} // Use the custom handler here
           selectedRows={selectedRows}
           onSelectedRowsChange={setSelectedRows}
           emptyText={isLoading ? "Chargement des données..." : "Aucun site trouvé"}
-          initialPageSize={10}
+          initialPageSize={pageSize} // Use pageSize state
           headerStyle="primary"
           hoverEffect
           striped
           globalFilterKey="name" // Changed to a direct key from Site
           onBulkDelete={handleBulkDelete}
+          serverPagination={true} // Enable server-side pagination
+          pageCount={totalPages} // Pass total pages from API
+          pageIndex={currentPage - 1} // Pass current page index (0-based)
+          totalItems={totalItems} // Pass total items for display
+          onPaginationChange={handlePaginationChange} // Handle pagination changes
+          onGlobalSearchChange={handleGlobalSearchChange} // Handle global search changes
+          globalFilterValue={globalSearchTerm} // Pass global search term to DataTable
+          onSortChange={handleSortChange} // Handle sort changes
+          sortConfig={sortConfig} // Pass sort config to DataTable
+          isLoading={isLoading} // Pass loading state to DataTable
         />
       </div>
 

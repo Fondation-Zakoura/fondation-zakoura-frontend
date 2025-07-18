@@ -4,31 +4,44 @@ import type { Site, ApiResponse } from "@/types/site";
 
 export const sitesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getSites: builder.query<ApiResponse<Site>, { filters: Record<string, string | string[]>; page?: number }>({
-      query: ({ filters, page = 1 }) => {
-        const params: Record<string, string | number | string[]> = { page: String(page) };
+    getSites: builder.query<ApiResponse<Site>, { filters: Record<string, string | string[]>; page?: number; pageSize?: number; sortConfig?: { key: string; direction: 'asc' | 'desc' } | null; globalSearchTerm?: string }>({
+      query: ({ filters, page = 1, pageSize = 10, sortConfig, globalSearchTerm }) => {
+        const params: Record<string, string | number | string[]> = {
+          page: String(page),
+          per_page: String(pageSize), // Add per_page for backend pagination
+        };
 
+        // Add global search term
+        if (globalSearchTerm) {
+          params['search'] = globalSearchTerm; // Assuming backend uses 'search' for global filter
+        }
+
+        // Map frontend filter keys to backend parameter names
         for (const key in filters) {
           if (Object.prototype.hasOwnProperty.call(filters, key)) {
             const value = filters[key];
             if (value !== null && value !== undefined && value !== '') {
-              // --- FIX START ---
-              // Map frontend filter keys to backend parameter names
               if (key === 'commune.cercle.province.region.name') {
-                params['region_name'] = value; // Your backend likely expects 'region_name' or similar
+                params['region_name'] = value;
               } else if (key === 'commune.cercle.province.name') {
-                params['province_name'] = value; // Assuming filter by province name
+                params['province_name'] = value;
               } else if (key === 'commune.cercle.name') {
-                params['cercle_name'] = value; // Assuming filter by cercle name
+                params['cercle_name'] = value;
               } else if (key === 'commune.name') {
-                params['commune_name'] = value; // Assuming filter by commune name
+                params['commune_name'] = value;
               } else {
-                params[key] = value; // Use the key as-is for other filters like 'type', 'status', 'educator'
+                params[key] = value; // Use the key as-is for other filters like 'type', 'status'
               }
-              // --- FIX END ---
             }
           }
         }
+
+        // Add sorting parameters
+        if (sortConfig && sortConfig.key) {
+          params['sort_by'] = sortConfig.key;
+          params['sort_direction'] = sortConfig.direction;
+        }
+
         return {
           url: '/sites',
           params: params,
@@ -57,7 +70,6 @@ export const sitesApi = baseApi.injectEndpoints({
           return data;
         })(),
       }),
-      // FIX: Prefix 'result' and 'error' with an underscore
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Sites' as const, id }],
     }),
     deleteSites: builder.mutation<void, number[]>({
@@ -68,6 +80,14 @@ export const sitesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Sites'],
     }),
+    allSiteUsers: builder.query<ApiResponse<Site>, void>({
+      query: () => '/sites/users',
+      transformResponse: (response: ApiResponse<Site>) => response,
+      providesTags: (result) =>
+        result
+          ? [...result.data.map(({ id }) => ({ type: 'Sites' as const, id })), 'Sites']
+          : ['Sites'],
+    })
   }),
 });
 
@@ -76,4 +96,5 @@ export const {
   useAddSiteMutation,
   useUpdateSiteMutation,
   useDeleteSitesMutation,
+  useAllSiteUsersQuery
 } = sitesApi;
