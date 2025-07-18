@@ -71,22 +71,23 @@ export const NaturePartnersListPage: React.FC = () => {
 
   const handleSaveNature = async (name: string, id?: number) => {
     setIsSaving(true);
-    try {
-      if (id) {
-        await updateNaturePartner({ id, name }).unwrap();
-        toast.success("Nature de partenaire mise à jour avec succès !");
-      } else {
-        await addNaturePartner({ name }).unwrap();
-        toast.success("Nature de partenaire ajoutée avec succès !");
-      }
-      setModalOpen(false);
-      refetch(); // Refetch data to update the table
-    } catch (error) {
-      console.error("Failed to save nature:", error);
-      toast.error("Une erreur est survenue lors de l'enregistrement de la nature de partenaire.");
-    } finally {
-      setIsSaving(false);
-    }
+    const mutationPromise = id
+      ? updateNaturePartner({ id, name })
+      : addNaturePartner({ name });
+
+    mutationPromise.unwrap()
+      .then(() => {
+        setModalOpen(false);
+        refetch(); // Refetch data to update the table
+        toast.success(id ? "Nature de partenaire mise à jour avec succès !" : "Nature de partenaire ajoutée avec succès !");
+      })
+      .catch((error: FetchBaseQueryError) => {
+        console.error("Failed to save nature:", error);
+        toast.error("Une erreur est survenue lors de l'enregistrement de la nature de partenaire.");
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
   };
 
   const handleDeleteRequest = (id: number) => {
@@ -97,36 +98,39 @@ export const NaturePartnersListPage: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (deleteId == null) return;
     setIsDeleting(true);
-    try {
-      await deleteNaturePartner(deleteId).unwrap();
-      setDeleteDialogOpen(false);
-      setDeleteId(null);
-      refetch(); // Refetch data to update the table after deletion
-      toast.success("Nature de partenaire supprimée avec succès !");
-    } catch (err: unknown) {
-      const error = err as FetchBaseQueryError;
+    
+    deleteNaturePartner(deleteId).unwrap()
+      .then(() => {
+        setDeleteDialogOpen(false);
+        setDeleteId(null);
+        refetch(); // Refetch data to update the table after deletion
+        toast.success("Nature de partenaire supprimée avec succès !");
+      })
+      .catch((err: FetchBaseQueryError) => {
+        const error = err; // 'err' is already typed as FetchBaseQueryError
 
-      if (error.status === 409) {
-        let msg = "Cette nature est utilisée par un ou plusieurs partenaires et ne peut pas être supprimée.";
+        if (error.status === 409) {
+          let msg = "Cette nature est utilisée par un ou plusieurs partenaires et ne peut pas être supprimée.";
 
-        if (
-          typeof error.data === "object" &&
-          error.data !== null &&
-          "error" in error.data &&
-          typeof (error.data as { error: unknown }).error === "string"
-        ) {
-          msg = (error.data as { error: string }).error;
+          if (
+            typeof error.data === "object" &&
+            error.data !== null &&
+            "error" in error.data &&
+            typeof (error.data as { error: unknown }).error === "string"
+          ) {
+            msg = (error.data as { error: string }).error;
+          }
+
+          toast.error(msg); // Use toast.error instead of setting state for Dialog
+          setDeleteDialogOpen(false); // Close dialog even on conflict error
+        } else {
+          toast.error("Une erreur inattendue est survenue lors de la suppression de la nature.");
+          console.error("Failed to delete nature:", error);
         }
-
-        toast.error(msg); // Use toast.error instead of setting state for Dialog
-        setDeleteDialogOpen(false); // Close dialog even on conflict error
-      } else {
-        toast.error("Une erreur inattendue est survenue lors de la suppression de la nature.");
-        console.error("Failed to delete nature:", error);
-      }
-    } finally {
-      setIsDeleting(false);
-    }
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
   };
 
   // Define columns for the DataTable using NaturePartner type
@@ -170,6 +174,17 @@ export const NaturePartnersListPage: React.FC = () => {
 
   return (
     <div className="p-4 min-h-screen">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Natures de partenaires"
@@ -244,19 +259,6 @@ export const NaturePartnersListPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ToastContainer for notifications */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
     </div>
   );
 };

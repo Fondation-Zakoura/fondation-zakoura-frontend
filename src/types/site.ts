@@ -86,4 +86,6 @@ export interface ApiResponse<T> {
   data: T[];
   links?: ApiLinks; // Define a proper interface for links
   meta?: ApiMeta;  // Define a proper interface for meta if needed
+  last_page?: number;
+  total?: number;
 }

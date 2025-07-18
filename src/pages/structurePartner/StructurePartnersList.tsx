@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Plus, AlertCircle, Loader2, Pen, Trash } from "lucide-react";
 import { DataTable } from "../../components/ui/data-table"; // Assuming this path is correct
 import type { Column } from "../../components/ui/data-table";
@@ -26,6 +26,7 @@ import type { StructurePartner } from "@/types/structurePartners"; // Adjust thi
 // Import react-toastify components
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css'; // Import toastify CSS
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 export const StructurePartnersListPage: React.FC = () => {
   const {
@@ -60,68 +61,72 @@ export const StructurePartnersListPage: React.FC = () => {
   // --- END CRITICAL FIX ---
 
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = useCallback(() => {
     setEditingStructure(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleOpenEditModal = (structure: StructurePartner) => {
+  const handleOpenEditModal = useCallback((structure: StructurePartner) => {
     setEditingStructure(structure);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleSaveStructure = async (name: string, id?: number) => {
+  const handleSaveStructure = useCallback(async (name: string, id?: number) => {
     setIsSaving(true);
-    try {
-      if (id) {
-        await updateStructurePartner({ id, name }).unwrap();
-        toast.success("Structure de partenaire mise à jour avec succès !"); // Toast success
-      } else {
-        await addStructurePartner({ name }).unwrap();
-        toast.success("Structure de partenaire ajoutée avec succès !"); // Toast success
-      }
-      setModalOpen(false);
-      refetch(); // Refetch data to update the table
-    } catch (error) {
+    const mutationPromise = id
+      ? updateStructurePartner({ id, name })
+      : addStructurePartner({ name });
+
+    mutationPromise.unwrap()
+      .then(() => {
+        setModalOpen(false);
+        refetch(); // Refetch data to update the table
+        toast.success(id ? "Structure de partenaire mise à jour avec succès !" : "Structure de partenaire ajoutée avec succès !"); // Toast success
+      })
+      .catch((error: FetchBaseQueryError) => {
         console.error("Failed to save structure:", error);
         toast.error("Une erreur est survenue lors de l'enregistrement de la structure."); // Toast error
-    } finally {
-      setIsSaving(false);
-    }
-  };
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
+  }, [addStructurePartner, updateStructurePartner, refetch]);
 
-  const handleDeleteRequest = (id: number) => {
+  const handleDeleteRequest = useCallback((id: number) => {
     setDeleteId(id);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!deleteId) return;
     setIsDeleting(true);
-    try {
-      await deleteStructurePartner(deleteId).unwrap();
-      setDeleteDialogOpen(false);
-      setDeleteId(null);
-      refetch(); // Refetch data to update the table after deletion
-      toast.success("Structure de partenaire supprimée avec succès !"); // Toast success
-    } catch (error) {
-      interface ApiError {
-        status: number;
-        data?: { message?: string; error?: string }; // More robust error interface
-      }
-      const err = error as ApiError;
-      if (err.status === 409) {
-        const msg = err.data?.message || err.data?.error || "Cette structure est utilisée et ne peut pas être supprimée car elle est associée à d'autres enregistrements.";
-        toast.error(msg); // Use toast.error instead of setting state for Dialog
-        setDeleteDialogOpen(false); // Close the delete confirmation dialog
-      } else {
-        toast.error("Une erreur inattendue est survenue lors de la suppression."); // Toast error
-        console.error("Failed to delete structure:", error);
-      }
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    
+    deleteStructurePartner(deleteId).unwrap()
+      .then(() => {
+        setDeleteDialogOpen(false);
+        setDeleteId(null);
+        refetch(); // Refetch data to update the table after deletion
+        toast.success("Structure de partenaire supprimée avec succès !"); // Toast success
+      })
+      .catch((err: FetchBaseQueryError) => {
+        const error = err; // 'err' is already typed as FetchBaseQueryError
+        if (error.status === 409) {
+          const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
+            ? (error.data as { message: string }).message
+            : (error.data && typeof error.data === 'object' && 'error' in error.data)
+            ? (error.data as { error: string }).error
+            : "Cette structure est utilisée et ne peut pas être supprimée car elle est associée à d'autres enregistrements.";
+          toast.error(msg); // Use toast.error instead of setting state for Dialog
+          setDeleteDialogOpen(false); // Close the delete confirmation dialog
+        } else {
+          toast.error("Une erreur inattendue est survenue lors de la suppression."); // Toast error
+          console.error("Failed to delete structure:", error);
+        }
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
+  }, [deleteId, deleteStructurePartner, refetch]);
 
   // Define columns for the DataTable
   const columns: Column<StructurePartner>[] = useMemo(
@@ -164,6 +169,17 @@ export const StructurePartnersListPage: React.FC = () => {
 
   return (
     <div className="bg-gray-50 p-4 min-h-screen">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <div className="flex justify-between items-center mb-8">
         <PageHeaderLayout
           title="Structures de partenaires"
@@ -203,7 +219,7 @@ export const StructurePartnersListPage: React.FC = () => {
           hoverEffect
           striped
           enableBulkDelete={false} // Keeping this false as per your original code
-        globalSearchLabel="Rechercher une structure de partenaire..."
+          globalSearchLabel="Rechercher une structure de partenaire..."
 
         />
       )}
@@ -238,19 +254,6 @@ export const StructurePartnersListPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ToastContainer for notifications */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
     </div>
   );
 };

@@ -73,7 +73,7 @@ const PartnersListPage: React.FC = () => {
 
   // State for selected rows in the data table
   const [selectedRows, setSelectedRows] = useState<Partner[]>([]);
-  const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
+  // Removed dialogErrorMessage state
 
   // Combine all filter, search, sort, and pagination parameters for the API call
   const combinedFilters = useMemo(() => {
@@ -245,69 +245,66 @@ const PartnersListPage: React.FC = () => {
   const handleSavePartner = useCallback(
     async (formData: FormData, id?: number) => {
       setIsSaving(true);
-      setDialogErrorMessage(null); // Clear previous errors
-      try {
-        if (id) {
-          await updatePartner({ id, data: formData }).unwrap();
-          toast.success("Le partenaire a été mis à jour avec succès.");
-        } else {
-          await addPartner(formData).unwrap();
-          toast.success("Le partenaire a été ajouté avec succès.");
-        }
-        setEditModalOpen(false);
-        refetch();
-      } catch (err: unknown) {
-        console.error("Failed to save partner:", err);
-        const error = err as FetchBaseQueryError;
-        const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
-          ? (error.data as { message: string }).message
-          : "Une erreur est survenue lors de l'enregistrement du partenaire.";
-        toast.error(msg);
-      } finally {
-        setIsSaving(false);
-      }
+      const mutationPromise = id
+        ? updatePartner({ id, data: formData })
+        : addPartner(formData);
+
+      mutationPromise.unwrap()
+        .then(() => {
+          setEditModalOpen(false);
+          refetch();
+          toast.success(id ? "Le partenaire a été mis à jour avec succès." : "Le partenaire a été ajouté avec succès.");
+        })
+        .catch((err: FetchBaseQueryError) => {
+          console.error("Failed to save partner:", err);
+          const msg = (err.data && typeof err.data === 'object' && 'message' in err.data)
+            ? (err.data as { message: string }).message
+            : "Une erreur est survenue lors de l'enregistrement du partenaire.";
+          toast.error(msg);
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
     },
     [addPartner, updatePartner, refetch]
   );
 
   const handleToggleRequest = useCallback((partner: Partner) => {
     setPartnerToAction(partner);
-    setDialogErrorMessage(null); // Clear previous errors
     setConfirmOpen(true);
   }, []);
 
   const handleConfirmToggle = useCallback(async () => {
     if (!partnerToAction) return;
     setIsDeleting(true);
-    setDialogErrorMessage(null); // Clear previous errors
-    try {
-      await deletePartners([partnerToAction.id]).unwrap();
-      setConfirmOpen(false);
-      setPartnerToAction(null);
-      refetch();
-      toast.success(
-        partnerToAction.deleted_at
-          ? `Le partenaire "${partnerToAction.partner_name}" a été réactivé avec succès.`
-          : `Le partenaire "${partnerToAction.partner_name}" a été désactivé avec succès.`
-      );
-    } catch (err: unknown) {
-      console.error("Toggle failed:", err);
-      const error = err as FetchBaseQueryError;
-      const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
-        ? (error.data as { message: string }).message
-        : "Une erreur est survenue lors du changement de statut du partenaire.";
-      toast.error(msg);
-      setDialogErrorMessage(msg); // Keep error message in dialog if it's still open
-    } finally {
-      setIsDeleting(false);
-    }
+    
+    deletePartners([partnerToAction.id]).unwrap()
+      .then(() => {
+        setConfirmOpen(false);
+        setPartnerToAction(null);
+        refetch();
+        toast.success(
+          partnerToAction.deleted_at
+            ? `Le partenaire "${partnerToAction.partner_name}" a été réactivé avec succès.`
+            : `Le partenaire "${partnerToAction.partner_name}" a été désactivé avec succès.`
+        );
+      })
+      .catch((err: FetchBaseQueryError) => {
+        console.error("Toggle failed:", err);
+        const msg = (err.data && typeof err.data === 'object' && 'message' in err.data)
+          ? (err.data as { message: string }).message
+          : "Une erreur est survenue lors du changement de statut du partenaire.";
+        toast.error(msg);
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
   }, [partnerToAction, deletePartners, refetch]);
 
   const handleCancelToggle = useCallback(() => {
     if (isDeleting) return;
     setConfirmOpen(false);
     setPartnerToAction(null);
-    setDialogErrorMessage(null); // Clear error on cancel
   }, [isDeleting]);
 
   const handleViewDetails = useCallback((partner: Partner) => {
@@ -318,32 +315,31 @@ const PartnersListPage: React.FC = () => {
     const numericIds = ids.map((id) => Number(id));
     if (!numericIds.length) return;
     setPendingDeleteIds(numericIds);
-    setDialogErrorMessage(null); // Clear previous errors
     setShowBulkDeleteDialog(true);
   }, []);
 
   const handleConfirmBulkDelete = useCallback(async () => {
     if (!pendingDeleteIds.length) return;
     setIsBulkDeleting(true);
-    setDialogErrorMessage(null); // Clear previous errors
-    try {
-      await deletePartners(pendingDeleteIds).unwrap();
-      setPendingDeleteIds([]);
-      setShowBulkDeleteDialog(false);
-      setSelectedRows([]); // Clear selected rows after bulk action
-      refetch();
-      toast.success(`Action groupée effectuée avec succès sur ${pendingDeleteIds.length} partenaire(s).`);
-    } catch (err: unknown) {
-      console.error("Bulk delete/toggle failed:", err);
-      const error = err as FetchBaseQueryError;
-      const msg = (error.data && typeof error.data === 'object' && 'message' in error.data)
-        ? (error.data as { message: string }).message
-        : "Une erreur est survenue lors de l'action groupée sur les partenaires.";
-      toast.error(msg);
-      setDialogErrorMessage(msg); // Keep error message in dialog if it's still open
-    } finally {
-      setIsBulkDeleting(false);
-    }
+
+    deletePartners(pendingDeleteIds).unwrap()
+      .then(() => {
+        setPendingDeleteIds([]);
+        setShowBulkDeleteDialog(false);
+        setSelectedRows([]); // Clear selected rows after bulk action
+        refetch();
+        toast.success(`Action groupée effectuée avec succès sur ${pendingDeleteIds.length} partenaire(s).`);
+      })
+      .catch((err: FetchBaseQueryError) => {
+        console.error("Bulk delete/toggle failed:", err);
+        const msg = (err.data && typeof err.data === 'object' && 'message' in err.data)
+          ? (err.data as { message: string }).message
+          : "Une erreur est survenue lors de l'action groupée sur les partenaires.";
+        toast.error(msg);
+      })
+      .finally(() => {
+        setIsBulkDeleting(false);
+      });
   }, [deletePartners, pendingDeleteIds, refetch]);
 
   const columns: Column<Partner>[] = useMemo(
@@ -494,7 +490,6 @@ const PartnersListPage: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={() => {
           setEditModalOpen(false);
-          setDialogErrorMessage(null); // Clear error on close
         }}
         onSave={handleSavePartner}
         partner={editingPartner}
@@ -521,9 +516,6 @@ const PartnersListPage: React.FC = () => {
               {partnerToAction?.deleted_at
                 ? `Êtes-vous sûr de vouloir réactiver le partenaire "${partnerToAction?.partner_name}" ?`
                 : `Êtes-vous sûr de vouloir désactiver le partenaire "${partnerToAction?.partner_name}" ? Cette action est réversible.`}
-              {dialogErrorMessage && (
-                <p className="text-red-500 text-sm mt-2">{dialogErrorMessage}</p>
-              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -565,9 +557,6 @@ const PartnersListPage: React.FC = () => {
               <strong>{pendingDeleteIds.length} partner(s)</strong>. Active partners
               will be deactivated and inactive ones will be reactivated. Are you sure
               you want to continue?
-              {dialogErrorMessage && (
-                <p className="text-red-500 text-sm mt-2">{dialogErrorMessage}</p>
-              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -578,7 +567,6 @@ const PartnersListPage: React.FC = () => {
                 disabled={isBulkDeleting}
                 onClick={() => {
                   setPendingDeleteIds([]);
-                  setDialogErrorMessage(null); // Clear error on cancel
                 }}
               >
                 Cancel
