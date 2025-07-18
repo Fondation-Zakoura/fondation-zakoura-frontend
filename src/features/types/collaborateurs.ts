@@ -1,4 +1,5 @@
 export type Collaborateur = {
+  deleted_at: null;
   id: number;
   nom: string;
   prenom: string;

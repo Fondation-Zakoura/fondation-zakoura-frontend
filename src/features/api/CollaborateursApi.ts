@@ -1,13 +1,7 @@
-import type { Collaborateur, CollaborateurFormOptions, CollaborateursResponse } from '@/features/types/collaborateurs';
+import type { Collaborateur, CollaborateurFormOptions } from '@/features/types/collaborateurs';
 import { baseApi } from '@/features/api/api';
+import type { ApiResponse } from '@/types/partners';
 
-type CollaborateursQueryParams = {
-  page?: number;
-  per_page?: number;
-  search?: string;
-  filter?: string;
-  sort?: string;
-};
 
 export const collaborateursApi = baseApi.enhanceEndpoints({
   addTagTypes: ['Collaborateurs', 'CollaborateurFormOptions'],
@@ -20,17 +14,33 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
     }),
 
     // ✅ Récupération paginée des collaborateurs
-    getCollaborateurs: builder.query<CollaborateursResponse, CollaborateursQueryParams>({
-      query: (params) => ({
-        url: '/collaborateurs',
-        params,
-      }),
-      providesTags: ['Collaborateurs'],
+
+    getCollaborateurs: builder.query<ApiResponse<Collaborateur>, { filters: Record<string, string | string[]>; page?: number }>({
+      query: ({ filters, page = 1 }) => {
+        const params: Record<string, string | number | string[]> = { page: String(page) };
+        for (const key in filters) {
+          if (Object.prototype.hasOwnProperty.call(filters, key) && filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+            params[key] = filters[key];
+          }
+        }
+        return {
+          url: '/collaborateurs',
+          params: params,
+        };
+      },
+      transformResponse: (response: ApiResponse<Collaborateur>) => response,
+      providesTags: (result) =>
+        result
+          ? [...result.data.map(({ id }) => ({ type: 'Collaborateurs' as const, id })), 'Collaborateurs']
+          : ['Collaborateurs'],
     }),
 
     // ✅ Détail d’un collaborateur
     getCollaborateur: builder.query<Collaborateur, number>({
       query: (id) => `/collaborateurs/${id}`,
+    }),
+     getArchivedCollaborateur: builder.query<Collaborateur, number>({
+      query: (id) => `/collaborateurs/${id}/archived`,
     }),
     //status collaborateur
     getAllStatutCollaborateurs: builder.query<any, void>({
@@ -86,22 +96,40 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
       invalidatesTags: ['Collaborateurs'],
     }),
     //get Archived Collaborateurs
-    getArchivedCollaborateurs: builder.query<CollaborateursResponse, CollaborateursQueryParams>({
-      query: (params) => ({
-        url: '/collaborateurs?with_trashed=true',
-        params, 
-      }),
-      providesTags: ['Collaborateurs'],
+    getArchivedCollaborateurs: builder.query<ApiResponse<Collaborateur>, { filters: Record<string, string | string[]>; page?: number }>({
+      query: ({ filters, page = 1 }) => {
+        const params: Record<string, string | number | string[]> = { page: String(page) };
+        for (const key in filters) {
+          if (Object.prototype.hasOwnProperty.call(filters, key) && filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+            params[key] = filters[key];
+          }
+        }
+        return {
+          url: '/collaborateurs?with_trashed=true',
+          params: params,
+        };
+      },
+      transformResponse: (response: ApiResponse<Collaborateur>) => response,
+      providesTags: (result) =>
+        result
+          ? [...result.data.map(({ id }) => ({ type: 'Collaborateurs' as const, id })), 'Collaborateurs']
+          : ['Collaborateurs'],
     }),
-
+    restoureCollaborateur: builder.mutation<{ message: string }, number>({
+      query: (id) => ({
+        url: `/collaborateurs/${id}/restore`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Collaborateurs'],
+    }),
   }),
-  overrideExisting: false,
 });
 
 export const {
   useGetCollaborateurFormOptionsQuery,
   useGetCollaborateursQuery,
   useGetCollaborateurQuery,
+  useGetArchivedCollaborateurQuery,
   useGetStatutContratsQuery,
   useGetAllStatutCollaborateursQuery,
   useGetTypeContratsQuery,
@@ -110,4 +138,5 @@ export const {
   useDeleteCollaborateurMutation,
   useBulkDeleteCollaborateursMutation,
   useGetArchivedCollaborateursQuery,
+  useRestoureCollaborateurMutation
 } = collaborateursApi;

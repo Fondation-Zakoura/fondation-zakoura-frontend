@@ -143,7 +143,7 @@ const AddCollaborateurs: React.FC = () => {
   // API data options
   const { data: statusData } = useGetAllStatutCollaborateursQuery();
   const { data: typeContratsData } = useGetTypeContratsQuery();
-  const { data: collaborateursData } = useGetCollaborateursQuery({});
+  const { data: collaborateursData } = useGetCollaborateursQuery({ filters: {} });
   const { data:statusContratData } = useGetStatutContratsQuery();  
 
   // Dates contrôlées
@@ -496,7 +496,7 @@ const AddCollaborateurs: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-gray-700 font-semibold mb-2 text-left">
-                Adresse de résidence
+                Adresse de résidence *
               </label>
               <Input
                 value={form.adresse_residence}
