@@ -74,12 +74,12 @@ const ViewProductModal = ({ productId, isOpen, onClose }:ViewProductModalProps) 
               <p className="text-xs font-medium text-gray-500">Statut</p>
               <span
                 className={`px-2 py-0.5 text-xs rounded-full ${
-                  productDetails.status === 1
+                  productDetails.deleted_at === null
                     ? "bg-green-100 text-green-700"
                     : "bg-red-100 text-red-700"
                 }`}
               >
-                {productDetails.status === 1 ? "Actif" : "Inactif"}
+                {productDetails.deleted_at === null ? "Actif" : "Inactif"}
               </span>
             </div>
             <div className="rounded-md border p-3">

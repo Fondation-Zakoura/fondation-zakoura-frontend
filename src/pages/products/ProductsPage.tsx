@@ -9,10 +9,12 @@ import {
   useDeleteProductsMutation,
   useDeleteProductMutation,
 } from "@/features/api/products";
-import { DataTable, type Column } from "@/components/ui/data-table";
+import { useGetCategoriesQuery } from "@/features/api/categoriesApi"; // Import categories query
+import { DataTable, type Column, type ColumnFilter } from "@/components/ui/data-table";
 import { PageHeaderLayout } from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
+import type { Product, ProductQueryParams } from "@/types/products"; // Import correct types
 
 type TransformedProductRow = {
   id: number;
@@ -24,11 +26,6 @@ type TransformedProductRow = {
   deleted_at: string | null;
   status: "1" | "0";
 };
-type LocalColumnFilter = {
-  id: keyof TransformedProductRow;
-  label: string;
-  options: { value: string | number; label: string }[];
-};
 
 export default function ProductsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -37,14 +34,21 @@ export default function ProductsPage() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [currentPage] = useState(1);
-  const [rowsPerPage] = useState(10);
-
-  const { data: productData, isLoading, isError, refetch } = useGetProductsQuery({
-    page: currentPage,
-    perPage: rowsPerPage,
-    withTrashed: true,
+  // 1. Unified state for all API query parameters
+  const [queryParams, setQueryParams] = useState<ProductQueryParams>({
+    page: 1,
+    perPage: 10,
+    search: "",
+    sort_by: null,
+    sort_direction: null,
+    withTrashed: false,
+    filter: {},
   });
+
+  // 2. Dynamic API calls
+  const { data: productData, isLoading, isError, refetch } = useGetProductsQuery(queryParams);
+  // Fetch categories to populate the filter dropdown
+  const { data: categoriesData } = useGetCategoriesQuery({ page: 1, perPage: 1000 });
 
   const [deleteProducts] = useDeleteProductsMutation();
   const [deleteProduct] = useDeleteProductMutation();
@@ -76,7 +80,7 @@ export default function ProductsPage() {
     setDeleteId(null);
   };
 
-  const handleBulkDelete = async (ids: number[]) => {
+  const handleBulkDelete = async (ids: (string | number)[]) => {
     if (ids.length === 0) return;
     try {
       await deleteProducts({ ids: ids.map(String) }).unwrap();
@@ -88,7 +92,7 @@ export default function ProductsPage() {
 
   const transformedData: TransformedProductRow[] = useMemo(() => {
     return (
-      productData?.data?.map((prod) => ({
+      productData?.data?.map((prod: Product) => ({
         id: prod.product_id,
         product_id: prod.product_id,
         name: prod.name,
@@ -105,20 +109,24 @@ export default function ProductsPage() {
     { key: "product_id", header: "ID Produit", sortable: true },
     { key: "name", header: "Nom", sortable: true },
     { key: "description", header: "Description" },
-    { key: "category", header: "Catégorie", sortable: true },
-    { key: "type", header: "Type Produit", sortable: true },
+    {
+    key: "category_id",
+    header: "Catégorie",
+    sortable: true,
+    render: (row) => row.category,
+  },
+  {
+    key: "product_type_id",
+    header: "Type Produit",
+    sortable: true,
+    render: (row) => row.type,
+  },
     {
       key: "status",
       header: "Statut",
       sortable: true,
       render: (row) => (
-        <span
-          className={`px-2 py-1 text-xs rounded-full ${
-            row.status === "1"
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}
-        >
+        <span className={`px-2 py-1 text-xs rounded-full ${row.status === "1" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
           {row.status === "1" ? "Active" : "Inactive"}
         </span>
       ),
@@ -128,22 +136,13 @@ export default function ProductsPage() {
       header: "Actions",
       render: (row) => (
         <div className="flex gap-2">
-          <button className="text-gray-600 hover:text-blue-600" onClick={(e) => {
-            e.stopPropagation();
-            handleView(row);
-          }}>
+          <button className="text-gray-600 hover:text-blue-600" onClick={(e) => { e.stopPropagation(); handleView(row); }}>
             <FaEye />
           </button>
-          <button className="text-gray-600 hover:text-green-600" onClick={(e) => {
-            e.stopPropagation();
-            handleEdit(row);
-          }}>
+          <button className="text-gray-600 hover:text-green-600" onClick={(e) => { e.stopPropagation(); handleEdit(row); }}>
             <FaEdit />
           </button>
-          <button className="text-gray-600 hover:text-red-600" onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteClick(row);
-          }}>
+          <button className="text-gray-600 hover:text-red-600" onClick={(e) => { e.stopPropagation(); handleDeleteClick(row); }}>
             <FaTrash />
           </button>
         </div>
@@ -151,25 +150,70 @@ export default function ProductsPage() {
     },
   ], [handleEdit, handleView, handleDeleteClick]);
 
- const columnFilters: LocalColumnFilter[] = [
-  {
-    id: "status",
-    label: "Statut",
-    options: [
-      { value: "1", label: "Active" },
-      { value: "0", label: "Inactive" },
-    ],
-  },
-  {
-    id: "category",
-    label: "Catégorie",
-    options: Array.from(new Set(transformedData.map((p) => p.category))).map((cat) => ({
-      value: cat,
-      label: cat,
-    })),
-  },
-];
-  if (isLoading) return <div className="text-center py-8 text-lg text-gray-500">Chargement des produits...</div>;
+  // 4. Improved column filters
+  const columnFilters: ColumnFilter[] = useMemo(() => {
+  // Create the list of category options from your API data
+  const categoryOptions = categoriesData?.data?.map(cat => ({
+    value: cat.category_id,
+    label: cat.name,
+  })) ?? [];
+
+  return [
+    {
+      id: "status",
+      label: "Statut",
+      options: [
+        { value: "1", label: "Active" },
+        { value: "0", label: "Inactive" },
+      ],
+    },
+    {
+      id: "category_id",
+      label: "Catégorie",
+      options: [
+        { value: "all", label: "Toutes les catégories" }, // ✅ Change "" to "all"
+        ...categoryOptions
+      ],
+    },
+  ];
+}, [categoriesData]);
+
+  // 5. Callback handlers for the DataTable
+  const handlePaginationChange = (pagination: { pageIndex: number; pageSize: number }) => {
+    setQueryParams(prev => ({ ...prev, page: pagination.pageIndex + 1, perPage: pagination.pageSize }));
+  };
+
+  const handleSearchChange = (value: string) => {
+    setQueryParams(prev => ({ ...prev, search: value, page: 1 }));
+  };
+
+  const handleSortChange = (key: string | null, direction: 'asc' | 'desc' | null) => {
+    setQueryParams(prev => ({ ...prev, sort_by: key, sort_direction: direction }));
+  };
+
+ const handleFilterChange = (filters: Record<string, string | string[]>) => {
+  const { status, ...otherFilters } = filters;
+  const withTrashed = status === "0";
+
+ 
+  const backendFilters: Record<string, any> = {};
+
+  
+  for (const key in otherFilters) {
+    const value = otherFilters[key];
+    if (value && value !== 'all') { 
+      backendFilters[key] = value;
+    }
+  }
+
+  setQueryParams(prev => ({
+    ...prev,
+    page: 1,
+    withTrashed,
+    filter: backendFilters, 
+  }));
+};
+
   if (isError) return <p>Erreur lors du chargement des produits.</p>;
 
   return (
@@ -187,17 +231,36 @@ export default function ProductsPage() {
         </Button>
       </div>
 
+      {/* 6. Fully configured DataTable */}
       <DataTable<TransformedProductRow>
         columns={columns}
         data={transformedData}
         columnFilters={columnFilters}
         striped
         hoverEffect
-        globalFilterKey="name"
         emptyText="Aucun produit trouvé."
-        initialPageSize={rowsPerPage}
         onRowClick={handleView}
         onBulkDelete={handleBulkDelete}
+
+        // --- Server-side Props ---
+        serverPagination={true}
+        isLoading={isLoading}
+        
+        // Controlled State Props
+        pageIndex={productData?.pagination?.current_page ? productData.pagination.current_page - 1 : 0}
+        pageCount={productData?.pagination?.total_pages || 0}
+        globalFilterValue={queryParams.search}
+        sortConfig={
+          queryParams.sort_by && queryParams.sort_direction
+            ? { key: queryParams.sort_by, direction: queryParams.sort_direction }
+            : null
+        }
+        
+        // Callback Handlers
+        onPaginationChange={handlePaginationChange}
+        onGlobalSearchChange={handleSearchChange}
+        onSortChange={handleSortChange}
+        onFilterChange={handleFilterChange}
       />
 
       {isAddModalOpen && (

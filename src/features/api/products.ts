@@ -11,13 +11,28 @@ export const productsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // 🔹 Fetch paginated product list
     getProducts: builder.query<ProductResponse, ProductQueryParams>({
-      query: ({ page, perPage, search, withTrashed }) => {
+      query: ({ page, perPage, search, withTrashed, sort_by, sort_direction, filter }) => {
         const params = new URLSearchParams({
           page: page.toString(),
           per_page: perPage.toString(),
         });
-        if (search) params.append("search", search);
-        if (withTrashed) params.append("with_trashed", "true");
+       if (search) params.append("search", search);
+        if (withTrashed) params.append("withTrashed", "true");
+         if (sort_by && sort_direction) {
+          params.append("sort_by", sort_by);
+          params.append("sort_direction", sort_direction);
+        }
+
+        // 3. Add column filter parameters if they exist
+        if (filter) {
+          Object.entries(filter).forEach(([key, value]) => {
+            // Avoid sending empty filters
+            if (value !== null && value !== undefined && value !== '') {
+              params.append(`filter[${key}]`, String(value));
+            }
+          });
+        }
+
  
         return `products?${params.toString()}`;
       },

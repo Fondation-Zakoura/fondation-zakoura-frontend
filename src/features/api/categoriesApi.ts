@@ -1,4 +1,4 @@
-import type { Category, CategoryDeleteParams, CategoryMutationParams, CategoryQueryParams, CategoryResponse } from "../types/categories";
+import type { CategoryQueryParams, CategoryResponse, Category, CategoryMutationParams, CategoryDeleteParams } from "@/types/categories";
 import { baseApi } from "./api";
 
  
@@ -6,13 +6,27 @@ export const categoriesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // 🔹 Get paginated category list
     getCategories: builder.query<CategoryResponse, CategoryQueryParams>({
-      query: ({ page, perPage, search, withTrashed }) => {
+      query: ({ page, perPage, search, withTrashed, sort_by, sort_direction, filter }) => {
         const params = new URLSearchParams({
           page: page.toString(),
           per_page: perPage.toString(),
         });
         if (search) params.append("search", search);
-        if (withTrashed) params.append("with_trashed", "true");
+        if (withTrashed) params.append("withTrashed", "true");
+         if (sort_by && sort_direction) {
+          params.append("sort_by", sort_by);
+          params.append("sort_direction", sort_direction);
+        }
+
+        // 3. Add column filter parameters if they exist
+        if (filter) {
+          Object.entries(filter).forEach(([key, value]) => {
+            // Avoid sending empty filters
+            if (value !== null && value !== undefined && value !== '') {
+              params.append(`filter[${key}]`, String(value));
+            }
+          });
+        }
  
         return `categories?${params.toString()}`;
       },
