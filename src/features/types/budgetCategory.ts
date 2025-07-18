@@ -4,4 +4,7 @@ export interface BudgetCategory{
     type: string;
     budgetary_area: string[]; 
     is_active:boolean;
+    created_at:string;
+    deleted_at:string;
+    updated_at:string;
 }
