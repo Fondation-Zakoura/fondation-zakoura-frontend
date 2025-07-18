@@ -68,18 +68,16 @@ interface DataTableProps<T extends { id: string | number }> {
   pageIndex?: number; // Current page index (0-based) from server
   totalItems?: number; // FIX 9: Add totalItems prop for server-side pagination display
   onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
-  // FIX 2: onFilterChange should match the signature of the handler in UnitsListPage
   onFilterChange?: (filters: Record<string, string | string[]>) => void;
-  // FIX 3: Add onGlobalSearchChange and onSortChange props
   onGlobalSearchChange?: (value: string) => void;
   onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
-  // FIX 4: Add sortConfig and globalSearchTerm as controlled props
   sortConfig?: { key: string; direction: "asc" | "desc" } | null;
   globalSearchTerm?: string;
   selectedRows?: T[];
   onSelectedRowsChange?: Dispatch<SetStateAction<T[]>>;
   isLoading?: boolean;
   searchColumns?: (keyof T)[]; // NEW PROP
+  globalSearchPlaceholder?: string;
 }
 
 // --- REUSABLE DATA TABLE COMPONENT ---
@@ -108,6 +106,7 @@ export function NewDataTable<T extends { id: string | number }>({
   searchColumns, // NEW PROP
   onGlobalSearchChange,
   globalSearchTerm,
+  globalSearchPlaceholder = "Rechercher...",
 }: DataTableProps<T>) {
   // --- STATE MANAGEMENT ---
   const [sortConfig, setSortConfig] = React.useState<{
@@ -331,7 +330,7 @@ export function NewDataTable<T extends { id: string | number }>({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               id="global-search"
-              placeholder="Rechercher..."
+              placeholder={globalSearchPlaceholder}
               value={onGlobalSearchChange ? (globalSearchTerm ?? "") : globalFilter}
               onChange={handleGlobalFilterChange}
               className="pl-10"

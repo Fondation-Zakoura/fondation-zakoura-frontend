@@ -96,7 +96,7 @@ export const AddBudgetCategoryModal: React.FC<AddBudgetCategoryModalProps> = ({
                           if (checked) {
                             newValue = [...form.budgetary_area, opt.value];
                           } else {
-                            newValue = form.budgetary_area.filter(v => v !== opt.value);
+                            newValue = form.budgetary_area.filter((v: string) => v !== opt.value);
                           }
                           onSelectChange("budgetary_area", newValue);
                         }}

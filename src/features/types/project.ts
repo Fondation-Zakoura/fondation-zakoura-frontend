@@ -87,6 +87,7 @@ export interface ProjectBankAccount {
   supporting_document: string;
   comments: string;
   status: string;
+  deleted_at: string | null;
 }
 
 export interface ProjectsQueryParams {

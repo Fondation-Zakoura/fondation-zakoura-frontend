@@ -162,8 +162,37 @@ export const projectsApi = baseApi
         }),
         invalidatesTags: ["ProjectStatuses"],
       }),
-      getProjectBankAccounts: builder.query<ProjectBankAccount[], void>({
-        query: () => "/project-bank-accounts",
+      getProjectBankAccounts: builder.query<
+        | { data: ProjectBankAccount[]; total: number; per_page: number; current_page: number }
+        | ProjectBankAccount[],
+        { filters?: Record<string, string | undefined> }
+      >({
+        query: (args = {}) => {
+          const params: Record<string, string> = {};
+          if (args.filters) {
+            Object.entries(args.filters).forEach(([key, value]) => {
+              if (value !== undefined && value !== "") {
+                params[key] = value;
+              }
+            });
+          }
+          return {
+            url: "/project-bank-accounts",
+            params,
+          };
+        },
+        transformResponse: (response: any) => {
+          // If response is an array, wrap it in a paginated object
+          if (Array.isArray(response)) {
+            return {
+              data: response,
+              total: response.length,
+              per_page: response.length,
+              current_page: 1,
+            };
+          }
+          return response;
+        },
         providesTags: ["ProjectBankAccounts"],
       }),
       getProjectBankAccount: builder.query<ProjectBankAccount, number>({
@@ -212,6 +241,21 @@ export const projectsApi = baseApi
         }),
         invalidatesTags: ["ProjectBankAccounts"],
       }),
+      bulkDeleteProjectBankAccounts: builder.mutation<{ message: string }, number[]>({
+        query: (ids) => ({
+          url: "/project-bank-accounts/bulk-delete",
+          method: "POST",
+          body: { ids },
+        }),
+        invalidatesTags: ["ProjectBankAccounts"],
+      }),
+      restoreProjectBankAccount: builder.mutation<ProjectBankAccount, number>({
+        query: (id) => ({
+          url: `/project-bank-accounts/${id}/restore`,
+          method: "PUT",
+        }),
+        invalidatesTags: ["ProjectBankAccounts"],
+      }),
     }),
     overrideExisting: false,
   });
@@ -241,4 +285,6 @@ export const {
   useUpdateProjectBankAccountMutation,
   useDeleteProjectBankAccountMutation,
   useUpdateBankAccountSupportingDocumentMutation,
+  useBulkDeleteProjectBankAccountsMutation,
+  useRestoreProjectBankAccountMutation,
 } = projectsApi;
