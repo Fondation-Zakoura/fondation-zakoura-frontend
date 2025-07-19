@@ -187,6 +187,8 @@ function BudgetLinePage() {
                         <div>Chargement...</div>
                       ) : (
                         <NewDataTable
+                          globalSearchLabel={'Code'}
+                          globalSearchPlaceholder={'Rechercher par code...'}
                           columns={columns as Column<any>[]}
                           data={budgetLines}
                           hoverEffect

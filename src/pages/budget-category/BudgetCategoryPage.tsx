@@ -373,6 +373,8 @@ const BudgetCategoryPage: React.FC = () => {
           <div>Chargement...</div>
         ) : (
           <NewDataTable<BudgetCategory & { id: number }>
+            globalSearchLabel={'Code'}
+            globalSearchPlaceholder={'Rechercher par code...'}
             key={dataTableKey}
             columns={columns}
             data={tableCategories}
