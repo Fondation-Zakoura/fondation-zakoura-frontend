@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   useGetProjectBankAccountsQuery,
   useCreateProjectBankAccountMutation,
@@ -11,7 +11,7 @@ import {
 import type { ProjectBankAccount } from "@/features/types/project";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pen, Eye, Trash, RotateCcw } from "lucide-react";
+import { Plus, Pen, Eye, Trash, RotateCcw, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import countriesData from "@/data/countries.json";
+import { UploadCloud, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const emptyAccount: Omit<ProjectBankAccount, "supporting_document"> & {
   supporting_document: string | File;
@@ -88,7 +90,16 @@ const ProjectBankAccountsPage: React.FC = () => {
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [searchCode, setSearchCode] = useState("");
   const debouncedSearchCode = useDebounce(searchCode, 400);
-  const { data: apiData, isLoading, refetch } = useGetProjectBankAccountsQuery({ filters: { ...filters, page: String(page), per_page: String(pageSize) } });
+  const { data: apiData, isLoading, refetch } = useGetProjectBankAccountsQuery({ 
+    filters: { 
+      ...filters, 
+      page: String(page), 
+      per_page: String(pageSize) 
+    } 
+  });
+  
+  // Debug: Log the filters being sent to the API
+  console.log('API Filters:', { ...filters, page: String(page), per_page: String(pageSize) });
   const accounts: ProjectBankAccount[] = Array.isArray(apiData)
     ? apiData
     : apiData?.data || [];
@@ -116,15 +127,51 @@ const ProjectBankAccountsPage: React.FC = () => {
     useState<ProjectBankAccount | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [removeExistingFile, setRemoveExistingFile] = useState(false);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [_filePreview, setFilePreview] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const handleDownload = async (filePath: string) => {
+    try {
+      const filename = filePath.split('/').pop() || 'document';
+      
+      console.log('File path:', filePath);
+      console.log('Extracted filename:', filename);
+      console.log('API URL:', `${import.meta.env.VITE_API_URL}/download/project-file/${encodeURIComponent(filename)}`);
+      
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/download/project-file/${encodeURIComponent(filename)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'Application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Erreur lors du téléchargement du fichier');
+    }
+  };
+
   useEffect(() => {
     setFilters((prev) => ({ ...prev, account_title: debouncedSearchCode }));
     setPage(1);
-    // eslint-disable-next-line
   }, [debouncedSearchCode]);
 
   const openAdd = () => {
@@ -399,6 +446,15 @@ const ProjectBankAccountsPage: React.FC = () => {
         options: MOROCCAN_BANKS.map((bank) => ({ value: bank, label: bank })),
       },
       {
+        id: "status",
+        label: "Statut",
+        options: [
+          { value: "active", label: "Actif" },
+          { value: "inactive", label: "Inactif" },
+          { value: "closed", label: "Fermé" },
+        ],
+      },
+      {
         id: 'is_active',
         label: 'Active',
         options: [
@@ -437,7 +493,13 @@ const ProjectBankAccountsPage: React.FC = () => {
             row.status
           )}`}
         >
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+          {row.status?.toLowerCase() === 'active' 
+            ? 'Actif' 
+            : row.status?.toLowerCase() === 'inactive'
+            ? 'Inactif'
+            : row.status?.toLowerCase() === 'closed'
+            ? 'Fermé'
+            : row.status?.charAt(0).toUpperCase() + row.status?.slice(1)}
         </span>
       ),
       sortable: true,
@@ -547,6 +609,7 @@ const ProjectBankAccountsPage: React.FC = () => {
         ) : (
           <NewDataTable
           globalSearchPlaceholder={'Rechercher par l\'intitulé de compte'}
+          globalSearchLabel={'Intitulé du compte'}
           key={dataTableKey}
             columns={columns}
             data={accounts}
@@ -564,6 +627,7 @@ const ProjectBankAccountsPage: React.FC = () => {
             serverPagination={true}
             pageCount={Math.ceil(total / perPage)}
             pageIndex={currentPage - 1}
+            pageSize={perPage}
             onPaginationChange={({ pageIndex, pageSize }) => {
               setPage(pageIndex + 1);
               if (pageSize) setPageSize(pageSize);
@@ -816,100 +880,18 @@ const ProjectBankAccountsPage: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 sm:col-span-2">
                 <Label htmlFor="supporting_document">
                   Pièce justificative (Scan)
                 </Label>
-                {/* Preview for new file */}
-                {filePreview && typeof form.supporting_document !== "string" ? (
-                  <div className="relative flex items-center gap-2 mb-2">
-                    {typeof form.supporting_document !== "string" &&
-                    "type" in form.supporting_document &&
-                    form.supporting_document.type.startsWith("image/") ? (
-                      <img
-                        src={filePreview}
-                        alt="Preview"
-                        className="w-24 h-24 object-cover rounded border"
-                      />
-                    ) : (
-                      <span className="text-sm">{filePreview}</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleRemoveFile}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                      title="Supprimer"
-                    >
-                      &#10005;
-                    </button>
-                  </div>
-                ) : null}
-
-                {/* Preview for existing file if no new file selected */}
-                {!filePreview &&
-                  typeof form.supporting_document === "string" &&
-                  form.supporting_document &&
-                  !removeExistingFile && (
-                    <div className="relative flex items-center gap-2 mb-2">
-                      {/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(
-                        form.supporting_document
-                      ) ? (
-                        <img
-                          src={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`}
-                          alt="Pièce justificative"
-                          className="w-24 h-24 object-cover rounded border"
-                        />
-                      ) : /\.pdf$/i.test(form.supporting_document) ? (
-                        <a
-                          href={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline mt-2 block"
-                        >
-                          Voir le document PDF
-                        </a>
-                      ) : (
-                        <a
-                          href={`${import.meta.env.VITE_STORAGE_URL}/${form.supporting_document}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline mt-2 block"
-                        >
-                          Télécharger le fichier
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleRemoveFile}
-                        className="ml-2 text-red-500 hover:text-red-700"
-                        title="Supprimer"
-                      >
-                        &#10005;
-                      </button>
-                    </div>
-                  )}
-
-                {/* File input */}
-                {!filePreview &&
-                  (!form.supporting_document || removeExistingFile) && (
-                    <>
-                      <span className="text-xs text-gray-500 mb-1">
-                        Aucun document. Veuillez en ajouter un :
-                      </span>
-                      <Input
-                        id="supporting_document"
-                        name="supporting_document"
-                        type="file"
-                        accept="application/pdf,image/*"
-                        onChange={handleFileChange}
-                      />
-                    </>
-                  )}
-                {fieldErrors.supporting_document && (
-                  <span className="text-xs text-red-500">
-                    {fieldErrors.supporting_document}
-                  </span>
-                )}
+                <SupportingDocumentDropzone
+                  value={form.supporting_document}
+                  onFileChange={handleFileChange}
+                  error={fieldErrors.supporting_document}
+                  existingFile={typeof form.supporting_document === "string" && form.supporting_document ? form.supporting_document : null}
+                  onRemoveExisting={handleRemoveFile}
+                  removeExistingFile={removeExistingFile}
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="comments">Commentaires / Remarques</Label>
@@ -943,115 +925,183 @@ const ProjectBankAccountsPage: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
-      {/* Show Modal */}
+            {/* Show Modal */}
       <Dialog open={modal === "show"} onOpenChange={closeModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Détail du compte bancaire</DialogTitle>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="border-b border-gray-200 pb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              Détails du compte bancaire
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Informations complètes du compte bancaire
+            </DialogDescription>
           </DialogHeader>
+          
           {selected && (
-            <div className="space-y-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <span className="block text-xs text-gray-500">RIB / IBAN</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.rib_iban)}
-                </span>
+            <div className="py-6">
+              {/* RIB/IBAN Section - Full Width */}
+              <div className="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-700 mb-3 uppercase tracking-wide">
+                  RIB / IBAN
+                </h3>
+                <div className="bg-white p-4 rounded-md border border-gray-300">
+                  <span className="font-mono text-lg text-gray-900 break-all">
+                    {selected.rib_iban}
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="block text-xs text-gray-500">Agence</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.agency)}
-                </span>
+
+              {/* Main Information Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Agence
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.agency || "Non spécifié"}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Banque
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.bank || "Non spécifié"}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Intitulé du compte
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.account_title || "Non spécifié"}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Nom du titulaire
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.account_holder_name || "Non spécifié"}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      BIC / SWIFT
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.bic_swift || "Non spécifié"}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Date d'ouverture
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.opening_date || "Non spécifié"}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Pays d'ouverture
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.opening_country || "Non spécifié"}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Devise
+                    </label>
+                    <span className="text-gray-900 font-medium">
+                      {selected.currency || "Non spécifié"}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="block text-xs text-gray-500">Banque</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.bank)}
-                </span>
+
+              {/* Status Section */}
+              <div className="mb-8">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                    Statut du compte
+                  </label>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    selected.status?.toLowerCase() === 'active' 
+                      ? 'bg-green-100 text-green-800' 
+                      : selected.status?.toLowerCase() === 'inactive'
+                      ? 'bg-orange-100 text-orange-800'
+                      : selected.status?.toLowerCase() === 'closed'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selected.status?.charAt(0).toUpperCase() + selected.status?.slice(1) || "Non spécifié"}
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="block text-xs text-gray-500">
-                  Intitulé du compte
-                </span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.account_title)}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">
-                  Nom du titulaire
-                </span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.account_holder_name)}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">BIC / SWIFT</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.bic_swift)}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">
-                  Date d'ouverture
-                </span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {selected.opening_date}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">
-                  Pays d'ouverture
-                </span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.opening_country)}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">Devise</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.currency)}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-500">Status</span>
-                <span className="font-semibold text-gray-800 text-sm">
-                  {renderTruncated(selected.status)}
-                </span>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="block text-xs text-gray-500">Pièce justificative (Scan)</span>
-                {selected.supporting_document ? (
-                  (() => {
-                    const url = `${import.meta.env.VITE_STORAGE_URL}/${selected.supporting_document}`;
-                    return (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 mt-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+
+              {/* Supporting Document Section */}
+              <div className="mb-8">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+                    Pièce justificative
+                  </label>
+                  {selected.supporting_document ? (
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-gray-50 p-3 rounded-md border border-gray-200">
+                        <span className="text-sm text-gray-600">
+                          Document disponible
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDownload(selected.supporting_document)}
+                        className="inline-flex items-center justify-center w-12 h-12 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
+                        title="Télécharger le document"
                       >
-                        Télécharger
-                      </a>
-                    );
-                  })()
-                ) : (
-                  <span className="font-semibold text-gray-800 text-sm break-all">Aucun document</span>
-                )}
+                        <Download size={20} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                      <span className="text-sm text-gray-500">
+                        Aucun document joint
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="sm:col-span-2">
-                <span className="block text-xs text-gray-500">
-                  Commentaires / Remarques
-                </span>
-                <span className="font-semibold text-gray-800 text-sm break-all">
-                  {selected.comments}
-                </span>
-              </div>
+
+              {/* Comments Section */}
+              {selected.comments && (
+                <div className="mb-8">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+                      Commentaires / Remarques
+                    </label>
+                    <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                      <span className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {selected.comments}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-          <DialogFooter>
+          
+          <DialogFooter className="border-t border-gray-200 pt-4">
             <DialogClose asChild>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" className="px-6">
                 Fermer
               </Button>
             </DialogClose>
@@ -1113,6 +1163,176 @@ const ProjectBankAccountsPage: React.FC = () => {
   100% { transform: rotate(360deg); }
 }
 `}</style>
+    </div>
+  );
+};
+
+interface SupportingDocumentDropzoneProps {
+  value: File | string;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+  existingFile?: string | null;
+  onRemoveExisting?: () => void;
+  removeExistingFile?: boolean;
+}
+
+const SupportingDocumentDropzone: React.FC<SupportingDocumentDropzoneProps> = ({ 
+  value, 
+  onFileChange, 
+  error, 
+  existingFile, 
+  onRemoveExisting, 
+  removeExistingFile 
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (value && typeof value !== "string" && value.type.startsWith("image/")) {
+      const url = URL.createObjectURL(value);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [value]);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+  
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const fileInputEvent = {
+        target: {
+          name: "supporting_document",
+          files: e.dataTransfer.files,
+        },
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+      onFileChange(fileInputEvent);
+    }
+  };
+  
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const emptyEvent = {
+      target: {
+        name: "supporting_document",
+        files: null,
+      },
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    onFileChange(emptyEvent);
+    setPreviewUrl(null);
+  };
+
+  const handleRemoveExisting = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRemoveExisting) {
+      onRemoveExisting();
+    }
+  };
+
+  return (
+    <div>
+      <input
+        id="supporting_document"
+        type="file"
+        accept="application/pdf,image/*"
+        onChange={onFileChange}
+        className="hidden"
+        ref={fileInputRef}
+      />
+      <div
+        className={cn(
+          "relative w-full h-32 border-2 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors",
+          isDragging ? "border-primary bg-primary-foreground" : "border-gray-300 hover:border-primary"
+        )}
+        style={{ width: "100%" }}
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {previewUrl ? (
+          <>
+            <img
+              src={previewUrl}
+              alt="Document Preview"
+              className="max-h-full max-w-full object-contain p-1"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleRemove}
+              className="absolute top-1 right-1 text-red-500 hover:bg-red-100 rounded-full"
+              title="Supprimer le fichier"
+            >
+              <XCircle size={20} />
+            </Button>
+          </>
+        ) : value && typeof value !== "string" ? (
+          <>
+            {value.type === "application/pdf" ? (
+              <>
+                <UploadCloud size={32} className="text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">{value.name}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemove}
+                  className="absolute top-1 right-1 text-red-500 hover:bg-red-100 rounded-full"
+                  title="Supprimer le fichier"
+                >
+                  <XCircle size={20} />
+                </Button>
+              </>
+            ) : null}
+          </>
+        ) : existingFile && !removeExistingFile ? (
+          <>
+            {/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(existingFile) ? (
+              <img
+                src={`${import.meta.env.VITE_STORAGE_URL}/${existingFile}`}
+                alt="Pièce justificative"
+                className="max-h-full max-w-full object-contain p-1"
+              />
+            ) : (
+              <>
+                <UploadCloud size={32} className="text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">Document existant</p>
+              </>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleRemoveExisting}
+              className="absolute top-1 right-1 text-red-500 hover:bg-red-100 rounded-full"
+              title="Supprimer le fichier"
+            >
+              <XCircle size={20} />
+            </Button>
+          </>
+        ) : (
+          <>
+            <UploadCloud size={32} className="text-gray-400 mb-2" />
+            <p className="text-sm text-gray-500">Sélectionnez ou déposez un fichier</p>
+            <p className="text-xs text-gray-400">(PDF, PNG, JPEG, SVG - max 5MB)</p>
+          </>
+        )}
+      </div>
+      {error && <p className="text-sm text-destructive mt-1">{error}</p>}
     </div>
   );
 };

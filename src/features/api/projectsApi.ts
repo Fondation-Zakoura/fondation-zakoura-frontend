@@ -176,6 +176,10 @@ export const projectsApi = baseApi
               }
             });
           }
+          
+          // Debug: Log the parameters being sent to the backend
+          console.log('Backend API Parameters:', params);
+          
           return {
             url: "/project-bank-accounts",
             params,
@@ -256,6 +260,12 @@ export const projectsApi = baseApi
         }),
         invalidatesTags: ["ProjectBankAccounts"],
       }),
+      downloadBankAccountFile: builder.query<Blob, string>({
+        query: (filename) => ({
+          url: `/download-file/${filename}`,
+          responseHandler: (response) => response.blob(),
+        }),
+      }),
     }),
     overrideExisting: false,
   });
@@ -287,4 +297,5 @@ export const {
   useUpdateBankAccountSupportingDocumentMutation,
   useBulkDeleteProjectBankAccountsMutation,
   useRestoreProjectBankAccountMutation,
+  useDownloadBankAccountFileQuery,
 } = projectsApi;

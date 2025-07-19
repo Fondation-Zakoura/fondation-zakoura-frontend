@@ -66,6 +66,7 @@ interface DataTableProps<T extends { id: string | number }> {
   serverPagination?: boolean;
   pageCount?: number; // Total number of pages from server
   pageIndex?: number; // Current page index (0-based) from server
+  pageSize?: number; // Current page size from server
   totalItems?: number; // FIX 9: Add totalItems prop for server-side pagination display
   onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
   onFilterChange?: (filters: Record<string, string | string[]>) => void;
@@ -78,6 +79,7 @@ interface DataTableProps<T extends { id: string | number }> {
   isLoading?: boolean;
   searchColumns?: (keyof T)[]; // NEW PROP
   globalSearchPlaceholder?: string;
+  globalSearchLabel?: string;
 }
 
 // --- REUSABLE DATA TABLE COMPONENT ---
@@ -99,6 +101,7 @@ export function NewDataTable<T extends { id: string | number }>({
   serverPagination = false,
   pageCount,
   pageIndex,
+  pageSize,
   onPaginationChange,
   onFilterChange,
   selectedRows: controlledSelectedRows,
@@ -107,6 +110,7 @@ export function NewDataTable<T extends { id: string | number }>({
   onGlobalSearchChange,
   globalSearchTerm,
   globalSearchPlaceholder = "Rechercher...",
+  globalSearchLabel,
 }: DataTableProps<T>) {
   // --- STATE MANAGEMENT ---
   const [sortConfig, setSortConfig] = React.useState<{
@@ -337,11 +341,17 @@ export function NewDataTable<T extends { id: string | number }>({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* GLOBAL FILTERS: SEARCH AND is_active */}
-      <div className="flex flex-col md:flex-row items-center gap-4 mb-2">
-        {/* is_active filter if present */}
-       
+      <div className="flex flex-col md:flex-row items-start gap-4 mb-2">
         {/* Search Input */}
-        <div className="w-full md:w-1/3 mt-5.5 lg:w-1/4">
+        <div className="w-full md:w-[200px]">
+          {globalSearchLabel && (
+            <label
+              htmlFor="global-search"
+              className="block text-sm font-medium text-gray-700 mb-1 text-left"
+            >
+              {globalSearchLabel}
+            </label>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
@@ -349,17 +359,17 @@ export function NewDataTable<T extends { id: string | number }>({
               placeholder={globalSearchPlaceholder}
               value={onGlobalSearchChange ? (globalSearchTerm ?? "") : globalFilter}
               onChange={handleGlobalFilterChange}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
         </div>
 
         {/* Mapped Dropdown Filters */}
         {columnFilters.map((filter) => (
-          <div key={String(filter.id)} className="w-full md:w-auto md:min-w-[180px]">
+          <div key={String(filter.id)} className="w-full md:w-[200px]">
             <label
               htmlFor={`filter-${String(filter.id)}`}
-              className="block text-sm font-medium text-gray-700 mb-1 text-left" // changed to left-aligned
+              className="block text-sm font-medium text-gray-700 mb-1 text-left"
             >
               {filter.label}
             </label>
@@ -387,7 +397,7 @@ export function NewDataTable<T extends { id: string | number }>({
         ))}
 
         {/* Reset Button */}
-        <div className="w-full md:w-auto md:ml-auto pt-0 md:pt-5">
+        <div className="w-full md:w-auto md:ml-auto pt-6">
           <Button
             variant="outline"
             onClick={handleResetFilters}
