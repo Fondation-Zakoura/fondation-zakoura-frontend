@@ -573,15 +573,7 @@ const ProjectBankAccountsPage: React.FC = () => {
     return s;
   }
 
-  // Helper function to truncate and show tooltip
-  const renderTruncated = (value: string, maxLength = 24) => {
-    if (!value) return "";
-    return value.length > maxLength ? (
-      <span title={value}>{value.slice(0, maxLength) + "..."}</span>
-    ) : (
-      value
-    );
-  };
+
 
   return (
     <div className="p-8">
@@ -1045,7 +1037,13 @@ const ProjectBankAccountsPage: React.FC = () => {
                       ? 'bg-red-100 text-red-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {selected.status?.charAt(0).toUpperCase() + selected.status?.slice(1) || "Non spécifié"}
+                    {selected.status?.toLowerCase() === 'active' 
+                      ? 'Actif' 
+                      : selected.status?.toLowerCase() === 'inactive'
+                      ? 'Inactif'
+                      : selected.status?.toLowerCase() === 'closed'
+                      ? 'Fermé'
+                      : selected.status?.charAt(0).toUpperCase() + selected.status?.slice(1) || "Non spécifié"}
                   </span>
                 </div>
               </div>

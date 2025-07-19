@@ -45,11 +45,10 @@ const initialForm = {
   actual_start_date: "",
   responsible_id: "",
   total_budget: "",
-  project_bank_account_id: "",
+  bank_account_id: "",
   zakoura_contribution: "",
   notes: "",
   created_by_id: "",
-  bank_account_id: "",
 };
 
 const AddProject: React.FC = () => {
@@ -106,7 +105,22 @@ const AddProject: React.FC = () => {
 
   const handleSelectChange = (name: string, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
-    // Real-time validation, but only show error if touched
+    // Mark field as touched immediately for error display
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    
+    // IMMEDIATELY clear the error if value is provided
+    if (value && value.trim() !== '') {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleFieldFocus = (name: string) => {
+    // Mark field as touched when focused to show errors immediately
+    setTouched((prev) => ({ ...prev, [name]: true }));
     const fieldErrs = validate();
     setErrors(fieldErrs);
   };
@@ -125,15 +139,30 @@ const AddProject: React.FC = () => {
     const newPartners = [...partners];
     newPartners[idx][name as keyof (typeof newPartners)[0]] = value;
     setPartners(newPartners);
-    setPartnerErrors((prev) => ({
+    
+    // Mark partner field as touched for immediate error display
+    _setPartnerTouched((prev) => ({
       ...prev,
-      [idx]: { ...prev[idx], [name]: "" },
+      [idx]: { ...prev[idx], [name]: true },
     }));
-    // Real-time validation for partner fields
-    const pErrs = validatePartners(newPartners);
-    setPartnerErrors(pErrs);
+    
+    // IMMEDIATELY clear the partner error if value is provided
+    if (value && value.trim() !== '') {
+      setPartnerErrors((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors[idx]) {
+          delete newErrors[idx][name];
+          // Remove the entire partner error object if no errors left
+          if (Object.keys(newErrors[idx]).length === 0) {
+            delete newErrors[idx];
+          }
+        }
+        return newErrors;
+      });
+    }
   };
 
+ 
   
 
   const addPartner = () => {
@@ -149,55 +178,88 @@ const AddProject: React.FC = () => {
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
+    
+    // Required field validations
     if (!form.project_name) newErrors.project_name = "Nom du projet requis";
-    if (!form.project_nature)
-      newErrors.project_nature = "Nature du projet requis";
-    if (!form.project_type_id)
-      newErrors.project_type_id = "Type de projet requis";
+    if (!form.project_nature) newErrors.project_nature = "Nature du projet requis";
+    if (!form.project_type_id) newErrors.project_type_id = "Type de projet requis";
     if (!form.project_status_id) newErrors.project_status_id = "Statut requis";
     if (!form.start_date) newErrors.start_date = "Date de lancement requise";
-    if (!form.actual_start_date)
-      newErrors.actual_start_date = "Date de lancement réelle requise";
+    if (!form.actual_start_date) newErrors.actual_start_date = "Date de lancement réelle requise";
     if (!form.end_date) newErrors.end_date = "Date de clôture requise";
     if (!form.responsible_id) newErrors.responsible_id = "Responsable requis";
     if (!form.total_budget) newErrors.total_budget = "Budget total requis";
-    if (!form.bank_account_id)
-      newErrors.bank_account_id = "Compte bancaire requis";
-    if (!form.zakoura_contribution)
-      newErrors.zakoura_contribution = "Apport FZ requis";
-    // Numeric range checks
-    if (form.total_budget && Number(form.total_budget) < 0)
-      newErrors.total_budget = "Le budget ne peut pas être négatif";
-    if (
-      form.zakoura_contribution &&
-      (Number(form.zakoura_contribution) < 0 ||
-        Number(form.zakoura_contribution) > 100)
-    )
-      newErrors.zakoura_contribution = "L'apport FZ doit être entre 0 et 100";
-    // partners.forEach((partner, idx) => {
-    //   if (partner.partner_contribution && (Number(partner.partner_contribution) < 0 || Number(partner.partner_contribution) > 100)) {
-    //     if (!partnerErrors[idx]) partnerErrors[idx] = {};
-    //     partnerErrors[idx].partner_contribution = "L'apport partenaire doit être entre 0 et 100";
-    //   }
-    // });
+    if (!form.bank_account_id) newErrors.bank_account_id = "Compte bancaire requis";
+    if (!form.zakoura_contribution) newErrors.zakoura_contribution = "Apport FZ requis";
+    
+    // Numeric range checks with real-time validation
+    if (form.total_budget) {
+      const budget = Number(form.total_budget);
+      if (isNaN(budget)) {
+        newErrors.total_budget = "Le budget doit être un nombre valide";
+      } else if (budget < 0) {
+        newErrors.total_budget = "Le budget ne peut pas être négatif";
+      } else if (budget === 0) {
+        newErrors.total_budget = "Le budget doit être supérieur à 0";
+      }
+    }
+    
+    if (form.zakoura_contribution) {
+      const contribution = Number(form.zakoura_contribution);
+      if (isNaN(contribution)) {
+        newErrors.zakoura_contribution = "L'apport FZ doit être un nombre valide";
+      } else if (contribution < 0) {
+        newErrors.zakoura_contribution = "L'apport FZ ne peut pas être négatif";
+      } else if (contribution > 100) {
+        newErrors.zakoura_contribution = "L'apport FZ ne peut pas dépasser 100%";
+      }
+    }
+    
+    // String length validations
+    if (form.project_name && form.project_name.length < 3) {
+      newErrors.project_name = "Le nom du projet doit contenir au moins 3 caractères";
+    }
+    
+    if (form.notes && form.notes.length > 1000) {
+      newErrors.notes = "Les notes ne peuvent pas dépasser 1000 caractères";
+    }
+    
     // Date logic validation (one error per field)
     const dateErrs: { [key: string]: string } = {};
     if (form.start_date && form.actual_start_date && form.end_date) {
       const start = new Date(form.start_date);
       const actual = new Date(form.actual_start_date);
       const end = new Date(form.end_date);
+      
       if (start > actual) {
-        dateErrs.actual_start_date =
-          "La date de début réelle doit être postérieure ou égale à la date de lancement.";
+        dateErrs.actual_start_date = "La date de début réelle doit être postérieure ou égale à la date de lancement.";
       } else if (actual >= end) {
-        dateErrs.actual_start_date =
-          "La date de début réelle doit être antérieure à la date de clôture.";
+        dateErrs.actual_start_date = "La date de début réelle doit être antérieure à la date de clôture.";
       }
+      
       if (start >= end) {
-        dateErrs.end_date =
-          "La date de clôture doit être postérieure à la date de lancement.";
+        dateErrs.end_date = "La date de clôture doit être postérieure à la date de lancement.";
       }
     }
+    
+    // Future date validations
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (form.start_date) {
+      const start = new Date(form.start_date);
+      if (start < today) {
+        dateErrs.start_date = "La date de lancement ne peut pas être dans le passé";
+      }
+    }
+    
+    if (form.actual_start_date) {
+      const actual = new Date(form.actual_start_date);
+      if (actual < today) {
+        dateErrs.actual_start_date = "La date de début réelle ne peut pas être dans le passé";
+      }
+    }
+    
     setDateErrors(dateErrs);
     return { ...newErrors, ...dateErrs };
   };
@@ -206,10 +268,25 @@ const AddProject: React.FC = () => {
     const newPartnerErrors: { [idx: number]: { [key: string]: string } } = {};
     partnersArg.forEach((partner, idx) => {
       const pErr: { [key: string]: string } = {};
-      if (partner.partner_id) {
-        if (!partner.partner_role) pErr.partner_role = "Rôle requis";
-        if (!partner.partner_contribution)
+      // Only validate role and contribution if a partner is selected
+      if (partner.partner_id && partner.partner_id.trim() !== '') {
+        if (!partner.partner_role || partner.partner_role.trim() === '') {
+          pErr.partner_role = "Rôle requis";
+        }
+        if (!partner.partner_contribution || partner.partner_contribution.trim() === '') {
           pErr.partner_contribution = "Apport requis";
+        }
+        // Validate contribution range if provided
+        if (partner.partner_contribution) {
+          const contribution = Number(partner.partner_contribution);
+          if (isNaN(contribution)) {
+            pErr.partner_contribution = "L'apport doit être un nombre valide";
+          } else if (contribution < 0) {
+            pErr.partner_contribution = "L'apport ne peut pas être négatif";
+          } else if (contribution > 100) {
+            pErr.partner_contribution = "L'apport ne peut pas dépasser 100%";
+          }
+        }
       }
       if (Object.keys(pErr).length) newPartnerErrors[idx] = pErr;
     });
@@ -249,13 +326,44 @@ const AddProject: React.FC = () => {
     return { valid: true };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const runFullValidation = () => {
     const fieldErrors = validate();
     const pErrors = validatePartners();
     setErrors(fieldErrors);
     setPartnerErrors(pErrors);
+    return { fieldErrors, pErrors };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    // Mark ALL fields as touched to show all errors immediately
+    const allFields = [
+      "project_name", "project_nature", "project_type_id", "project_status_id",
+      "start_date", "end_date", "actual_start_date", "responsible_id",
+      "total_budget", "bank_account_id", "zakoura_contribution", "notes"
+    ];
+    
+    const touchedFields: { [key: string]: boolean } = {};
+    allFields.forEach(field => {
+      touchedFields[field] = true;
+    });
+    setTouched(touchedFields);
+    
+    // Mark all partner fields as touched
+    const partnerTouchedFields: { [idx: number]: { [key: string]: boolean } } = {};
+    partners.forEach((_, idx) => {
+      partnerTouchedFields[idx] = {
+        partner_id: true,
+        partner_role: true,
+        partner_contribution: true
+      };
+    });
+    _setPartnerTouched(partnerTouchedFields);
+    
+    const { fieldErrors, pErrors } = runFullValidation();
+    
     if (
       Object.keys(fieldErrors).length > 0 ||
       Object.keys(pErrors).length > 0
@@ -263,11 +371,15 @@ const AddProject: React.FC = () => {
       const firstInvalidKey = Object.keys(
         fieldErrors
       )[0] as ProjectInputRefKeys;
-      inputRefs[firstInvalidKey].current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-      inputRefs[firstInvalidKey].current.focus();
+      
+      // Safety check to ensure the ref exists before accessing it
+      if (inputRefs[firstInvalidKey] && inputRefs[firstInvalidKey].current) {
+        inputRefs[firstInvalidKey].current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        inputRefs[firstInvalidKey].current.focus();
+      }
       return;
     }
     const check = checkPercentSum();
@@ -299,13 +411,15 @@ const AddProject: React.FC = () => {
           ? Number(form.zakoura_contribution)
           : undefined,
         created_by_id: 1,
-        partners: partners.map((p) => ({
-          partner_id: p.partner_id ? Number(p.partner_id) : undefined,
-          partner_role: p.partner_role,
-          partner_contribution: p.partner_contribution
-            ? Number(p.partner_contribution)
-            : undefined,
-        })),
+        partners: partners
+          .filter((p) => p.partner_id && p.partner_id.trim() !== '')
+          .map((p) => ({
+            partner_id: p.partner_id ? Number(p.partner_id) : undefined,
+            partner_role: p.partner_role,
+            partner_contribution: p.partner_contribution
+              ? Number(p.partner_contribution)
+              : undefined,
+          })),
       };
       Object.entries(payload).forEach(([key, value]) => {
         if (value === undefined) {
@@ -359,13 +473,15 @@ const AddProject: React.FC = () => {
             ? Number(form.zakoura_contribution)
             : undefined,
           created_by_id: 1,
-          partners: partners.map((p) => ({
-            partner_id: p.partner_id ? Number(p.partner_id) : undefined,
-            partner_role: p.partner_role,
-            partner_contribution: p.partner_contribution
-              ? Number(p.partner_contribution)
-              : undefined,
-          })),
+          partners: partners
+            .filter((p) => p.partner_id && p.partner_id.trim() !== '')
+            .map((p) => ({
+              partner_id: p.partner_id ? Number(p.partner_id) : undefined,
+              partner_role: p.partner_role,
+              partner_contribution: p.partner_contribution
+                ? Number(p.partner_contribution)
+                : undefined,
+            })),
         };
         Object.entries(payload).forEach(([key, value]) => {
           if (value === undefined) {
@@ -401,6 +517,8 @@ const AddProject: React.FC = () => {
 
   const {  sum: percentSum } = getTotalPercent();
 
+
+
   return (
     <div className="p-8 font-nunito">
       <div className="flex justify-between items-center mb-8">
@@ -419,7 +537,7 @@ const AddProject: React.FC = () => {
           <div className="bg-white rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4 shadow p-6 mb-4">
             <div className="mb-4 flex-1">
               <label className="block text-gray-700 font-semibold mb-2 text-left">
-                Nom du projet
+                Nom du projet <span className="text-red-500">*</span>
               </label>
               <Input
                 name="project_name"
@@ -429,6 +547,7 @@ const AddProject: React.FC = () => {
                   handleSelectChange("project_name", e.target.value)
                 }
                 onBlur={() => handleBlur("project_name")}
+                onFocus={() => handleFieldFocus("project_name")}
                 className={`border ${
                   errors.project_name && touched.project_name
                     ? "border-red-500"
@@ -444,7 +563,7 @@ const AddProject: React.FC = () => {
             </div>
             <div>
               <label className="block text-gray-700 flex-1 font-semibold mb-2 text-left">
-                Responsable
+                Responsable <span className="text-red-500">*</span>
               </label>
               <div className="w-full">
                 <Combobox
@@ -472,7 +591,7 @@ const AddProject: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Nature du projet
+                  Nature du projet <span className="text-red-500">*</span>
                 </label>
                 <div className="w-full" ref={inputRefs.project_nature}>
                   <Select
@@ -501,7 +620,7 @@ const AddProject: React.FC = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Type de projet
+                  Type de projet <span className="text-red-500">*</span>
                 </label>
                 <div className="w-full">
                   <Combobox
@@ -527,7 +646,7 @@ const AddProject: React.FC = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Statut du projet
+                  Statut du projet <span className="text-red-500">*</span>
                 </label>
                 <div className="w-full">
                   <Combobox
@@ -553,13 +672,14 @@ const AddProject: React.FC = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Date de lancement
+                  Date de lancement <span className="text-red-500">*</span>
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className="w-full justify-start text-left"
+                      onFocus={() => handleFieldFocus("start_date")}
                     >
                       {startDate
                         ? format(startDate, "yyyy-MM-dd")
@@ -592,13 +712,14 @@ const AddProject: React.FC = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Date de clôture
+                  Date de clôture <span className="text-red-500">*</span>
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className="w-full justify-start text-left"
+                      onFocus={() => handleFieldFocus("end_date")}
                     >
                       {endDate
                         ? format(endDate, "yyyy-MM-dd")
@@ -631,13 +752,14 @@ const AddProject: React.FC = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Date de début réelle
+                  Date de début réelle <span className="text-red-500">*</span>
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className="w-full justify-start text-left"
+                      onFocus={() => handleFieldFocus("actual_start_date")}
                     >
                       {actualStartDate
                         ? format(actualStartDate, "yyyy-MM-dd")
@@ -700,77 +822,83 @@ const AddProject: React.FC = () => {
                           disabled={optionsLoading}
                         />
                       </div>
-                      <div className="flex-1">
-                        <label className="block text-gray-700 font-semibold mb-1 text-left">
-                          Rôle
-                        </label>
-                        <div className="w-full">
-                          <Combobox
-                            options={
-                              formOptions?.partner_roles
-                                ? Object.entries(formOptions.partner_roles).map(
-                                    ([_, label]) => ({
-                                      value: String(label),
-                                      label:
-                                        (label as string)
-                                          .charAt(0)
-                                          .toUpperCase() +
-                                        (label as string).slice(1),
-                                    })
+                      {partner.partner_id && (
+                        <>
+                          <div className="flex-1">
+                            <label className="block text-gray-700 font-semibold mb-1 text-left">
+                              Rôle <span className="text-red-500">*</span>
+                            </label>
+                            <div className="w-full">
+                              <Combobox
+                                options={
+                                  formOptions?.partner_roles
+                                    ? Object.entries(formOptions.partner_roles).map(
+                                        ([_, label]) => ({
+                                          value: String(label),
+                                          label:
+                                            (label as string)
+                                              .charAt(0)
+                                              .toUpperCase() +
+                                            (label as string).slice(1),
+                                        })
+                                      )
+                                    : []
+                                }
+                                value={partner.partner_role}
+                                onChange={(val) =>
+                                  handlePartnerSelectChange(
+                                    idx,
+                                    "partner_role",
+                                    val
                                   )
-                                : []
-                            }
-                            value={partner.partner_role}
-                            onChange={(val) =>
-                              handlePartnerSelectChange(
-                                idx,
-                                "partner_role",
-                                val
-                              )
-                            }
-                            placeholder="Sélectionner un rôle"
-                            disabled={optionsLoading}
-                          />
-                          {partnerErrors[idx]?.partner_role &&
-                            partnerTouched[idx]?.partner_role && (
-                              <div className="text-red-500 text-xs mt-1">
-                                {partnerErrors[idx].partner_role}
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-gray-700 font-semibold mb-1 text-left">
-                          % Apport Partenaire
-                        </label>
-                        <Input
-                          name="partner_contribution"
-                          placeholder="Apport Partenaire"
-                          min={0}
-                          max={100}
-                          type="number"
-                          value={partner.partner_contribution}
-                          onChange={(e) =>
-                            handlePartnerSelectChange(
-                              idx,
-                              "partner_contribution",
-                              e.target.value
-                            )
-                          }
-                          className={`border ${
-                            partnerErrors[idx]?.partner_contribution &&
-                            partnerTouched[idx]?.partner_contribution
-                              ? "border-red-500"
-                              : "border-gray-200"
-                          } rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition`}
-                        />
-                        {partnerErrors[idx]?.partner_contribution &&
-                          partnerTouched[idx]?.partner_contribution && (
-                            <div className="text-red-500 text-xs mt-1">
-                              {partnerErrors[idx].partner_contribution}
+                                }
+                                placeholder="Sélectionner un rôle"
+                                disabled={optionsLoading}
+                              />
+                              {partnerErrors[idx]?.partner_role &&
+                                partnerTouched[idx]?.partner_role && (
+                                  <div className="text-red-500 text-xs mt-1">
+                                    {partnerErrors[idx].partner_role}
+                                  </div>
+                                )}
                             </div>
-                          )}
-                      </div>
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-gray-700 font-semibold mb-1 text-left">
+                              % Apport Partenaire <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              name="partner_contribution"
+                              placeholder="Apport Partenaire"
+                              min={0}
+                              max={100}
+                              type="number"
+                              value={partner.partner_contribution}
+                              onChange={(e) =>
+                                handlePartnerSelectChange(
+                                  idx,
+                                  "partner_contribution",
+                                  e.target.value
+                                )
+                              }
+                              onBlur={() => handleBlur(`partners.${idx}.partner_contribution`)}
+                              
+                              className={`border ${
+                                partnerErrors[idx]?.partner_contribution &&
+                                partnerTouched[idx]?.partner_contribution
+                                  ? "border-red-500"
+                                  : "border-gray-200"
+                              } rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition`}
+                            />
+                            {partnerErrors[idx]?.partner_contribution &&
+                              partnerTouched[idx]?.partner_contribution && (
+                                <div className="text-red-500 text-xs mt-1">
+                                  {partnerErrors[idx].partner_contribution}
+                                </div>
+                              )}
+                          </div>
+                        </>
+                      )}
                     </div>
                     {partners.length > 0 && (
                       <Button
@@ -801,7 +929,7 @@ const AddProject: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Budget total
+                  Budget total <span className="text-red-500">*</span>
                 </label>
                 <Input
                   name="total_budget"
@@ -811,6 +939,8 @@ const AddProject: React.FC = () => {
                   onChange={(e) =>
                     handleSelectChange("total_budget", e.target.value)
                   }
+                  onBlur={() => handleBlur("total_budget")}
+                  onFocus={() => handleFieldFocus("total_budget")}
                   className={`border ${
                     errors.total_budget && touched.total_budget
                       ? "border-red-500"
@@ -830,21 +960,28 @@ const AddProject: React.FC = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Compte Bancaire de Projet
+                  Compte Bancaire de Projet <span className="text-red-500">*</span>
                 </label>
-                <Combobox
-                  options={formOptions?.bank_accounts?.map((b: any) => ({ value: String(b.id), label: b.account_title })) || []}
-                  value={form.bank_account_id}
-                  onChange={(value) =>
-                    handleSelectChange("bank_account_id", value)
-                  }
-                  placeholder="Sélectionner le compte bancaire"
-                  disabled={optionsLoading}
-                />
+                <div className={`${errors.bank_account_id && touched.bank_account_id ? 'border border-red-500 rounded-lg' : ''}`}>
+                  <Combobox
+                    options={formOptions?.bank_accounts?.map((b: any) => ({ value: String(b.id), label: b.account_title })) || []}
+                    value={form.bank_account_id}
+                    onChange={(value) =>
+                      handleSelectChange("bank_account_id", value)
+                    }
+                    placeholder="Sélectionner le compte bancaire"
+                    disabled={optionsLoading}
+                  />
+                </div>
+                {errors.bank_account_id && touched.bank_account_id && (
+                  <div className="text-red-500 text-xs mt-1">
+                    {errors.bank_account_id}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2 text-left">
-                  Apport FZ
+                  Apport FZ <span className="text-red-500">*</span>
                 </label>
                 <Input
                   name="zakoura_contribution"
@@ -855,6 +992,8 @@ const AddProject: React.FC = () => {
                   onChange={(e) =>
                     handleSelectChange("zakoura_contribution", e.target.value)
                   }
+                  onBlur={() => handleBlur("zakoura_contribution")}
+                  onFocus={() => handleFieldFocus("zakoura_contribution")}
                   className={`border ${
                     errors.zakoura_contribution && touched.zakoura_contribution
                       ? "border-red-500"
@@ -905,10 +1044,17 @@ const AddProject: React.FC = () => {
               name="notes"
               value={form.notes}
               onChange={(e) => handleSelectChange("notes", e.target.value)}
+              onBlur={() => handleBlur("notes")}
+              onFocus={() => handleFieldFocus("notes")}
               className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
               rows={3}
               placeholder="Entrer des notes ou observations (optionnel)"
             />
+            {errors.notes && touched.notes && (
+              <div className="text-red-500 text-xs mt-1">
+                {errors.notes}
+              </div>
+            )}
           </div>
           {/* Created by (hidden or prefilled for now) */}
           <input
