@@ -2,12 +2,12 @@ import { baseApi } from "./api";
 
 export const budgetCategoryApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getBudgetCategories: builder.query<any, { page?: number; per_page?: number; type?: string; is_active?: string; label?: string; code?: string; budgetary_area?: string }>({
+        getBudgetCategories: builder.query<any, { page?: number; perPage?: number; type?: string; is_active?: string; label?: string; code?: string; budgetary_area?: string }>({
             query: (params = {}) => {
-                const { page = 1, per_page = 10, ...filters } = params;
+                const { page = 1, perPage = 10, ...filters } = params;
                 const searchParams = new URLSearchParams({
                     page: String(page),
-                    per_page: String(per_page),
+                    per_page: String(perPage),
                     ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '')),
                 });
                 return `/budget-categories?${searchParams.toString()}`;

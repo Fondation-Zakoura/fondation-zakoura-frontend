@@ -68,15 +68,18 @@ const BudgetCategoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const { data: apiData, isLoading, refetch } = useGetBudgetCategoriesQuery({
     page,
-    per_page: pageSize,
+    perPage: pageSize,
     ...filters,
     code: search || undefined,
   });
+  
+
   const pagination = apiData || {};
   const categories: (BudgetCategory & { id?: number })[] = pagination.data || [];
   const total = pagination.total || 0;
-  const perPage = pagination.per_page || pageSize;
   const currentPage = pagination.current_page || page;
+  
+
   const [addCategory] = useAddBudgetCategoryMutation();
   const [updateCategory] = useUpdateBudgetCategoryMutation();
   const [deleteCategory] = useDeleteBudgetCategoryMutation();
@@ -382,11 +385,13 @@ const BudgetCategoryPage: React.FC = () => {
             enableBulkDelete={true}
             onBulkDelete={handleBulkDeleteRequest}
             serverPagination={true}
-            pageCount={Math.ceil(total / perPage)}
+            pageCount={Math.ceil(total / pageSize)}
             pageIndex={currentPage - 1}
             onPaginationChange={({ pageIndex, pageSize }) => {
               setPage(pageIndex + 1);
-              if (pageSize) setPageSize(pageSize);
+              if (pageSize) {
+                setPageSize(pageSize);
+              }
             }}
             onFilterChange={(newFilters) => {
               setFilters(newFilters);
