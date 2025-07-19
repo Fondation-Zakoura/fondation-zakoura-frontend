@@ -1,6 +1,5 @@
-import type { Collaborateur, CollaborateurFormOptions } from '@/features/types/collaborateurs';
+import type {  Collaborateur, CollaborateurFormOptions, CollaborateursResponse } from '@/features/types/collaborateurs';
 import { baseApi } from '@/features/api/api';
-import type { ApiResponse } from '@/types/partners';
 
 
 export const collaborateursApi = baseApi.enhanceEndpoints({
@@ -15,7 +14,7 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
 
     // ✅ Récupération paginée des collaborateurs
 
-    getCollaborateurs: builder.query<ApiResponse<Collaborateur>, { filters: Record<string, string | string[]>; page?: number }>({
+    getCollaborateurs: builder.query<CollaborateursResponse, { filters: Record<string, string | string[]>; page?: number }>({
       query: ({ filters, page = 1 }) => {
         const params: Record<string, string | number | string[]> = { page: String(page) };
         for (const key in filters) {
@@ -28,7 +27,7 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
           params: params,
         };
       },
-      transformResponse: (response: ApiResponse<Collaborateur>) => response,
+      transformResponse: (response:CollaborateursResponse) => response,
       providesTags: (result) =>
         result
           ? [...result.data.map(({ id }) => ({ type: 'Collaborateurs' as const, id })), 'Collaborateurs']
@@ -96,7 +95,7 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
       invalidatesTags: ['Collaborateurs'],
     }),
     //get Archived Collaborateurs
-    getArchivedCollaborateurs: builder.query<ApiResponse<Collaborateur>, { filters: Record<string, string | string[]>; page?: number }>({
+    getArchivedCollaborateurs: builder.query<CollaborateursResponse, { filters: Record<string, string | string[]>; page?: number }>({
       query: ({ filters, page = 1 }) => {
         const params: Record<string, string | number | string[]> = { page: String(page) };
         for (const key in filters) {
@@ -109,7 +108,7 @@ export const collaborateursApi = baseApi.enhanceEndpoints({
           params: params,
         };
       },
-      transformResponse: (response: ApiResponse<Collaborateur>) => response,
+      transformResponse: (response: CollaborateursResponse) => response,
       providesTags: (result) =>
         result
           ? [...result.data.map(({ id }) => ({ type: 'Collaborateurs' as const, id })), 'Collaborateurs']
