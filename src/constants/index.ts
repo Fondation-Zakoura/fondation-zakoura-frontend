@@ -213,7 +213,7 @@ export const menuItems = [
                     { id: 'categories', title: 'Catégories', link: '/categories', icon: RiBriefcaseLine, type: 'link' },
                     { id: 'produits', title: 'Produits', link: '/produits', icon: MdOutlineEvent, type: 'link' },
                     { id: 'articles', title: 'Articles', link: '/articles', icon: MdOutlineEvent, type: 'link' },
-                    { id: 'packs', title: 'Packs', link: '/achats/packs', icon: RiStackLine, type: 'link' }, // Added link
+                    { id: 'packs', title: 'Packs', link: '/packs', icon: RiStackLine, type: 'link' }, // Added link
                 ],
             },
             {
@@ -429,7 +429,7 @@ export const menuItems = [
                 icon: null, // No icon for the header
                 link: '#', // Non-navigating parent
                 nestedDropdownItems: [
-                    { id: 'sites', title: 'Sites', link: 'sites', icon: RiBankLine, type: 'link' },
+                    { id: 'sites', title: 'Sites', link: '/sites', icon: RiBankLine, type: 'link' },
                     {id: 'unites', title: 'Unités', link: '/parametres/operations/unites', icon: RiBankLine, type: 'link' },
                     { id: 'agences-bancaires', title: 'Agences bancaires', link: '/parametres/projets/agences-bancaires', icon: RiBankLine, type: 'link' },
                     { id: 'pays', title: 'Pays', link: '/parametres/projets/pays', icon: RiEarthLine, type: 'link' },
@@ -526,7 +526,7 @@ export const menuItems = [
                         icon: null,
                         link: '#',
                         nestedDropdownItems: [
-                            { id: 'types-produits', title: 'Types de produits', link: 'typeproducts', icon: RiSettings2Line, type: 'link' },
+                            { id: 'types-produits', title: 'Types de produits', link: '/parametres/achats/types/produits', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-niveaux-urgence', title: "Types des niveaux d'urgence", link: '/parametres/achats/types/niveaux-urgence', icon: RiSettings2Line, type: 'link' },
                             { id: 'types-fournisseurs', title: 'Types de fournisseurs', link: '/parametres/achats/types/fournisseurs', icon: RiSettings2Line, type: 'link' },
                         ],
