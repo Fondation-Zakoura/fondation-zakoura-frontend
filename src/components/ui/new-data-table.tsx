@@ -125,6 +125,12 @@ export function NewDataTable<T extends { id: string | number }>({
   );
   const [currentPage, setCurrentPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(initialPageSize);
+  const [currentPageSize, setCurrentPageSize] = React.useState(initialPageSize);
+
+  // Update currentPageSize when initialPageSize changes
+  React.useEffect(() => {
+    setCurrentPageSize(initialPageSize);
+  }, [initialPageSize]);
 
   // Use controlled state if provided, otherwise internal state
   const [internalSelectedRowIds, setInternalSelectedRowIds] = React.useState<T["id"][]>([]);
@@ -216,9 +222,17 @@ export function NewDataTable<T extends { id: string | number }>({
   }, [data, globalFilter, globalFilterKey, filterValues, sortConfig, columns, searchColumns, onGlobalSearchChange]);
 
   const paginatedData = React.useMemo(() => {
+    // If server pagination is enabled, use the data directly from server
+    if (serverPagination) {
+      console.log('Server pagination: using data directly, length:', processedData.length);
+      return processedData;
+    }
+    // For client-side pagination, apply local slicing
     const startIndex = (currentPage - 1) * rowsPerPage;
-    return processedData.slice(startIndex, startIndex + rowsPerPage);
-  }, [processedData, currentPage, rowsPerPage]);
+    const slicedData = processedData.slice(startIndex, startIndex + rowsPerPage);
+    console.log('Client pagination: sliced data, length:', slicedData.length);
+    return slicedData;
+  }, [processedData, currentPage, rowsPerPage, serverPagination]);
 
   const totalPages = Math.ceil(processedData.length / rowsPerPage);
 
@@ -315,7 +329,9 @@ export function NewDataTable<T extends { id: string | number }>({
   // If serverPagination, use props; else use internal state
   const effectivePage = serverPagination && typeof pageIndex === 'number' ? pageIndex + 1 : currentPage;
   const effectiveTotalPages = serverPagination && typeof pageCount === 'number' ? pageCount : totalPages;
-  const effectiveRowsPerPage = serverPagination && typeof initialPageSize === 'number' ? initialPageSize : rowsPerPage;
+  const effectiveRowsPerPage = serverPagination ? currentPageSize : rowsPerPage;
+  
+
 
   // --- RENDER ---
   return (
@@ -527,10 +543,12 @@ export function NewDataTable<T extends { id: string | number }>({
           <Select
             value={String(effectiveRowsPerPage)}
             onValueChange={(value) => {
+              const newPageSize = Number(value);
               if (serverPagination && onPaginationChange) {
-                onPaginationChange({ pageIndex: 0, pageSize: Number(value) });
+                setCurrentPageSize(newPageSize);
+                onPaginationChange({ pageIndex: 0, pageSize: newPageSize });
               } else {
-                setRowsPerPage(Number(value));
+                setRowsPerPage(newPageSize);
                 setCurrentPage(1);
               }
             }}
@@ -557,7 +575,7 @@ export function NewDataTable<T extends { id: string | number }>({
               size="sm"
               onClick={() => {
                 if (serverPagination && onPaginationChange) {
-                  onPaginationChange({ pageIndex: Math.max(0, (pageIndex || 0) - 1), pageSize: effectiveRowsPerPage });
+                  onPaginationChange({ pageIndex: Math.max(0, (pageIndex || 0) - 1), pageSize: currentPageSize });
                 } else {
                   setCurrentPage((p) => Math.max(1, p - 1));
                 }
@@ -571,7 +589,7 @@ export function NewDataTable<T extends { id: string | number }>({
               size="sm"
               onClick={() => {
                 if (serverPagination && onPaginationChange) {
-                  onPaginationChange({ pageIndex: Math.min((pageCount || 1) - 1, (pageIndex || 0) + 1), pageSize: effectiveRowsPerPage });
+                  onPaginationChange({ pageIndex: Math.min((pageCount || 1) - 1, (pageIndex || 0) + 1), pageSize: currentPageSize });
                 } else {
                   setCurrentPage((p) => Math.min(effectiveTotalPages, p + 1));
                 }

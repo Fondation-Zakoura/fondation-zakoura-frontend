@@ -38,7 +38,6 @@ function BudgetLinePage() {
     
     const budgetLines = apiData?.data || [];
   
-    const perPage = apiData?.per_page || 10;
     const totalPages = apiData?.last_page || 1;
     const currentPageFromApi = apiData?.current_page || 1;
     
@@ -194,7 +193,7 @@ function BudgetLinePage() {
                           emptyText={isLoading ? 'Chargement des données...' : 'Aucune ligne budgétaire trouvée'}
                           headerStyle={'primary'}
                           striped
-                          initialPageSize={perPage}
+                          initialPageSize={pageSize}
                           enableBulkDelete={true}
                           serverPagination={true}
                           pageCount={totalPages}
