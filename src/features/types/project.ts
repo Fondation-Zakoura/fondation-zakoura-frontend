@@ -22,6 +22,7 @@ export interface Project {
   project_bank_account?: ProjectBankAccount;
   project_nature: string;
   updated_at: string;
+  deleted_at?: string | null;
   project_type?: ProjectType;
   project_status?: ProjectStatus;
 }

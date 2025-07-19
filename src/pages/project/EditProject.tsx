@@ -199,10 +199,26 @@ const EditProject: React.FC = () => {
     const newPartnerErrors: { [idx: number]: { [key: string]: string } } = {};
     partners.forEach((partner, idx) => {
       const pErr: { [key: string]: string } = {};
-      if (!partner.partner_id) pErr.partner_id = "Partenaire requis";
-      if (!partner.partner_role) pErr.partner_role = "Rôle requis";
-      if (!partner.partner_contribution)
-        pErr.partner_contribution = "Apport requis";
+      // Only validate role and contribution if a partner is selected
+      if (partner.partner_id && partner.partner_id.trim() !== '') {
+        if (!partner.partner_role || partner.partner_role.trim() === '') {
+          pErr.partner_role = "Rôle requis";
+        }
+        if (!partner.partner_contribution || partner.partner_contribution.trim() === '') {
+          pErr.partner_contribution = "Apport requis";
+        }
+        // Validate contribution range if provided
+        if (partner.partner_contribution) {
+          const contribution = Number(partner.partner_contribution);
+          if (isNaN(contribution)) {
+            pErr.partner_contribution = "L'apport doit être un nombre valide";
+          } else if (contribution < 0) {
+            pErr.partner_contribution = "L'apport ne peut pas être négatif";
+          } else if (contribution > 100) {
+            pErr.partner_contribution = "L'apport ne peut pas dépasser 100%";
+          }
+        }
+      }
       if (Object.keys(pErr).length) newPartnerErrors[idx] = pErr;
     });
     return newPartnerErrors;
@@ -294,11 +310,15 @@ const EditProject: React.FC = () => {
       const firstInvalidKey = Object.keys(
         fieldErrors
       )[0] as ProjectInputRefKeys;
-      inputRefs[firstInvalidKey].current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-      inputRefs[firstInvalidKey].current.focus();
+      
+      // Safety check to ensure the ref exists before accessing it
+      if (inputRefs[firstInvalidKey] && inputRefs[firstInvalidKey].current) {
+        inputRefs[firstInvalidKey].current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        inputRefs[firstInvalidKey].current.focus();
+      }
       return;
     }
     if (!p) return;
@@ -334,13 +354,15 @@ const EditProject: React.FC = () => {
         created_by_id: form.created_by_id
           ? Number(form.created_by_id)
           : undefined,
-        partners: partners.map((p) => ({
-          partner_id: p.partner_id ? Number(p.partner_id) : undefined,
-          partner_role: p.partner_role,
-          partner_contribution: p.partner_contribution
-            ? Number(p.partner_contribution)
-            : undefined,
-        })),
+        partners: partners
+          .filter((p) => p.partner_id && p.partner_id.trim() !== '')
+          .map((p) => ({
+            partner_id: p.partner_id ? Number(p.partner_id) : undefined,
+            partner_role: p.partner_role,
+            partner_contribution: p.partner_contribution
+              ? Number(p.partner_contribution)
+              : undefined,
+          })),
       };
       Object.keys(payload).forEach((key) => {
         if ((payload as any)[key] === undefined) {
@@ -398,13 +420,15 @@ const EditProject: React.FC = () => {
           created_by_id: form.created_by_id
             ? Number(form.created_by_id)
             : undefined,
-          partners: partners.map((p) => ({
-            partner_id: p.partner_id ? Number(p.partner_id) : undefined,
-            partner_role: p.partner_role,
-            partner_contribution: p.partner_contribution
-              ? Number(p.partner_contribution)
-              : undefined,
-          })),
+          partners: partners
+            .filter((p) => p.partner_id && p.partner_id.trim() !== '')
+            .map((p) => ({
+              partner_id: p.partner_id ? Number(p.partner_id) : undefined,
+              partner_role: p.partner_role,
+              partner_contribution: p.partner_contribution
+                ? Number(p.partner_contribution)
+                : undefined,
+            })),
         };
         Object.keys(payload).forEach((key) => {
           if ((payload as any)[key] === undefined) {
@@ -470,7 +494,7 @@ const EditProject: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2 text-left">
-                Nom du projet
+                Nom du projet <span className="text-red-500">*</span>
               </label>
               <Input
                 ref={inputRefs.project_name}
@@ -490,7 +514,7 @@ const EditProject: React.FC = () => {
                 ref={inputRefs.responsible}
                 className="block text-gray-700 font-semibold mb-2 text-left"
               >
-                Responsable
+                Responsable <span className="text-red-500">*</span>
               </label>
               <Combobox
                 options={
@@ -515,7 +539,7 @@ const EditProject: React.FC = () => {
           <div className="bg-white rounded-xl shadow p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label ref={inputRefs.project_type} className="block text-gray-700 font-semibold mb-2 text-left">Type de projet</label>
+                <label ref={inputRefs.project_type} className="block text-gray-700 font-semibold mb-2 text-left">Type de projet <span className="text-red-500">*</span></label>
                 <Combobox
                   options={formOptions?.project_types?.filter(Boolean).map((t: any) => ({ value: String(t.id), label: t.name })) || []}
                   value={form.project_type_id}
@@ -526,7 +550,7 @@ const EditProject: React.FC = () => {
                 {errors.project_type_id && <div className="text-red-500 text-xs mt-1">{errors.project_type_id}</div>}
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2 text-left">Nature du projet</label>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Nature du projet <span className="text-red-500">*</span></label>
                 <Combobox
                   options={formOptions?.project_nature_options?.map((n: string) => ({ value: n, label: n })) || []}
                   value={form.project_nature}
@@ -537,7 +561,7 @@ const EditProject: React.FC = () => {
                 {errors.project_nature && <div className="text-red-500 text-xs mt-1">{errors.project_nature}</div>}
               </div>
               <div>
-                <label ref={inputRefs.project_status} className="block text-gray-700 font-semibold mb-2 text-left">Statut du projet</label>
+                <label ref={inputRefs.project_status} className="block text-gray-700 font-semibold mb-2 text-left">Statut du projet <span className="text-red-500">*</span></label>
                 <Combobox
                   options={formOptions?.project_statuses?.filter(Boolean).map((s: any) => ({ value: String(s.id), label: s.name })) || []}
                   value={form.project_status_id}
@@ -548,7 +572,7 @@ const EditProject: React.FC = () => {
                 {errors.project_status_id && <div className="text-red-500 text-xs mt-1">{errors.project_status_id}</div>}
               </div>
               <div>
-                <label ref={inputRefs.start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de lancement</label>
+                <label ref={inputRefs.start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de lancement <span className="text-red-500">*</span></label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left">
@@ -573,7 +597,7 @@ const EditProject: React.FC = () => {
                 {dateErrors.start_date && <div className="text-red-500 text-xs mt-1">{dateErrors.start_date}</div>}
               </div>
               <div>
-                <label ref={inputRefs.actual_start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de début réelle</label>
+                <label ref={inputRefs.actual_start_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de début réelle <span className="text-red-500">*</span></label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left">
@@ -598,7 +622,7 @@ const EditProject: React.FC = () => {
                 {dateErrors.actual_start_date && <div className="text-red-500 text-xs mt-1">{dateErrors.actual_start_date}</div>}
               </div>
               <div>
-                <label ref={inputRefs.end_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de clôture</label>
+                <label ref={inputRefs.end_date} className="block text-gray-700 font-semibold mb-2 text-left">Date de clôture <span className="text-red-500">*</span></label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left">
@@ -626,7 +650,7 @@ const EditProject: React.FC = () => {
             {/* Détails Financiers */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-gray-700 font-semibold mb-2 text-left">Budget total</label>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Budget total <span className="text-red-500">*</span></label>
                 <Input
                   ref={inputRefs.total_budget}
                   name="total_budget"
@@ -641,7 +665,7 @@ const EditProject: React.FC = () => {
                 {errors.total_budget && <div className="text-red-500 text-xs mt-1">{errors.total_budget}</div>}
               </div>
               <div>
-                <label ref={inputRefs.bank_account} className="block text-gray-700 font-semibold mb-2 text-left">Compte Bancaire de Projet</label>
+                <label ref={inputRefs.bank_account} className="block text-gray-700 font-semibold mb-2 text-left">Compte Bancaire de Projet <span className="text-red-500">*</span></label>
                 <Combobox
                   options={formOptions?.bank_accounts?.filter(Boolean).map((b: any) => ({ value: String(b.id), label: b.account_title })) || []}
                   value={form.project_bank_account_id}
@@ -652,7 +676,7 @@ const EditProject: React.FC = () => {
                 {errors.project_bank_account_id && <div className="text-red-500 text-xs mt-1">{errors.project_bank_account_id}</div>}
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2 text-left">Apport FZ (%)</label>
+                <label className="block text-gray-700 font-semibold mb-2 text-left">Apport FZ (%) <span className="text-red-500">*</span></label>
                 <Input
                   ref={inputRefs.zakoura_contribution}
                   name="zakoura_contribution"
@@ -705,56 +729,60 @@ const EditProject: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <label className="block text-gray-700 font-semibold mb-1 text-left">
-                          Rôle
-                        </label>
-                        <Combobox
-                          options={
-                            formOptions?.partner_roles
-                              ? Object.entries(formOptions.partner_roles).map(
-                                  ([_, label]) => ({
-                                    value: String(label),
-                                    label: label as string,
-                                  })
-                                )
-                              : []
-                          }
-                          value={partner.partner_role}
-                          onChange={(value) =>
-                            handlePartnerChange(idx, {
-                              target: { name: "partner_role", value },
-                            } as React.ChangeEvent<HTMLInputElement>)
-                          }
-                          placeholder="Sélectionner un rôle"
-                          disabled={optionsLoading}
-                        />
-                        {partnerErrors[idx]?.partner_role && (
-                          <div className="text-red-500 text-xs mt-1">
-                            {partnerErrors[idx].partner_role}
+                      {partner.partner_id && (
+                        <>
+                          <div className="flex-1">
+                            <label className="block text-gray-700 font-semibold mb-1 text-left">
+                              Rôle <span className="text-red-500">*</span>
+                            </label>
+                            <Combobox
+                              options={
+                                formOptions?.partner_roles
+                                  ? Object.entries(formOptions.partner_roles).map(
+                                      ([_, label]) => ({
+                                        value: String(label),
+                                        label: label as string,
+                                      })
+                                    )
+                                  : []
+                              }
+                              value={partner.partner_role}
+                              onChange={(value) =>
+                                handlePartnerChange(idx, {
+                                  target: { name: "partner_role", value },
+                                } as React.ChangeEvent<HTMLInputElement>)
+                              }
+                              placeholder="Sélectionner un rôle"
+                              disabled={optionsLoading}
+                            />
+                            {partnerErrors[idx]?.partner_role && (
+                              <div className="text-red-500 text-xs mt-1">
+                                {partnerErrors[idx].partner_role}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-gray-700 font-semibold mb-1 text-left">
-                          % Apport Partenaire
-                        </label>
-                        <Input
-                          name="partner_contribution"
-                          placeholder="% (0-100)"
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={partner.partner_contribution}
-                          onChange={(e) => handlePartnerChange(idx, e)}
-                          className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-                        />
-                        {partnerErrors[idx]?.partner_contribution && (
-                          <div className="text-red-500 text-xs mt-1">
-                            {partnerErrors[idx].partner_contribution}
+                          <div className="flex-1">
+                            <label className="block text-gray-700 font-semibold mb-1 text-left">
+                              % Apport Partenaire <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              name="partner_contribution"
+                              placeholder="% (0-100)"
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={partner.partner_contribution}
+                              onChange={(e) => handlePartnerChange(idx, e)}
+                              className="border border-gray-200 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                            />
+                            {partnerErrors[idx]?.partner_contribution && (
+                              <div className="text-red-500 text-xs mt-1">
+                                {partnerErrors[idx].partner_contribution}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </>
+                      )}
                     </div>
                     {partners.length > 0 && (
                       <Button

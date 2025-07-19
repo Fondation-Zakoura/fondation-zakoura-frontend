@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Plus, Trash, Pen, Eye } from "lucide-react";
+import { Plus, Trash, Pen, Eye, RotateCcw } from "lucide-react";
 import {
-  DataTable,
   type Column,
   type ColumnFilter,
 } from "@/components/ui/data-table";
+import { NewDataTable } from "@/components/ui/new-data-table";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   useGetProjectsQuery,
   useBulkDeleteProjectsMutation,
   useGetProjectFormOptionsQuery,
+  useRestoreProjectMutation,
 } from "@/features/api/projectsApi";
 import type {
   Project,
@@ -31,10 +32,10 @@ import { PageHeaderLayout } from "@/layouts/MainLayout";
 
 function Projects() {
   const navigate = useNavigate();
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [filters, setFilters] = useState<Record<string, string | string[]>>({});
+  const [search, setSearch] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -46,16 +47,20 @@ function Projects() {
   );
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
+  const [bulkDeleteProjects] = useBulkDeleteProjectsMutation();
+  const [restoreProject, { isLoading: isRestoring }] = useRestoreProjectMutation();
+  const [restoringId, setRestoringId] = useState<number | null>(null);
 
   const { data, isLoading, isError, refetch } = useGetProjectsQuery({
-    page: pagination.pageIndex + 1,
-    per_page: pagination.pageSize
+    page: currentPage,
+    perPage: pageSize,
+    ...filters,
+    project_name: search || undefined,
   });
 
-
-  const [bulkDeleteProjects] = useBulkDeleteProjectsMutation();
-
   const projects: (Project & { partners?: any[] })[] = data?.data || [];
+  const totalPages = data?.last_page || 1;
+  const currentPageFromApi = data?.current_page || 1;
 
   const handleShow = (id: number) => {
     navigate(`/projects/${id}`);
@@ -141,17 +146,43 @@ function Projects() {
           >
             <Pen size={16} />
           </Button>
-          <Button
-            variant="ghost"
-            className="p-2 rounded hover:bg-red-100 text-red-600"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(row.id);
-            }}
-          >
-            <Trash size={16} />
-          </Button>
+          {row.deleted_at ? (
+            restoringId === row.id && isRestoring ? (
+              <span className="loader mr-2" />
+            ) : (
+              <Button
+                variant="ghost"
+                className="p-2 rounded hover:bg-green-100 text-green-600"
+                size="icon"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setRestoringId(row.id);
+                  try {
+                    await restoreProject(row.id).unwrap();
+                    refetch();
+                  } finally {
+                    setRestoringId(null);
+                  }
+                }}
+                title="Restaurer"
+                disabled={isRestoring && restoringId === row.id}
+              >
+                <RotateCcw size={16} />
+              </Button>
+            )
+          ) : (
+            <Button
+              variant="ghost"
+              className="p-2 rounded hover:bg-red-100 text-red-600"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(row.id);
+              }}
+            >
+              <Trash size={16} />
+            </Button>
+          )}
         </div>
       ),
       sortable: false,
@@ -165,7 +196,7 @@ function Projects() {
         id: "project_type_id",
         label: "Type du Projet",
         options:
-          options?.project_statuses.map((type: ProjectType) => ({
+          options?.project_types?.map((type: ProjectType) => ({
             value: type.id,
             label: type.name,
           })) || [],
@@ -174,7 +205,7 @@ function Projects() {
         id: "project_status_id",
         label: "Statut",
         options:
-          options?.project_types.map((status: ProjectStatus) => ({
+          options?.project_statuses?.map((status: ProjectStatus) => ({
             value: status.id,
             label: status.name,
           })) || [],
@@ -183,14 +214,22 @@ function Projects() {
         id: "project_nature",
         label: "Nature de Projet",
         options: Array.from(
-          new Set(options?.project_nature_options.filter(Boolean))
+          new Set(options?.project_nature_options?.filter(Boolean) || [])
         ).map((n) => ({
           value: String(n),
           label: String(n),
         })),
       },
+      {
+        id: "is_active",
+        label: "Active",
+        options: [
+          { value: "true", label: "Active" },
+          { value: "false", label: "Inactive" },
+        ],
+      },
     ];
-  }, [options, projects]);
+  }, [options]);
 
   if (isLoading)
     return (
@@ -224,22 +263,36 @@ function Projects() {
           </Button>
         </div>
 
-        <DataTable
+        <NewDataTable
           columns={columns}
           data={projects}
+          globalSearchPlaceholder="Rechercher par nom du projet"
+          globalSearchLabel="Nom de projet"
           columnFilters={columnFilters}
           emptyText={
             isLoading ? "Chargement des projets..." : "Aucun projet trouvé"
           }
           striped
           hoverEffect
-          initialPageSize={10}
-          serverPagination
-          pageCount={data?.last_page}
-          pageIndex={data?.current_page ? data.current_page - 1 : 0}
-          onPaginationChange={({ pageIndex, pageSize }) =>
-            setPagination({ pageIndex, pageSize })
-          }
+          initialPageSize={pageSize}
+          enableBulkDelete={true}
+          serverPagination={true}
+          pageCount={totalPages}
+          pageIndex={currentPageFromApi - 1}
+          globalFilterKey="project_name"
+          onPaginationChange={({ pageIndex, pageSize }) => {
+            setCurrentPage(pageIndex + 1);
+            if (pageSize) setPageSize(pageSize);
+          }}
+          onFilterChange={(newFilters) => {
+            setFilters(newFilters);
+            setCurrentPage(1);
+          }}
+          onGlobalSearchChange={(value) => {
+            setSearch(value);
+            setCurrentPage(1);
+          }}
+          globalSearchTerm={search}
           onBulkDelete={(ids) => {
             setPendingBulkDeleteIds(ids);
             setBulkDeleteConfirmOpen(true);
@@ -398,6 +451,22 @@ function Projects() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <style>{`
+.loader {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+`}</style>
     </>
   );
 }

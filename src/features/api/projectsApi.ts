@@ -11,13 +11,14 @@ import { baseApi } from "./api";
 
 type ProjectsQueryParams = {
   page?: number;
-  per_page?: number;
-  search?: string;
-  type?: string;
-  status?: string;
-  from?: string;
-  filter?: string;
-  sort?: string;
+  perPage?: number;
+  project_name?: string;
+  project_type_id?: string;
+  project_status_id?: string;
+  project_nature?: string;
+  is_active?: string;
+  partner_name?: string;
+  [key: string]: any;
 };
 
 type ProjectOptions = {
@@ -52,10 +53,19 @@ export const projectsApi = baseApi
         invalidatesTags: ["Projects"],
       }),
       getProjects: builder.query<ProjectsResponse, ProjectsQueryParams>({
-        query: (params) => ({
-          url: "/projects",
-          params,
-        }),
+        query: (params = {}) => {
+          const { page = 1, perPage = 10, ...filters } = params;
+          const searchParams = new URLSearchParams({
+            page: String(page),
+            per_page: String(perPage),
+            ...Object.fromEntries(
+              Object.entries(filters)
+                .filter(([_, v]) => v !== undefined && v !== null && v !== "")
+                .map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)])
+            )
+          });
+          return `/projects?${searchParams.toString()}`;
+        },
         providesTags: ["Projects"],
       }),
       getProject: builder.query<Project, number>({
@@ -88,6 +98,13 @@ export const projectsApi = baseApi
           url: "/projects/bulk-delete",
           method: "DELETE",
           body: { project_ids: ids },
+        }),
+        invalidatesTags: ["Projects"],
+      }),
+      restoreProject: builder.mutation<{ message: string }, number>({
+        query: (id) => ({
+          url: `/projects/${id}/restore`,
+          method: "PUT",
         }),
         invalidatesTags: ["Projects"],
       }),
@@ -278,6 +295,7 @@ export const {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   useBulkDeleteProjectsMutation,
+  useRestoreProjectMutation,
   useGetProjectQuery,
   useGetProjectTypesQuery,
   useGetProjectTypeQuery,

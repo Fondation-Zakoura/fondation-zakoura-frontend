@@ -101,7 +101,6 @@ export function NewDataTable<T extends { id: string | number }>({
   serverPagination = false,
   pageCount,
   pageIndex,
-  pageSize,
   onPaginationChange,
   onFilterChange,
   selectedRows: controlledSelectedRows,
@@ -228,13 +227,11 @@ export function NewDataTable<T extends { id: string | number }>({
   const paginatedData = React.useMemo(() => {
     // If server pagination is enabled, use the data directly from server
     if (serverPagination) {
-      console.log('Server pagination: using data directly, length:', processedData.length);
       return processedData;
     }
     // For client-side pagination, apply local slicing
     const startIndex = (currentPage - 1) * rowsPerPage;
     const slicedData = processedData.slice(startIndex, startIndex + rowsPerPage);
-    console.log('Client pagination: sliced data, length:', slicedData.length);
     return slicedData;
   }, [processedData, currentPage, rowsPerPage, serverPagination]);
 
